@@ -1,0 +1,85 @@
+# Mario Neuroevolution
+
+A replica of Super Mario Bros. World 1-1 in which a population of AI-controlled Marios learns to play the level by evolution: each generation the fittest reproduce.
+
+## Training
+
+**Run**:
+One complete training session, from the first generation to the last, whose results are recorded in their own folder.
+_Avoid_: Simulation, session, experiment
+
+**Run folder**:
+The folder holding everything recorded about one run, read afterwards to replay its generations and produce its statistics.
+_Avoid_: Output folder, log folder, save
+
+**Generation**:
+One round of a run in which every agent of the population plays the level once.
+_Avoid_: Epoch, iteration, round
+
+**Population**:
+The set of agents playing in one generation; its size is chosen per run.
+_Avoid_: Swarm, batch
+
+**Agent**:
+One Mario together with the genome that controls it.
+_Avoid_: Player, bot, individual
+
+**Attempt**:
+One single life in the level, from spawn until death, a stall, the level timer running out, or touching the flagpole; when a human plays, each life is its own attempt.
+_Avoid_: Episode, game, try
+
+**Stall**:
+The end of a training attempt because Mario has gone too long without getting further right than before in the place he is in (the level or the bonus room).
+_Avoid_: Stuck, idle timeout
+
+**Genome**:
+The inheritable description of an agent's brain (the weights of its neural network) that is mutated and recombined between generations.
+_Avoid_: DNA, chromosome, brain
+
+**Observation**:
+What an agent perceives on one tick: the grid of tiles and enemies around Mario plus Mario's own movement state; the agent's brain turns it into Controller presses.
+_Avoid_: State, input, sensors, vision
+
+**Fitness**:
+The score an agent earns for its attempt, used to decide who reproduces.
+_Avoid_: Reward (except for a single scored event), score
+
+## The level
+
+**Controller**:
+The set of buttons (left, right, down, jump, run) through which Mario is driven; a human and an agent press the same buttons, and the game cannot tell them apart.
+_Avoid_: Input, gamepad, actions
+
+**Controller log**:
+The record of which Controller buttons were held on every tick of an attempt, from which the attempt can be replayed exactly.
+_Avoid_: Input log, recording, replay file
+
+**Game event**:
+A fact the game reports about an attempt, such as distance travelled, falling into a pit, or hitting the hidden block; fitness is computed from game events.
+_Avoid_: Signal, trigger
+
+**Bonus room**:
+The underground coin room entered through the warp pipe, whose exit pipe puts Mario back in the level much further along.
+_Avoid_: Secret room, warp zone, underground level
+
+**Checkpoint**:
+The midway point of the level where a human player starts again after losing a life; training attempts always start at the beginning.
+_Avoid_: Save point, midpoint, respawn point
+
+## Viewing
+
+**Sprite view**:
+The level drawn as humans see it, with textured sprites.
+_Avoid_: Normal mode
+
+**Debug view**:
+The level drawn as the game and AI treat it: hitboxes, and the game events and rewards being scored.
+_Avoid_: Hitbox mode, AI view
+
+**Followed agent**:
+The agent the view's camera tracks: the Mario furthest right in the level among those still in their attempt; with one Mario, simply him.
+_Avoid_: Leader, focused agent, selected agent, best agent
+
+**Headless mode**:
+Training with nothing drawn, so generations run as fast as the machine allows.
+_Avoid_: Fast mode, background mode
