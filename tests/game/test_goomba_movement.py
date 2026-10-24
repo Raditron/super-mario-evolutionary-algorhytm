@@ -13,7 +13,7 @@ PIPE_46_LEFT_X = 46 * 16
 
 
 def goomba_at(column: int, resting_row: int = GROUND_TOP_ROW - 1) -> Goomba:
-    return Goomba(EnemySpawn(EnemyKind.GOOMBA, column * 16, resting_row))
+    return Goomba(EnemySpawn(EnemyKind.GOOMBA, column * 16, resting_row, column * 16))
 
 
 def step(goomba: Goomba, level, ticks: int) -> list[tuple[int, int]]:
@@ -21,15 +21,15 @@ def step(goomba: Goomba, level, ticks: int) -> list[tuple[int, int]]:
     positions = []
     for _ in range(ticks):
         goomba.step(level)
-        positions.append((goomba.hitbox().x, goomba.hitbox().y))
+        positions.append((goomba.hitbox().x_pixels, goomba.hitbox().y_pixels))
     return positions
 
 
 def test_a_goomba_drops_onto_the_ground_and_walks_left_at_half_a_pixel_per_tick(flat_level):
     goomba = goomba_at(20)
-    assert goomba.hitbox().bottom == GROUND_TOP_Y - SPAWN_DROP
+    assert goomba.hitbox().bottom_y_pixels == GROUND_TOP_Y - SPAWN_DROP
     positions = step(goomba, flat_level, 40)
-    assert goomba.hitbox().bottom == GROUND_TOP_Y
+    assert goomba.hitbox().bottom_y_pixels == GROUND_TOP_Y
     assert positions[-1][0] == 20 * 16 - 20
     assert positions[-1][0] - positions[-3][0] == -1
 
@@ -37,7 +37,7 @@ def test_a_goomba_drops_onto_the_ground_and_walks_left_at_half_a_pixel_per_tick(
 def test_a_goomba_falls_with_enemy_gravity_capped_near_3_px_per_tick():
     level = build_level(pit_columns=range(0, 120))
     goomba = goomba_at(20, resting_row=2)
-    heights = [goomba.hitbox().y] + [y for _, y in step(goomba, level, 60)]
+    heights = [goomba.hitbox().y_pixels] + [y for _, y in step(goomba, level, 60)]
     fall_per_tick = [after - before for before, after in zip(heights, heights[1:])]
     # 0x3D / 256 px per tick per tick: the first pixel is crossed on the fourth tick.
     assert fall_per_tick[:4] == [0, 0, 0, 1]
@@ -48,7 +48,7 @@ def test_a_goomba_falls_with_enemy_gravity_capped_near_3_px_per_tick():
 
 def test_goombas_turn_around_at_pipes(world_1_1):
     goomba = Goomba(world_1_1.enemy_spawns[1])
-    assert goomba.hitbox().x == 40 * 16
+    assert goomba.hitbox().x_pixels == 40 * 16
     x_positions = [x for x, _ in step(goomba, world_1_1, 600)]
     assert min(x_positions) == PIPE_38_RIGHT_X
     assert max(x_positions) == PIPE_46_LEFT_X - GOOMBA_SIZE

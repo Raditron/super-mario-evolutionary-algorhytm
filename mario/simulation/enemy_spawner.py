@@ -1,7 +1,8 @@
 """Enemy activation (the original's ProcessEnemyData), without its 5-slot limit.
 
 Enemies are read from the level's spawn table strictly in order. The next one
-activates once its activation x is at most 48 px past the screen's right edge;
+activates once its activation x is at most ENEMY_ACTIVATION_RANGE_PIXELS past
+the screen's right edge;
 one already left of that edge when its turn comes is skipped for good.
 """
 

@@ -38,7 +38,7 @@ def build_level(pit_columns: range = range(0), hard_blocks: frozenset[tuple[int,
 
 def goomba_spawn(x_pixels: int, resting_row: int = GROUND_TOP_ROW - 1) -> EnemySpawn:
     """A Goomba resting on the ground (or on the given row), starting at x."""
-    return EnemySpawn(EnemyKind.GOOMBA, x_pixels, resting_row)
+    return EnemySpawn(EnemyKind.GOOMBA, x_pixels, resting_row, x_pixels)
 
 
 def without_enemies(level: StaticLevel) -> StaticLevel:

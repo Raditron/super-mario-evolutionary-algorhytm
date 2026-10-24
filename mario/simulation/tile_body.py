@@ -22,6 +22,9 @@ class VerticalContact(Enum):
 class TileBody:
     """A box with its top-left corner at (x, y) in sub-pixels."""
 
+    # How far below the original's sprite position the hitbox starts.
+    hitbox_offset_y_pixels: int
+
     def __init__(self, x: int, y: int, width: int, height: int):
         self.x = x
         self.y = y
@@ -32,6 +35,10 @@ class TileBody:
         """The box in whole level pixels."""
         return Hitbox(self.x >> SUBPIXEL_BITS, self.y >> SUBPIXEL_BITS,
                       self.width >> SUBPIXEL_BITS, self.height >> SUBPIXEL_BITS)
+
+    def sprite_top_has_reached(self, sprite_top_y_pixels: int) -> bool:
+        """Whether the original's sprite has its top at this y or further down."""
+        return (self.y >> SUBPIXEL_BITS) - self.hitbox_offset_y_pixels >= sprite_top_y_pixels
 
     def move_horizontally(self, level: StaticLevel, distance: int) -> bool:
         """Move by distance; True if a solid tile stopped the body."""

@@ -53,16 +53,12 @@ class Pipe:
 @dataclass(frozen=True)
 class EnemySpawn:
     """Where an enemy starts: its x, the row of the tile it rests on, and the x
-    whose coming into range activates it (a Goomba pair's data column; None for
+    whose coming into range activates it (a Goomba pair's data column, otherwise
     its own x)."""
     kind: EnemyKind
     x_pixels: int
     resting_row: int
-    trigger_x_pixels: int | None = None
-
-    @property
-    def activation_x_pixels(self) -> int:
-        return self.x_pixels if self.trigger_x_pixels is None else self.trigger_x_pixels
+    activation_x_pixels: int
 
 
 class StaticLevel:
@@ -123,4 +119,4 @@ def _enemy_spawns_from_entry(entry: dict) -> tuple[EnemySpawn, ...]:
                            data_x_pixels),
                 EnemySpawn(EnemyKind.GOOMBA, data_x_pixels + GOOMBA_PAIR_SECOND_OFFSET_PIXELS, resting_row,
                            data_x_pixels))
-    return (EnemySpawn(EnemyKind(entry["kind"]), data_x_pixels, resting_row),)
+    return (EnemySpawn(EnemyKind(entry["kind"]), data_x_pixels, resting_row, data_x_pixels),)

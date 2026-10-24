@@ -28,8 +28,9 @@ FLAGPOLE_COLOUR = (240, 240, 240)
 CASTLE_STOPPER_COLOUR = (60, 60, 60)
 MARIO_COLOUR = (216, 40, 0)
 GOOMBA_COLOUR = (136, 76, 0)
-# A squashed Goomba is drawn flattened to this height, standing on its feet.
-SQUASHED_GOOMBA_DRAWN_HEIGHT_PIXELS = 8
+# A defeated enemy (so far only a squashed Goomba) is drawn flattened to this
+# height, standing on its feet.
+DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS = 8
 
 # --- HUD (TopStatusBarLine, StatusBarData, WriteBottomStatusLine) ----------------------------
 

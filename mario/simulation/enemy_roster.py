@@ -24,5 +24,5 @@ class EnemyRoster:
 
     @staticmethod
     def _is_out_of_play(enemy: Enemy, screen_left_x_pixels: int) -> bool:
-        return (enemy.hitbox().x < screen_left_x_pixels - ENEMY_REMOVAL_RANGE_PIXELS
+        return (enemy.hitbox().x_pixels < screen_left_x_pixels - ENEMY_REMOVAL_RANGE_PIXELS
                 or enemy.has_fallen_out or enemy.is_gone)

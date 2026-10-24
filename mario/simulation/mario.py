@@ -10,6 +10,7 @@ from enum import Enum, auto
 from mario.constants.level import (
     MARIO_START_SPRITE_X_PIXELS,
     MARIO_START_SPRITE_Y_PIXELS,
+    PIT_DEATH_SPRITE_Y_PIXELS,
     SMALL_MARIO_HITBOX_HEIGHT_PIXELS,
     SMALL_MARIO_HITBOX_OFFSET_X_PIXELS,
     SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS,
@@ -65,6 +66,8 @@ class MovementState(Enum):
 class Mario(TileBody):
     """Small Mario. His position is the top-left corner of his hitbox."""
 
+    hitbox_offset_y_pixels = SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS
+
     def __init__(self, screen_left_x_pixels: int = 0):
         """Mario starts at the original's start position on a screen whose left edge is given."""
         super().__init__(
@@ -99,6 +102,11 @@ class Mario(TileBody):
     @property
     def pixel_y(self) -> int:
         return self.y >> SUBPIXEL_BITS
+
+    @property
+    def has_fallen_in_pit(self) -> bool:
+        """True once he has fallen below the screen."""
+        return self.sprite_top_has_reached(PIT_DEATH_SPRITE_Y_PIXELS)
 
     @property
     def is_on_ground(self) -> bool:

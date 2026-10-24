@@ -8,7 +8,7 @@ same axis-separated tile collision as Mario.
 from abc import ABC, abstractmethod
 
 from mario.constants.level import ENEMY_FELL_OUT_SPRITE_Y_PIXELS, ENEMY_SPAWN_DROP_PIXELS, TILE_SIZE_PIXELS
-from mario.constants.physics import ENEMY_GRAVITY, ENEMY_TERMINAL_FALL_SPEED, SUBPIXEL_BITS, SUBPIXELS_PER_PIXEL
+from mario.constants.physics import ENEMY_GRAVITY, ENEMY_TERMINAL_FALL_SPEED, SUBPIXELS_PER_PIXEL
 from mario.level.static_level import EnemyKind, EnemySpawn, StaticLevel
 from mario.simulation.gravity import add_gravity
 from mario.simulation.tile_body import TileBody, VerticalContact
@@ -18,8 +18,6 @@ class Enemy(TileBody, ABC):
     """An enemy's position is the top-left corner of its hitbox."""
 
     kind: EnemyKind
-    # How far below the original's sprite position the hitbox starts.
-    hitbox_offset_y_pixels: int
 
     def __init__(self, spawn: EnemySpawn, width_pixels: int, height_pixels: int, walk_speed: int):
         """The enemy starts at its spawn x, a little above the tile it rests on."""
@@ -53,7 +51,7 @@ class Enemy(TileBody, ABC):
     @property
     def has_fallen_out(self) -> bool:
         """True once it has fallen below the screen into a pit."""
-        return (self.y >> SUBPIXEL_BITS) - self.hitbox_offset_y_pixels >= ENEMY_FELL_OUT_SPRITE_Y_PIXELS
+        return self.sprite_top_has_reached(ENEMY_FELL_OUT_SPRITE_Y_PIXELS)
 
     def step(self, level: StaticLevel) -> None:
         if self.move_horizontally(level, self.velocity_x):

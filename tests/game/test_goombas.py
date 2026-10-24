@@ -53,7 +53,7 @@ def touching(snapshot: WorldSnapshot) -> bool:
 def jump_onto_approaching_goomba(attempt: Attempt, jump_distance_pixels: int) -> None:
     """Stand still until the first Goomba walks within the distance of Mario, then jump, holding jump."""
     def goomba_distance() -> int:
-        return enemies_in(attempt)[0].x_pixels - attempt.mario.hitbox().right
+        return enemies_in(attempt)[0].x_pixels - attempt.mario.hitbox().right_x_pixels
 
     while not enemies_in(attempt) or goomba_distance() > jump_distance_pixels:
         attempt.step(HOLD_NOTHING)
@@ -72,7 +72,7 @@ def jump_at_goomba(move: int, move_and_jump: int, jump_distance_pixels: int) -> 
     jumped = False
     while not attempt.events and not attempt.is_over and attempt.ticks_elapsed < JUMP_TEST_TICK_LIMIT:
         goombas = enemies_in(attempt)
-        in_range = goombas and goombas[0].x_pixels - attempt.mario.hitbox().right <= jump_distance_pixels
+        in_range = goombas and goombas[0].x_pixels - attempt.mario.hitbox().right_x_pixels <= jump_distance_pixels
         jumping = (in_range and not jumped) or (jumped and not attempt.mario.is_on_ground)
         jumped = jumped or jumping
         attempt.step(move_and_jump if jumping else move)
@@ -129,7 +129,7 @@ def test_walking_into_a_goomba_ends_the_attempt_with_died_to_enemy():
     assert result.end_reason is EndReason.DIED_TO_ENEMY
     mario = attempt.mario.hitbox()
     (goomba,) = enemies_in(attempt)
-    assert mario.right > goomba.x_pixels and mario.bottom > goomba.y_pixels
+    assert mario.right_x_pixels > goomba.x_pixels and mario.bottom_y_pixels > goomba.y_pixels
     assert result.events == ()
 
 
@@ -225,7 +225,7 @@ def test_landing_restarts_the_stomp_chain():
         attempt.step(HOLD_NOTHING)
     while stomps(attempt) < 2 and not attempt.is_over:
         live_goombas = [goomba for goomba in enemies_in(attempt) if not goomba.is_defeated]
-        close = live_goombas[0].x_pixels - attempt.mario.hitbox().right <= CHAIN_JUMP_DISTANCE_PIXELS
+        close = live_goombas[0].x_pixels - attempt.mario.hitbox().right_x_pixels <= CHAIN_JUMP_DISTANCE_PIXELS
         attempt.step(HOLD_JUMP if close else HOLD_NOTHING)
     assert [points for _, points in points_scored(attempt)] == [100, 100]
 
