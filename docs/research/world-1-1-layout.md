@@ -293,6 +293,26 @@ Added for #16, sourced from `SMBDIS.ASM` (gist 1wErt3r/4048722, 16,351 lines); `
 
 The original shows the lives only on the screen between lives, not in the HUD.
 
+## Enemy activation, removal and stomp points
+
+Added for #17, sourced from `SMBDIS.ASM` (gist 1wErt3r/4048722); `l.` is its line number.
+
+| Fact | Value | Source |
+|---|---|---|
+| Activation range | The next enemy in the list is created once `(ScreenRight + 48) & $F0 ≥` its column's x. For an x on the 16 px grid, that means x ≤ screen right edge + 48. | `CheckRightBounds` l. 7906-7912, `CheckRightExtBounds` l. 7958-7963 |
+| Passed-over enemies | An enemy whose column is already left of the screen's right edge when its turn comes is skipped for good. A life started at the checkpoint therefore skips the two Goombas on the upper bricks (columns 80 and 82). | `PositionEnemyObj` l. 7942-7956, `CheckThreeBytes` l. 8041-8053 |
+| Spawn height | Sprite y = 16 × the data's row nybble, then the enemy lands 8 px lower (see `EnemyLanding` in the physics research). | `CheckRightExtBounds` l. 7966-7971 |
+| Removal | An enemy is erased once its x is more than 72 px left of the screen's left edge, or more than 72 px right of its right edge. | `OffscreenBoundsCheck` l. 11006-11050 |
+| Falling into a pit | An enemy is erased once its sprite's top reaches y = 256 (`Enemy_Y_HighPos` = 2). | `EnemyGfxHandler` l. 14055-14058 |
+| Stomp chain | Each stomp adds 1 to `StompChainCounter`. Its points are the score table at `StompChainCounter + StompTimer`: 100, 200, 400, 500, 800, 1000, 2000, 4000, 5000, 8000, then a 1-UP. Two stomps in the same frame therefore give 100, then 400. | `HandleStompedShellE` l. 11499-11507, `FloateyNumbersRoutine` l. 1283-1312 |
+| Chain reset | `StompChainCounter` goes back to 0 each frame Mario stands on the ground. | `LandPlyr` l. 12015-12023 |
+| When points count | The floatey number's points are added 5 frames after the stomp, when its timer goes from `$30` to `$2B`. | `SetupFloateyNumber` l. 11533-11536, `FloateyNumbersRoutine` l. 1295-1312 |
+
+**Replica choices**:
+- **Activation x:** a Goomba pair activates when its data column comes into range, so both appear together at the screen's right edge, as in the original. A single enemy uses its own x.
+- **Removal:** only the left side is used, as the spec (§4) asks. The original's right-side erase isn't modelled.
+- **Points:** they are scored on the stomp's own tick, not 5 ticks later. A stomp beyond 8000 scores nothing. Its 1-UP waits for the 1-UP slice (#19).
+
 ## Caveats and uncertainty
 
 - **Decoding fidelity:** I wrote my own decoder (Python) that statically reimplements the disassembly's object routines. It does not emulate the column-by-column renderer.

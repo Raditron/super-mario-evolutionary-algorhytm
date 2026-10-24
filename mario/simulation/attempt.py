@@ -8,14 +8,12 @@ It ends when Mario dies or the level timer runs out, and, if the mode turns
 the stall rule on (training does, play doesn't), when he stalls.
 """
 
-from mario.constants.level import (
-    CHECKPOINT_LEFT_X_PIXELS,
-    PIT_DEATH_SPRITE_Y_PIXELS,
-    SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS,
-)
+from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS
 from mario.controller.controller_state import ControllerState
 from mario.level.static_level import StaticLevel
-from mario.simulation.attempt_result import AttemptResult, EndReason, GameEvent
+from mario.simulation.attempt_result import AttemptResult, DefeatMethod, EndReason, GameEvent, GameEventKind
+from mario.simulation.enemy_collision_check import EnemyCollisionCheck, EnemyCollisionOutcome
+from mario.simulation.enemy_roster import EnemyRoster
 from mario.simulation.level_timer import LevelTimer
 from mario.simulation.mario import Mario
 from mario.simulation.scoreboard import Scoreboard
@@ -31,6 +29,9 @@ class Attempt:
         self.level = level
         self.mario = Mario(screen_left_x_pixels)
         self.scroll = Scroll(self.mario.pixel_x, screen_left_x_pixels)
+        self.enemies = EnemyRoster(level.enemy_spawns)
+        self._enemy_collision_check = EnemyCollisionCheck()
+        self._died_to_enemy = False
         self.level_timer = LevelTimer()
         self.ticks_elapsed = 0
         self.furthest_x = self.mario.pixel_x
@@ -46,10 +47,13 @@ class Attempt:
     def step(self, buttons: int) -> None:
         if self.is_over:
             raise RuntimeError("the attempt is over")
+        self.ticks_elapsed += 1
         pixel_x_before = self.mario.pixel_x
         self.mario.step(ControllerState(buttons), self.level)
         self.scroll.follow(self.mario, self.mario.pixel_x - pixel_x_before)
-        self.ticks_elapsed += 1
+        self.enemies.step(self.level, self.scroll.left_x_pixels)
+        self._record_enemy_collisions(
+            self._enemy_collision_check.step(self.ticks_elapsed, self.mario, self.enemies.active))
         self.furthest_x = max(self.furthest_x, self.mario.pixel_x)
         self.level_timer.count_down()
         if self._stall_rule is not None:
@@ -68,8 +72,17 @@ class Attempt:
             events=tuple(self.events),
         )
 
+    def _record_enemy_collisions(self, outcome: EnemyCollisionOutcome) -> None:
+        for points in outcome.points_per_stomp:
+            self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.DEFEATED_ENEMY, DefeatMethod.STOMP))
+            if points is not None:
+                self.scoreboard.score_points(points, self.ticks_elapsed)
+        self._died_to_enemy = outcome.mario_died
+
     def _reason_to_end(self) -> EndReason | None:
-        if self.mario.pixel_y - SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS >= PIT_DEATH_SPRITE_Y_PIXELS:
+        if self._died_to_enemy:
+            return EndReason.DIED_TO_ENEMY
+        if self.mario.has_fallen_in_pit:
             return EndReason.FELL_IN_PIT
         if self.level_timer.has_run_out:
             return EndReason.TIMER_RAN_OUT

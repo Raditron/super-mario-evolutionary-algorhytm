@@ -249,6 +249,27 @@ These facts were sourced from [D] while building the play-mode tracer bullet. Li
 - The replica uses one box and axis-separated push-out, as the spec decided, instead of the probes.
 - The scroll uses Mario's net pixel movement after the wall push-out, so the 16-frame `SideCollisionTimer` isn't needed.
 
+## Added during the build (#17)
+
+These facts were sourced from [D] while building the Goombas. Line numbers refer to the same file.
+
+| Fact | Value | Source |
+|---|---|---|
+| Goomba start | Speed `$F8` (−0.5 px/f), moving left, vertical speed 0. | [D] `InitGoomba` l. 8138-8140, `InitNormalEnemy` l. 8166-8174, `SetBBox`/`InitVStf` l. 8224-8230 |
+| Goomba walking and falling | In its normal state a Goomba only moves sideways. With no ground under it, it falls with enemy gravity and keeps moving sideways at the same speed. | [D] `MoveNormalEnemy` l. 9293-9330 |
+| Goomba tile probes | Foot probe at sprite (8, 24). Side probes at sprite (0, 20) and (16, 20). Only the side it is moving towards is checked, and a solid tile there turns it around. | [D] `ChkUnderEnemy` l. 12707-12710, `DoEnemySideCheck` l. 12592-12608, `BlockBuffer_X_Adder` l. 13030, `BlockBuffer_Y_Adder` l. 13036 |
+| Enemy landing | Y speed and its fraction set to 0, and y snapped to `(y & $F0) + 8`. | [D] `EnemyLanding` l. 12646-12652 |
+| Enemy bounding boxes | The Goomba's box for touching Mario is control `$09` = sprite (3, 14) to (13, 20), and small Mario's is `$01` = (3, 20) to (13, 32), edges inclusive. | [D] `SmallBBox` l. 8209, `ChkMoveDir` l. 5591-5598, `BoundBoxCtrlData` l. 12766-12778, `PlayerCollisionCore` l. 12931-12988 |
+| Stomp or injury | Mario moving down (Y speed byte positive and not 0) touching a Goomba stomps it, wherever his feet are. Moving up, or with Y speed byte 0, he is hurt. The position test (Mario's y + 12 above the enemy's y) applies only to enemies from `$07` (Blooper) on, none of which are in 1-1. | [D] `ChkForPlayerInjury` l. 11376-11389 |
+| Same-frame stomps | `StompTimer` goes up by 1 with each stomp. While it is not 0, any touch counts as a stomp. It is a frame timer (`$0791`, inside the frame timers `$0780`-`$0794`), so it is back at 0 by the next check. | [D] `ChkETmrs` l. 11388-11389, `HandleStompedShellE` l. 11507, `Timers` l. 81-99, `DecTimers` l. 789-799 |
+| Stomped Goomba | State `$04`. Mario's Y speed byte set to −4 (`SBnce`). The Goomba no longer moves or hurts Mario, and is erased when its interval timer goes from `$10` to `$0E`. | [D] `HandleStompedShellE` l. 11499-11513, `ReviveStunned`/`ChkKillGoomba` l. 9338-9367, `HandlePECollisions` l. 11351-11357 |
+| Interval timers | They count down once every 21 frames (`IntervalTimerControl` reloads `$14`). That control is not cleared at area start, so the first count after a stomp comes 1-21 frames later. | [D] `DecTimers` l. 789-799, `InitializeArea` l. 2660-2667 |
+
+**Replica choices**:
+- **Goomba hitbox:** one 16 × 16 box at sprite offset (0, 8), from its probes, used for tiles and for Mario. This matches how #15 took Mario's box from his probes. The original's smaller bounding boxes (row above) are not used.
+- **Stomp rule:** as in the original, moving down at 1 px/f or more (`STOMP_MIN_FALL_SPEED`), wherever the feet are. The spec (§4) also asked for "feet above the enemy's centre". With the every-other-tick check, Mario falls up to about 9 px between checks, more than half of a 16 px Goomba, so that clause skipped the stomp. In a sweep of walking and running jumps onto a ground Goomba, 224 of 386 fall-ons killed Mario with the clause, and none without it.
+- **Squash time:** always the longest, 2 × 21 = 42 ticks, so it stays deterministic.
+
 ## Not covered or uncertain
 
 - **Swimming** (rows 5–6 of the jump tables), **springboards** (Y −12 if A held, −7 otherwise [S]), **vines** and **whirlpools**. None of these appear in 1-1.

@@ -1,8 +1,10 @@
 """Test levels and stepping helpers shared by the game tests."""
 
+import copy
+
 from mario.constants.level import LEVEL_HEIGHT_TILES
 from mario.controller.controller_state import ControllerState
-from mario.level.static_level import StaticLevel
+from mario.level.static_level import EnemyKind, EnemySpawn, StaticLevel
 from mario.simulation.mario import Mario
 
 GROUND_TOP_ROW = 13
@@ -16,8 +18,10 @@ HOLD_JUMP = ControllerState.bitmask(jump=True)
 
 
 def build_level(pit_columns: range = range(0), hard_blocks: frozenset[tuple[int, int]] = frozenset(),
-                width_tiles: int = TEST_LEVEL_WIDTH_TILES) -> StaticLevel:
-    """Open sky over two rows of ground, with an optional pit and hard blocks at (column, row)."""
+                width_tiles: int = TEST_LEVEL_WIDTH_TILES,
+                enemy_spawns: tuple[EnemySpawn, ...] = ()) -> StaticLevel:
+    """Open sky over two rows of ground, with an optional pit, hard blocks at
+    (column, row) and enemies."""
     rows = []
     for row in range(LEVEL_HEIGHT_TILES):
         characters = []
@@ -29,7 +33,19 @@ def build_level(pit_columns: range = range(0), hard_blocks: frozenset[tuple[int,
             else:
                 characters.append(".")
         rows.append("".join(characters))
-    return StaticLevel(rows)
+    return StaticLevel(rows, enemy_spawns=enemy_spawns)
+
+
+def goomba_spawn(x_pixels: int, resting_row: int = GROUND_TOP_ROW - 1) -> EnemySpawn:
+    """A Goomba resting on the ground (or on the given row), starting at x."""
+    return EnemySpawn(EnemyKind.GOOMBA, x_pixels, resting_row, x_pixels)
+
+
+def without_enemies(level: StaticLevel) -> StaticLevel:
+    """The same level with an empty enemy table."""
+    level_without_enemies = copy.copy(level)
+    level_without_enemies.enemy_spawns = ()
+    return level_without_enemies
 
 
 def step_mario(mario: Mario, level: StaticLevel, buttons: int, ticks: int = 1) -> None:

@@ -3,9 +3,11 @@
 from dataclasses import dataclass
 
 from mario.constants.level import SCREEN_WIDTH_PIXELS, TILE_SIZE_PIXELS
-from mario.constants.physics import SUBPIXEL_BITS
+from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
+from mario.simulation.enemy import Enemy
+from mario.simulation.mario import Mario
 
 # A screen scrolled part-way into a tile shows one column more than it is wide.
 VISIBLE_COLUMNS = SCREEN_WIDTH_PIXELS // TILE_SIZE_PIXELS + 1
@@ -24,6 +26,28 @@ class MarioSnapshot:
     y_pixels: int
     width_pixels: int
     height_pixels: int
+
+    @classmethod
+    def of(cls, mario: Mario) -> "MarioSnapshot":
+        hitbox = mario.hitbox()
+        return cls(hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels)
+
+
+@dataclass(frozen=True)
+class EnemySnapshot:
+    """One enemy's hitbox, in level pixels, and whether it has been defeated."""
+    kind: EnemyKind
+    x_pixels: int
+    y_pixels: int
+    width_pixels: int
+    height_pixels: int
+    is_defeated: bool
+
+    @classmethod
+    def of(cls, enemy: Enemy) -> "EnemySnapshot":
+        hitbox = enemy.hitbox()
+        return cls(enemy.kind, hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
+                   enemy.is_defeated)
 
 
 @dataclass(frozen=True)
@@ -44,6 +68,7 @@ class WorldSnapshot:
     screen_left_x_pixels: int
     tiles: VisibleTiles
     mario: MarioSnapshot
+    enemies: tuple[EnemySnapshot, ...]
     hud: HudSnapshot
 
     @classmethod
@@ -56,12 +81,11 @@ class WorldSnapshot:
         rows = tuple(tuple(level.tile_kind(column, row)
                            for column in range(first_column, first_column + VISIBLE_COLUMNS))
                      for row in range(level.height_tiles))
-        mario = attempt.mario
         return cls(
             tick=attempt.ticks_elapsed,
             screen_left_x_pixels=screen_left_x_pixels,
             tiles=VisibleTiles(first_column, rows),
-            mario=MarioSnapshot(mario.pixel_x, mario.pixel_y, mario.width >> SUBPIXEL_BITS,
-                                mario.height >> SUBPIXEL_BITS),
+            mario=MarioSnapshot.of(attempt.mario),
+            enemies=tuple(EnemySnapshot.of(enemy) for enemy in attempt.enemies.active),
             hud=hud if hud is not None else HudSnapshot.of(attempt),
         )

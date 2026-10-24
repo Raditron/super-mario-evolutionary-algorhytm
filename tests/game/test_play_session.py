@@ -10,7 +10,7 @@ from mario.constants.scoring import COIN_POINTS, COINS_PER_EXTRA_LIFE, STARTING_
 from mario.constants.training import STALL_LIMIT_TICKS
 from mario.modes.play_session import PlaySession
 from mario.simulation.attempt_result import EndReason
-from tests.game.helpers import HOLD_NOTHING, HOLD_RIGHT_RUN, build_level
+from tests.game.helpers import HOLD_NOTHING, HOLD_RIGHT_RUN, build_level, goomba_spawn
 
 PIT_BEFORE_THE_CHECKPOINT = range(10, 14)
 PIT_PAST_THE_CHECKPOINT = range(100, 104)
@@ -47,6 +47,14 @@ def test_each_death_costs_a_life_and_starts_a_fresh_attempt():
     assert session.lives == STARTING_LIVES - 1
     assert session.attempt.ticks_elapsed == 0
     assert session.attempt.level_timer.time_left == LEVEL_TIMER_START_UNITS
+
+
+def test_dying_to_a_goomba_costs_a_life_and_the_next_life_has_its_goombas_back():
+    session = PlaySession(build_level(enemy_spawns=(goomba_spawn(400),)))
+    assert lose_a_life(session) is EndReason.DIED_TO_ENEMY
+    assert session.lives == STARTING_LIVES - 1
+    assert session.attempt.enemies.active == []
+    assert lose_a_life(session) is EndReason.DIED_TO_ENEMY
 
 
 def test_a_death_before_the_checkpoint_restarts_at_the_beginning():

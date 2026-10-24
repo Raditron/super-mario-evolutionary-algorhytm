@@ -3,6 +3,11 @@
 # GiveOneCoin: every coin is also worth 200 points.
 COIN_POINTS = 200
 
+# Stomps without landing in between climb the original's score table
+# (HandleStompedShellE, FloateyNumTileData): 100, 200, 400, ... 8000. A stomp
+# beyond the table is worth a 1-UP instead of points.
+STOMP_CHAIN_POINTS = (100, 200, 400, 500, 800, 1000, 2000, 4000, 5000, 8000)
+
 # --- Play mode only (PlaySession) ---------------------------------------------------------
 
 STARTING_LIVES = 3                                           # PrimaryGameSetup

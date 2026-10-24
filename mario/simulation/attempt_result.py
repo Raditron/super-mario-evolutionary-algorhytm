@@ -30,6 +30,11 @@ class GameEventKind(StrEnum):
     SCORED_POINTS = "scored_points"
 
 
+class DefeatMethod(StrEnum):
+    """How an enemy was defeated: the detail of a defeated_enemy game event."""
+    STOMP = "stomp"
+
+
 @dataclass(frozen=True)
 class GameEvent:
     tick: int
