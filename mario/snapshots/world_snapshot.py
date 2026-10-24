@@ -27,14 +27,29 @@ class MarioSnapshot:
 
 
 @dataclass(frozen=True)
+class HudSnapshot:
+    """The numbers the HUD shows: score, coins and the level timer's time left."""
+    score: int
+    coins: int
+    time_left: int
+
+    @classmethod
+    def of(cls, attempt: Attempt) -> "HudSnapshot":
+        return cls(attempt.scoreboard.score, attempt.scoreboard.coins, attempt.level_timer.time_left)
+
+
+@dataclass(frozen=True)
 class WorldSnapshot:
     tick: int
     screen_left_x_pixels: int
     tiles: VisibleTiles
     mario: MarioSnapshot
+    hud: HudSnapshot
 
     @classmethod
-    def of(cls, attempt: Attempt) -> "WorldSnapshot":
+    def of(cls, attempt: Attempt, hud: HudSnapshot | None = None) -> "WorldSnapshot":
+        """The attempt as a renderer sees it. The HUD shows the attempt's own
+        numbers unless a mode passes its own (PlaySession carries them across lives)."""
         screen_left_x_pixels = attempt.scroll.left_x_pixels
         first_column = screen_left_x_pixels // TILE_SIZE_PIXELS
         level = attempt.level
@@ -48,4 +63,5 @@ class WorldSnapshot:
             tiles=VisibleTiles(first_column, rows),
             mario=MarioSnapshot(mario.pixel_x, mario.pixel_y, mario.width >> SUBPIXEL_BITS,
                                 mario.height >> SUBPIXEL_BITS),
+            hud=hud if hud is not None else HudSnapshot.of(attempt),
         )

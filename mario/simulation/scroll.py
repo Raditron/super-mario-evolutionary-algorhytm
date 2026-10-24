@@ -25,9 +25,9 @@ SPRITE_MAX_SCREEN_X_PIXELS = SCREEN_WIDTH_PIXELS - 1 - SCREEN_RIGHT_EDGE_MARGIN_
 
 
 class Scroll:
-    def __init__(self, mario_pixel_x: int):
-        self.left_x_pixels = 0
-        self._sprite_screen_x_last_tick = mario_pixel_x - SMALL_MARIO_HITBOX_OFFSET_X_PIXELS
+    def __init__(self, mario_pixel_x: int, left_x_pixels: int = 0):
+        self.left_x_pixels = left_x_pixels
+        self._sprite_screen_x_last_tick = mario_pixel_x - SMALL_MARIO_HITBOX_OFFSET_X_PIXELS - left_x_pixels
 
     def follow(self, mario: Mario, pixels_moved: int) -> None:
         """Scroll after Mario moved this tick, then keep him on screen."""
