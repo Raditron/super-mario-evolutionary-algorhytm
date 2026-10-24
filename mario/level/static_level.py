@@ -1,0 +1,115 @@
+"""The shared, read-only World 1-1: the tile grid plus its block, pipe and enemy tables.
+
+One StaticLevel is loaded per process and shared by every Attempt; nothing
+ever writes to it.
+"""
+
+import tomllib
+from dataclasses import dataclass
+from enum import StrEnum
+from pathlib import Path
+
+from mario.constants.level import (
+    GOOMBA_PAIR_FIRST_OFFSET_PIXELS,
+    GOOMBA_PAIR_SECOND_OFFSET_PIXELS,
+    LEVEL_FILE_NAME,
+    LEVEL_HEIGHT_TILES,
+    LEVEL_WIDTH_TILES,
+    TILE_SIZE_PIXELS,
+)
+from mario.level.tile_kind import BLOCK_TILE_KINDS, SOLID_TILE_KINDS, TILE_KIND_BY_CHARACTER, TileKind
+
+
+# An enemies entry of this kind places two Goombas relative to its data column.
+GOOMBA_PAIR_ENTRY_KIND = "goomba_pair"
+
+
+class PipeDestination(StrEnum):
+    NOTHING = "nothing"
+    BONUS_ROOM = "bonus_room"
+    BONUS_ROOM_EXIT = "bonus_room_exit"
+
+
+class EnemyKind(StrEnum):
+    GOOMBA = "goomba"
+    KOOPA = "koopa"
+
+
+@dataclass(frozen=True)
+class Block:
+    column: int
+    row: int
+    kind: TileKind
+
+
+@dataclass(frozen=True)
+class Pipe:
+    left_column: int
+    top_row: int
+    height_tiles: int
+    leads_to: PipeDestination
+
+
+@dataclass(frozen=True)
+class EnemySpawn:
+    kind: EnemyKind
+    x_pixels: int
+    resting_row: int
+
+
+class StaticLevel:
+    """Tile lookup and the level's tables. Columns and rows outside the grid
+    are solid at the sides and open above and below (pits)."""
+
+    def __init__(self, layer_1_rows: list[str], pipes: tuple[Pipe, ...] = (),
+                 enemy_spawns: tuple[EnemySpawn, ...] = ()):
+        self.width_tiles = len(layer_1_rows[0])
+        self.height_tiles = len(layer_1_rows)
+        self._tile_rows = tuple(tuple(TILE_KIND_BY_CHARACTER[character] for character in row)
+                                for row in layer_1_rows)
+        # bytearrays: the fastest per-tile lookup from plain Python, for the hot path
+        self._solid_rows = tuple(bytearray(kind in SOLID_TILE_KINDS for kind in row)
+                                 for row in self._tile_rows)
+        self.blocks = tuple(Block(column, row, kind)
+                            for row, kinds in enumerate(self._tile_rows)
+                            for column, kind in enumerate(kinds) if kind in BLOCK_TILE_KINDS)
+        self.pipes = pipes
+        self.enemy_spawns = enemy_spawns
+
+    @classmethod
+    def load_world_1_1(cls) -> "StaticLevel":
+        level_data = tomllib.loads(Path(__file__).with_name(LEVEL_FILE_NAME).read_text())
+        layer_1_rows = level_data["layer_1"].split()
+        if len(layer_1_rows) != LEVEL_HEIGHT_TILES or any(len(row) != LEVEL_WIDTH_TILES
+                                                           for row in layer_1_rows):
+            raise ValueError(f"{LEVEL_FILE_NAME}: layer_1 must be "
+                             f"{LEVEL_WIDTH_TILES} x {LEVEL_HEIGHT_TILES} tiles")
+        pipes = tuple(Pipe(entry["left_column"], entry["top_row"], entry["height_tiles"],
+                           PipeDestination(entry["leads_to"]))
+                      for entry in level_data["pipes"])
+        enemy_spawns = tuple(spawn for entry in level_data["enemies"]
+                             for spawn in _enemy_spawns_from_entry(entry))
+        return cls(layer_1_rows, pipes, enemy_spawns)
+
+    def tile_kind(self, column: int, row: int) -> TileKind:
+        if row < 0 or row >= self.height_tiles:
+            return TileKind.EMPTY
+        if column < 0 or column >= self.width_tiles:
+            return TileKind.HARD_BLOCK
+        return self._tile_rows[row][column]
+
+    def is_solid(self, column: int, row: int) -> bool:
+        if row < 0 or row >= self.height_tiles:
+            return False
+        if column < 0 or column >= self.width_tiles:
+            return True
+        return self._solid_rows[row][column] == 1
+
+
+def _enemy_spawns_from_entry(entry: dict) -> tuple[EnemySpawn, ...]:
+    data_x_pixels = entry["data_column"] * TILE_SIZE_PIXELS
+    resting_row = entry["resting_row"]
+    if entry["kind"] == GOOMBA_PAIR_ENTRY_KIND:
+        return (EnemySpawn(EnemyKind.GOOMBA, data_x_pixels + GOOMBA_PAIR_FIRST_OFFSET_PIXELS, resting_row),
+                EnemySpawn(EnemyKind.GOOMBA, data_x_pixels + GOOMBA_PAIR_SECOND_OFFSET_PIXELS, resting_row))
+    return (EnemySpawn(EnemyKind(entry["kind"]), data_x_pixels, resting_row),)

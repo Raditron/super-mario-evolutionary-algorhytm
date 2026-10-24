@@ -1,0 +1,125 @@
+# World 1-1, decoded from the game's level data (docs/research/world-1-1-layout.md, #3).
+#
+# layer_1: the solid and interactive tiles, 224 columns x 15 rows of 16 px,
+# row 0 at the top. Legend (mario/level/tile_kind.py):
+#   .  empty            X  ground           #  hard block (staircases, flagpole base)
+#   B  brick            ?  ? block, coin    M  ? block, power-up
+#   S  brick, Starman   C  brick, multi-coin
+#   U  hidden 1-UP block (invisible)        W  invisible castle stopper
+#   [ ]  pipe top, left / right half        { }  pipe body, left / right half
+#   o  flagpole ball    |  flagpole shaft
+#
+# pipes: left column, top row, height in tiles above the ground (cap included),
+# and what the pipe leads to.
+# enemies: in spawn order, with the column from the enemy data and the row the
+# enemy rests on. A goomba_pair is placed relative to its data column (#8).
+
+layer_1 = """
+................................................................................................................................................................................................................................
+................................................................................................................................................................................................................................
+......................................................................................................................................................................................................o.........................
+......................................................................................................................................................................................................|.........................
+......................................................................................................................................................................................................|.........................
+......................?.........................................................BBBBBBBB...BBB?..............M...........BBB....B??B........................................................##........|.........................
+...........................................................................................................................................................................................###........|.........................
+..........................................................................................................................................................................................####........|.........................
+................................................................U........................................................................................................................#####........|.........................
+................?...BMB?B.....................[].........[]..................BMB..............C.....BS....?..?..?.....B..........BB......#..#..........##..#............BB?B............######........|.........................
+......................................[]......{}.........{}.............................................................................##..##........###..##..........................#######........|.........................
+............................[]........{}......{}.........{}............................................................................###..###......####..###.....[]..............[].########........|.........................
+............................{}........{}......{}.........{}...........................................................................####..####....#####..####....{}..............{}#########........#......W..................
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..XXXXXXXXXXXXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..XXXXXXXXXXXXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX..XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+"""
+
+[[pipes]]
+left_column = 28
+top_row = 11
+height_tiles = 2
+leads_to = "nothing"
+
+[[pipes]]
+left_column = 38
+top_row = 10
+height_tiles = 3
+leads_to = "nothing"
+
+[[pipes]]
+left_column = 46
+top_row = 9
+height_tiles = 4
+leads_to = "nothing"
+
+[[pipes]]
+left_column = 57
+top_row = 9
+height_tiles = 4
+leads_to = "bonus_room"
+
+[[pipes]]
+left_column = 163
+top_row = 11
+height_tiles = 2
+leads_to = "bonus_room_exit"
+
+[[pipes]]
+left_column = 179
+top_row = 11
+height_tiles = 2
+leads_to = "nothing"
+
+[[enemies]]
+kind = "goomba"
+data_column = 22
+resting_row = 12
+
+[[enemies]]
+kind = "goomba"
+data_column = 40
+resting_row = 12
+
+[[enemies]]
+kind = "goomba_pair"
+data_column = 54
+resting_row = 12
+
+[[enemies]]
+kind = "goomba"
+data_column = 80
+resting_row = 4
+
+[[enemies]]
+kind = "goomba"
+data_column = 82
+resting_row = 4
+
+[[enemies]]
+kind = "goomba_pair"
+data_column = 100
+resting_row = 12
+
+[[enemies]]
+kind = "koopa"
+data_column = 107
+resting_row = 12
+
+[[enemies]]
+kind = "goomba_pair"
+data_column = 117
+resting_row = 12
+
+[[enemies]]
+kind = "goomba_pair"
+data_column = 127
+resting_row = 12
+
+[[enemies]]
+kind = "goomba_pair"
+data_column = 131
+resting_row = 12
+
+[[enemies]]
+kind = "goomba_pair"
+data_column = 177
+resting_row = 12
+
