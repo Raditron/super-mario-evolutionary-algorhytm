@@ -93,8 +93,8 @@ config.toml       the run settings the user edits (section 10)
   - the Mario–enemy check runs every other tick
   - speed is capped *before* gravity is added, so a fall can overshoot to ≈ 4.5 px/f for one tick
 - **Tile collision:** axis-separated boxes. Move along x and push out of solid tiles, then move along y and push out again. Landing snaps feet to the tile top. Hitting a tile from below stops the rise and bumps the block. The original's point probes are not copied.
-- **Entity collision:** when hitboxes overlap and Mario is falling (vy > 0) with his feet above the enemy's centre, it's a stomp. Otherwise Mario takes damage, or with Starman the enemy is defeated. This is checked every other tick. Enemies use the same tile collision and turn around at walls.
-- **Hitbox sizes** are the original's (from the disassembly), on the 16 px grid.
+- **Entity collision:** as in the original (`ChkForPlayerInjury`), when hitboxes overlap and Mario is moving down at 1 px/f or more, it's a stomp, wherever his feet are. Otherwise Mario takes damage, or with Starman the enemy is defeated. This is checked every other tick. A "feet above the enemy's centre" clause was dropped in #17: Mario falls up to ≈ 9 px between checks, and the clause made 224 of 386 jumps onto a Goomba fatal. Enemies use the same tile collision and turn around at walls.
+- **Hitbox sizes** are on the 16 px grid. An enemy's box comes from its tile probes, as Mario's does (a Goomba is 16 × 16). The original's smaller bounding boxes are recorded in the physics research but not used.
 
 ### Level (#3, #8)
 - **Enemies have fixed spawn positions** in level coordinates, so every agent faces the same level. Goomba pairs sit at `16·(data column − 3)` and `16·(data column − 1.5)` px.
