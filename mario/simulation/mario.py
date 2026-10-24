@@ -64,9 +64,11 @@ class MovementState(Enum):
 class Mario(TileBody):
     """Small Mario. His position is the top-left corner of his hitbox."""
 
-    def __init__(self):
+    def __init__(self, screen_left_x_pixels: int = 0):
+        """Mario starts at the original's start position on a screen whose left edge is given."""
         super().__init__(
-            (MARIO_START_SPRITE_X_PIXELS + SMALL_MARIO_HITBOX_OFFSET_X_PIXELS) * SUBPIXELS_PER_PIXEL,
+            (screen_left_x_pixels + MARIO_START_SPRITE_X_PIXELS + SMALL_MARIO_HITBOX_OFFSET_X_PIXELS)
+            * SUBPIXELS_PER_PIXEL,
             (MARIO_START_SPRITE_Y_PIXELS + SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS) * SUBPIXELS_PER_PIXEL,
             SMALL_MARIO_HITBOX_WIDTH_PIXELS * SUBPIXELS_PER_PIXEL,
             SMALL_MARIO_HITBOX_HEIGHT_PIXELS * SUBPIXELS_PER_PIXEL,

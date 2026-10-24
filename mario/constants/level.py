@@ -48,6 +48,20 @@ SMALL_MARIO_HITBOX_HEIGHT_PIXELS = 14
 # Mario has fallen into a pit once his sprite's top is this far down (Player_Y_HighPos = 2).
 PIT_DEATH_SPRITE_Y_PIXELS = 256
 
+# --- The level timer (header timer setting, RunGameTimer) ------------------------------
+
+LEVEL_TIMER_START_UNITS = 400
+LEVEL_TIMER_TICKS_PER_UNIT = 24                              # GameTimerCtrlTimer reload, $18
+
+# --- The checkpoint (HalfwayPageNybbles) ---------------------------------------------------
+
+# A human player who dies once the screen's left edge has reached this column
+# starts the next life with the screen's left edge there.
+CHECKPOINT_COLUMN = 80                                       # page 5
+CHECKPOINT_LEFT_X_PIXELS = CHECKPOINT_COLUMN * TILE_SIZE_PIXELS
+
+WORLD_NAME = "1-1"
+
 # --- Enemy spawn positions (#3, #8) -------------------------------------------------------
 
 # A Goomba pair sits at 16 * (data column - 3) and 16 * (data column - 1.5) px.

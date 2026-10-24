@@ -260,6 +260,39 @@ warp_pipe     cols 57-58 -> bonus room; return at pipe cols 163-164 (page 10)
 checkpoint    page 5 (col 80)
 ```
 
+## Timer, score, lives, checkpoint and HUD
+
+Added for #16, sourced from `SMBDIS.ASM` (gist 1wErt3r/4048722, 16,351 lines); `l.` is its line number.
+
+| Fact | Value | Source |
+|---|---|---|
+| Timer start | The header's timer setting picks `GameTimerData` = `$04`, and the last digit is set to 1, so the display starts at **401**. The frame timers are cleared at area start, so the first decrement (to 400) happens on the timer's first frame. | `Entrance_GameTimerSetup` l. 2867–2872, `ClrTimersLoop` l. 2665 |
+| Timer speed | Each time `GameTimerCtrlTimer` reaches 0, one is taken off the display and it is reloaded with **`$18` = 24 frames**. It is a frame timer, so it counts down every frame. | `ResGTCtrl` l. 6461–6462, `Timers` l. 81–89, `DecTimers` l. 789–799 |
+| Time up | When a decrement is due and the display already reads 000, `TimeUpOn` kills Mario. The timer doesn't run during the entrance or death routines, or while Mario is below the screen. | `RunGameTimer` l. 6436–6472 |
+| Timer per life | Every new life reloads the timer from the header. | `ContinueGame` l. 2990–2994 |
+| Coins | Each coin adds 1 to the coin count. At 100 the count goes back to 0 and Mario gains a life. Every coin is also worth **200 points**. | `GiveOneCoin` l. 7084–7102 |
+| Score | Six BCD digits plus a fixed trailing "0" on screen, so all points are multiples of 10. The highest digit is drawn blank while it is 0, so a new game shows `000000`. | `TopStatusBarLine` l. 1641, `UpdateNumber` l. 7113–7119 |
+| Score table | The awards, in order: 100, 200, 400, 500, 800, 1000, 2000, 4000, 5000, 8000, then 1-UP. Which event gives which is up to each slice. | `FloateyNumTileData` l. 1262–1274, `ScoreUpdateData` l. 1278–1281 |
+| Lives | `NumberofLives` starts at 2, the lives left after the current one, so **3 lives**. Each death takes one. Game over comes when it would go below 0. | `PrimaryGameSetup` l. 2721–2722, `PlayerLoseLife` l. 2906–2917 |
+| Checkpoint | 1-1's halfway page is the high nybble of `$56`, so **page 5**. At each death it is kept only if the screen's left edge (`ScreenLeft_PageLoc`) is at page 5 or beyond, otherwise it becomes 0. | `HalfwayPageNybbles` l. 2896–2897, `PlayerLoseLife` l. 2919–2940 |
+| Restart position | The next life starts with the screen's left edge at that page. Mario is placed on the same page at `PlayerStarting_X_Pos` = `$28`, so from the checkpoint he starts at x = 5 × 256 + 40 = **1320 px**, at the usual height. | `InitializeArea` l. 2668–2672, `Entrance_GameTimerSetup` l. 2834–2835, l. 2856–2857 |
+
+**The replica's timer (spec §5):** 400 units shown at spawn, one taken off every 24 ticks, and the attempt ends when it reaches 0, at tick 9,600. The original reaches 000 at the same point, then kills Mario one 24-frame period later. The spec's 9,600 is kept.
+
+**HUD layout.** The status bar sits on the NES's 8 × 8 px text grid, rows 2–3 (y = 16–31). Columns below are 8 px cells. They are read from the name-table addresses (`$20RC`: row = `RC` ÷ 32, column = `RC` mod 32).
+
+| Row | Column | Shows | Source |
+|---|---|---|---|
+| 2 | 3 | `MARIO` | `TopStatusBarLine` l. 1638 (`$2043`) |
+| 2 | 18 | `WORLD`, then at 25 `TIME` | l. 1639–1640 (`$2052`) |
+| 3 | 2–8 | score: 6 digits and the fixed trailing 0, the first blanked while 0 | `StatusBarData` l. 2521 (`$2062`), l. 1641 (`$2068`) |
+| 3 | 11, 12 | coin icon, then `x` | l. 1641 |
+| 3 | 13–14 | coins, 2 digits | `StatusBarData` l. 2523 (`$206d`) |
+| 3 | 19–21 | `1-1` | `WriteBottomStatusLine` l. 1499–1517 (`$2073`) |
+| 3 | 26–28 | time, 3 digits | `StatusBarData` l. 2525 (`$207a`) |
+
+The original shows the lives only on the screen between lives, not in the HUD.
+
 ## Caveats and uncertainty
 
 - **Decoding fidelity:** I wrote my own decoder (Python) that statically reimplements the disassembly's object routines. It does not emulate the column-by-column renderer.
