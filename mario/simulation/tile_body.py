@@ -1,0 +1,77 @@
+"""Axis-separated box movement against the level's solid tiles.
+
+Positions are integer sub-pixels (1/4096 px). A body moves along one axis and
+is pushed out of any solid tile it entered, then along the other. No body moves
+more than one tile per tick, so checking its leading edge is enough.
+"""
+
+from enum import Enum, auto
+
+from mario.constants.level import SUBPIXEL_TO_TILE_SHIFT, TILE_SIZE_SUBPIXELS
+from mario.level.static_level import StaticLevel
+
+
+class VerticalContact(Enum):
+    NONE = auto()
+    LANDED = auto()
+    HIT_CEILING = auto()
+
+
+class TileBody:
+    """A box with its top-left corner at (x, y) in sub-pixels."""
+
+    def __init__(self, x: int, y: int, width: int, height: int):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+    def move_horizontally(self, level: StaticLevel, distance: int) -> bool:
+        """Move by distance; True if a solid tile stopped the body."""
+        if distance == 0:
+            return False
+        self.x += distance
+        top_row = self.y >> SUBPIXEL_TO_TILE_SHIFT
+        bottom_row = (self.y + self.height - 1) >> SUBPIXEL_TO_TILE_SHIFT
+        if distance > 0:
+            leading_column = (self.x + self.width - 1) >> SUBPIXEL_TO_TILE_SHIFT
+            if _column_has_solid_tile(level, leading_column, top_row, bottom_row):
+                self.x = leading_column * TILE_SIZE_SUBPIXELS - self.width
+                return True
+        else:
+            leading_column = self.x >> SUBPIXEL_TO_TILE_SHIFT
+            if _column_has_solid_tile(level, leading_column, top_row, bottom_row):
+                self.x = (leading_column + 1) * TILE_SIZE_SUBPIXELS
+                return True
+        return False
+
+    def move_vertically(self, level: StaticLevel, distance: int) -> VerticalContact:
+        """Move by distance, landing on or bumping into solid tiles."""
+        self.y += distance
+        left_column = self.x >> SUBPIXEL_TO_TILE_SHIFT
+        right_column = (self.x + self.width - 1) >> SUBPIXEL_TO_TILE_SHIFT
+        if distance > 0:
+            leading_row = (self.y + self.height - 1) >> SUBPIXEL_TO_TILE_SHIFT
+            if _row_has_solid_tile(level, leading_row, left_column, right_column):
+                self.y = leading_row * TILE_SIZE_SUBPIXELS - self.height
+                return VerticalContact.LANDED
+        elif distance < 0:
+            leading_row = self.y >> SUBPIXEL_TO_TILE_SHIFT
+            if _row_has_solid_tile(level, leading_row, left_column, right_column):
+                self.y = (leading_row + 1) * TILE_SIZE_SUBPIXELS
+                return VerticalContact.HIT_CEILING
+        return VerticalContact.NONE
+
+    def is_standing_on_solid_tile(self, level: StaticLevel) -> bool:
+        row_below = (self.y + self.height) >> SUBPIXEL_TO_TILE_SHIFT
+        left_column = self.x >> SUBPIXEL_TO_TILE_SHIFT
+        right_column = (self.x + self.width - 1) >> SUBPIXEL_TO_TILE_SHIFT
+        return _row_has_solid_tile(level, row_below, left_column, right_column)
+
+
+def _column_has_solid_tile(level: StaticLevel, column: int, top_row: int, bottom_row: int) -> bool:
+    return any(level.is_solid(column, row) for row in range(top_row, bottom_row + 1))
+
+
+def _row_has_solid_tile(level: StaticLevel, row: int, left_column: int, right_column: int) -> bool:
+    return any(level.is_solid(column, row) for column in range(left_column, right_column + 1))

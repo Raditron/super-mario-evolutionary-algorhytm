@@ -226,6 +226,29 @@ This is a recommendation, not a sourced fact.
 5. **"Minimum walk velocity 0x00130"** in [J] is not a constant in [D]. It is the doubled first-frame acceleration (2 × `$98`) that happens when the facing and moving directions differ.
 6. **Unit naming.** [T] and [S] call 1/16 px a "subpixel". [J] calls 1/16 px an "s.-pixel" and goes down to 1/4096 px. Some forum posts use "subpixel" for 1/256 px. The table in [Units](#units) defines every unit used here.
 
+## Added during the build (#15)
+
+These facts were sourced from [D] while building the play-mode tracer bullet. Line numbers refer to the same file.
+
+| Fact | Value | Source |
+|---|---|---|
+| Player start position | sprite x = `$28` (40 px). Sprite y = `$B0` (176 px) for 1-1's entrance setting (header `$50`, bits 5–3 = 2). The player object is 16 × 32 px, so small Mario's feet rest at y + 32 = 208, the ground top. | [D] `PlayerStarting_X_Pos` l. 2815, `PlayerStarting_Y_Pos` l. 2822 |
+| Small Mario's background probes | head at sprite (8, 18); feet at (3, 32) and (12, 32); sides at (2, 24) and (13, 24). The replica uses one box from them: **12 × 14 px at sprite offset (2, 18)**. | [D] `BlockBufferAdderData` l. 13027 (offset `$0E` for small Mario), `BlockBuffer_X_Adder` l. 13030, `BlockBuffer_Y_Adder` l. 13036 |
+| Per-frame order | timers count down first (in the NMI), then: jump check and X physics → ground, jump or fall movement → moving direction from the sign of the speed → scroll → background collision → pit check. Only the jump and fall states move Mario vertically. | [D] `DecTimers` l. 789, `PlayerCtrlRoutine` l. 5558-5612, `OnGroundStateSub` l. 5903 |
+| Walking off a ledge | at the start of background collision, the on-ground state becomes falling. It returns to on-ground only if the feet probes find ground. | [D] `SetFallS` l. 11917, `LandPlyr` l. 12015 |
+| Down held on the ground with a direction | left/right are ignored that frame (for small Mario too). | [D] l. 5580-5590 |
+| Skid turnaround condition | runs on the ground when any button other than A is held and the held direction is not the moving direction. Below speed 11 it zeroes the speed and its fraction and sets the moving direction to the facing direction. | [D] `ChkSkid`/`ProcSkid` l. 6204-6220 |
+| Head bump | Y speed byte set to 1; the fraction is kept. | [D] `NYSpd` l. 11972 |
+| Landing | Y snapped to the tile top; Y speed and fraction set to 0. | [D] `LandPlyr` l. 12015-12026 |
+| Wall bump | when moving into the wall: X speed byte set to 0, fraction kept, and `SideCollisionTimer` = 16 frames, which blocks scrolling. | [D] `ImpedePlayerMove` l. 12318-12349 |
+| Scroll amount | only if the sprite's screen x *on the previous frame* was ≥ 80 px and Mario moved right this frame. Below 112 px the screen scrolls by (pixels moved − 1), but at least 1. From 112 px it scrolls by the pixels moved. The previous-frame position is stored by the player renderer, after the scroll. | [D] `ScrollHandler`/`ChkNearMid` l. 5378-5405, `RenderPlayerSub` l. 14565 |
+| Screen edges | a sprite at or left of the screen's left edge is put on it. A sprite less than 16 px from the right edge (x > left + 239) is put at left + 239. Either way the X speed byte is zeroed unless Mario holds the direction away from that edge. | [D] `KeepOnscr` l. 5438-5452, `X_SubtracterData` l. 5454, `GetXOffscreenBits` l. 14909, `DividePDiff` l. 14978 |
+| Pit death | once the sprite's top reaches y = 256 (`Player_Y_HighPos` = 2). | [D] `PlayerHole` l. 5624-5627 |
+
+**Replica simplifications**:
+- The replica uses one box and axis-separated push-out, as the spec decided, instead of the probes.
+- The scroll uses Mario's net pixel movement after the wall push-out, so the 16-frame `SideCollisionTimer` isn't needed.
+
 ## Not covered or uncertain
 
 - **Swimming** (rows 5–6 of the jump tables), **springboards** (Y −12 if A held, −7 otherwise [S]), **vines** and **whirlpools**. None of these appear in 1-1.
