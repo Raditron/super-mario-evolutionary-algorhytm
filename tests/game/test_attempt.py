@@ -8,7 +8,7 @@ from mario.level.static_level import StaticLevel
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import EndReason
 from mario.snapshots.world_snapshot import VISIBLE_COLUMNS, WorldSnapshot
-from tests.game.helpers import HOLD_LEFT, HOLD_RIGHT, HOLD_RIGHT_RUN, build_level
+from tests.game.helpers import HOLD_LEFT, HOLD_RIGHT, HOLD_RIGHT_RUN, build_level, without_enemies
 from tests.game.scripted_pilot import ScriptedPilot
 
 CASTLE_STOPPER_COLUMN = 205
@@ -16,8 +16,8 @@ TICKS_TO_CROSS_THE_LEVEL = 3000
 
 
 def attempt_state(attempt: Attempt) -> tuple:
-    return (vars(attempt.mario), vars(attempt.scroll), attempt.ticks_elapsed,
-            attempt.furthest_x, attempt.end_reason)
+    return (vars(attempt.mario), vars(attempt.scroll), [vars(enemy) for enemy in attempt.enemies.active],
+            attempt.ticks_elapsed, attempt.furthest_x, attempt.end_reason, attempt.events)
 
 
 def sprite_screen_x(attempt: Attempt) -> int:
@@ -59,8 +59,8 @@ def test_the_same_controller_log_gives_a_bit_identical_attempt(world_1_1):
     assert attempt_state(first) == attempt_state(second)
 
 
-def test_mario_cannot_walk_off_the_screens_left_edge(world_1_1):
-    attempt = Attempt(world_1_1)
+def test_mario_cannot_walk_off_the_screens_left_edge(flat_level):
+    attempt = Attempt(flat_level)
     for buttons, ticks in ((HOLD_LEFT, 120), (HOLD_RIGHT_RUN, 200), (HOLD_LEFT, 300)):
         for _ in range(ticks):
             attempt.step(buttons)
@@ -69,7 +69,7 @@ def test_mario_cannot_walk_off_the_screens_left_edge(world_1_1):
 
 
 def test_the_pilot_crosses_1_1_and_the_screen_only_scrolls_right_until_column_192(world_1_1):
-    attempt = Attempt(world_1_1)
+    attempt = Attempt(without_enemies(world_1_1))
     pilot = ScriptedPilot()
     scroll_positions = [attempt.scroll.left_x_pixels]
     for _ in range(TICKS_TO_CROSS_THE_LEVEL):
@@ -81,8 +81,8 @@ def test_the_pilot_crosses_1_1_and_the_screen_only_scrolls_right_until_column_19
     assert attempt.furthest_x >= CASTLE_STOPPER_COLUMN * 16 - 16
 
 
-def test_a_snapshot_shows_the_screens_tiles_and_mario(world_1_1):
-    attempt = Attempt(world_1_1)
+def test_a_snapshot_shows_the_screens_tiles_and_mario(flat_level):
+    attempt = Attempt(flat_level)
     for _ in range(300):
         attempt.step(HOLD_RIGHT_RUN)
     snapshot = WorldSnapshot.of(attempt)

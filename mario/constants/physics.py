@@ -83,6 +83,9 @@ DEATH_GRAVITY = 0x28 * NES_GRAVITY_UNIT
 # --- Stomps (EnemyStomped) -----------------------------------------------------------------
 
 STOMP_BOUNCE_SPEED = -4 * NES_Y_SPEED_UNIT                   # Goomba, Koopa
+# Touching a Goomba or Koopa while moving down at least this fast is a stomp,
+# wherever Mario's feet are (ChkForPlayerInjury: Player_Y_Speed positive, not 0).
+STOMP_MIN_FALL_SPEED = 1 * NES_Y_SPEED_UNIT
 
 # --- Enemies and items (section 5 of the research) ------------------------------------
 
@@ -104,3 +107,15 @@ STARMAN_BOUNCE_SPEED = -3 * NES_Y_SPEED_UNIT
 STARMAN_TERMINAL_FALL_SPEED = 3 * NES_Y_SPEED_UNIT
 ENEMY_GRAVITY = 0x3D * NES_GRAVITY_UNIT                      # also mushrooms and defeated enemies
 ENEMY_TERMINAL_FALL_SPEED = 3 * NES_Y_SPEED_UNIT
+
+# A stomped Goomba lies squashed until its interval timer goes from $10 to $0E
+# (ChkKillGoomba): 2 interval ticks. The original's interval clock is not reset
+# at area start, so this is 22-42 ticks there; the replica always takes the longest.
+STOMPED_GOOMBA_INTERVAL_TICKS = 2
+STOMPED_GOOMBA_TICKS = STOMPED_GOOMBA_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
+
+# --- The Mario-enemy check (PlayerEnemyCollision) ----------------------------------------
+
+# The check runs only on every other tick (FrameCounter bit 0 clear): on ticks
+# whose number is a multiple of this.
+ENEMY_CHECK_TICK_INTERVAL = 2

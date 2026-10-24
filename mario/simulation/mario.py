@@ -18,7 +18,6 @@ from mario.constants.level import (
 from mario.constants.physics import (
     AIR_RUN_CAP_SPEED,
     AREA_ENTRY_FALLING_GRAVITY,
-    FALL_CAP_FRACTION_THRESHOLD,
     FAST_DECELERATION,
     FAST_DECELERATION_SPEED,
     FAST_JUMP_FALLING_GRAVITY,
@@ -41,6 +40,7 @@ from mario.constants.physics import (
     SLOW_JUMP_RISING_GRAVITY,
     SLOW_JUMP_SPEED,
     SLOW_JUMP_SPEED_LIMIT,
+    STOMP_BOUNCE_SPEED,
     SUBPIXEL_BITS,
     SUBPIXEL_FRACTION_MASK,
     SUBPIXELS_PER_PIXEL,
@@ -51,6 +51,7 @@ from mario.constants.physics import (
 )
 from mario.controller.controller_state import LEFT, NO_DIRECTION, RIGHT, ControllerState
 from mario.level.static_level import StaticLevel
+from mario.simulation.gravity import add_gravity
 from mario.simulation.tile_body import TileBody, VerticalContact
 
 
@@ -135,6 +136,11 @@ class Mario(TileBody):
         self.x = pixel_x * SUBPIXELS_PER_PIXEL + (self.x & SUBPIXEL_FRACTION_MASK)
         if not keeps_speed:
             self.velocity_x &= X_SUBSPEED_MASK
+
+    def bounce_off_enemy(self) -> None:
+        """After a stomp (EnemyStomped): rise again at the bounce speed. The speed's
+        fraction and the gravity are kept."""
+        self.velocity_y = STOMP_BOUNCE_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
 
     # --- PlayerPhysicsSub ---------------------------------------------------------------
 
@@ -228,11 +234,7 @@ class Mario(TileBody):
     def _move_vertically(self, level: StaticLevel) -> None:
         """ImposeGravity, then the original's landing and head-bump responses."""
         contact = self.move_vertically(level, self.velocity_y)
-        self.velocity_y += self.gravity
-        whole_speed_y = self.velocity_y - (self.velocity_y & Y_SUBSPEED_MASK)
-        if (whole_speed_y >= MARIO_TERMINAL_FALL_SPEED
-                and (self.velocity_y & Y_SUBSPEED_MASK) >= FALL_CAP_FRACTION_THRESHOLD):
-            self.velocity_y = MARIO_TERMINAL_FALL_SPEED
+        self.velocity_y = add_gravity(self.velocity_y, self.gravity, MARIO_TERMINAL_FALL_SPEED)
         if contact is VerticalContact.LANDED:
             self.velocity_y = 0
             self.movement_state = MovementState.ON_GROUND

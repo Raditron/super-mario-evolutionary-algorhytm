@@ -4,8 +4,10 @@ from dataclasses import dataclass
 
 from mario.constants.level import SCREEN_WIDTH_PIXELS, TILE_SIZE_PIXELS
 from mario.constants.physics import SUBPIXEL_BITS
+from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
+from mario.simulation.enemy import Enemy
 
 # A screen scrolled part-way into a tile shows one column more than it is wide.
 VISIBLE_COLUMNS = SCREEN_WIDTH_PIXELS // TILE_SIZE_PIXELS + 1
@@ -27,6 +29,22 @@ class MarioSnapshot:
 
 
 @dataclass(frozen=True)
+class EnemySnapshot:
+    """One enemy's hitbox, in level pixels, and whether it has been defeated."""
+    kind: EnemyKind
+    x_pixels: int
+    y_pixels: int
+    width_pixels: int
+    height_pixels: int
+    is_defeated: bool
+
+    @classmethod
+    def of(cls, enemy: Enemy) -> "EnemySnapshot":
+        hitbox = enemy.hitbox()
+        return cls(enemy.kind, hitbox.x, hitbox.y, hitbox.width, hitbox.height, enemy.is_defeated)
+
+
+@dataclass(frozen=True)
 class HudSnapshot:
     """The numbers the HUD shows: score, coins and the level timer's time left."""
     score: int
@@ -44,6 +62,7 @@ class WorldSnapshot:
     screen_left_x_pixels: int
     tiles: VisibleTiles
     mario: MarioSnapshot
+    enemies: tuple[EnemySnapshot, ...]
     hud: HudSnapshot
 
     @classmethod
@@ -63,5 +82,6 @@ class WorldSnapshot:
             tiles=VisibleTiles(first_column, rows),
             mario=MarioSnapshot(mario.pixel_x, mario.pixel_y, mario.width >> SUBPIXEL_BITS,
                                 mario.height >> SUBPIXEL_BITS),
+            enemies=tuple(EnemySnapshot.of(enemy) for enemy in attempt.enemies.active),
             hud=hud if hud is not None else HudSnapshot.of(attempt),
         )

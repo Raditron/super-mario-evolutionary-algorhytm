@@ -67,3 +67,27 @@ WORLD_NAME = "1-1"
 # A Goomba pair sits at 16 * (data column - 3) and 16 * (data column - 1.5) px.
 GOOMBA_PAIR_FIRST_OFFSET_PIXELS = -3 * TILE_SIZE_PIXELS
 GOOMBA_PAIR_SECOND_OFFSET_PIXELS = -3 * TILE_SIZE_PIXELS // 2
+
+# --- Enemy activation and removal (CheckRightBounds, OffscreenBoundsCheck, EnemyGfxHandler) ---
+
+# An enemy activates once its x (a Goomba pair: its data column) is at most this
+# far past the screen's right edge. One already left of the right edge when its
+# turn comes in the list is skipped for good.
+ENEMY_ACTIVATION_RANGE_PIXELS = 48
+# An enemy is removed once its x is more than this far left of the screen's left edge.
+ENEMY_REMOVAL_RANGE_PIXELS = 72
+# An enemy that falls into a pit is removed once its sprite's top is this far down
+# (Enemy_Y_HighPos = 2).
+ENEMY_FELL_OUT_SPRITE_Y_PIXELS = 256
+# An enemy spawns this far above the tile it rests on and drops onto it: the
+# original sets its sprite y to 16 * row, and it lands at 16 * row + 8.
+ENEMY_SPAWN_DROP_PIXELS = 8
+
+# --- Goomba size (BlockBuffer_X_Adder / _Y_Adder for enemies) -------------------------------
+
+# The original's enemy sprite is 16 x 24 px with the Goomba in its lower 16 rows.
+# Its side probes (sprite x + 0 and + 16) and foot probe (sprite y + 24) give one
+# 16 x 16 box at sprite offset (0, 8).
+GOOMBA_HITBOX_WIDTH_PIXELS = 16
+GOOMBA_HITBOX_HEIGHT_PIXELS = 16
+GOOMBA_HITBOX_OFFSET_Y_PIXELS = 8

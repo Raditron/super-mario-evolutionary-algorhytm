@@ -7,6 +7,7 @@ from mario.constants.view import (
     BRICK_COLOUR,
     CASTLE_STOPPER_COLOUR,
     FLAGPOLE_COLOUR,
+    GOOMBA_COLOUR,
     GROUND_COLOUR,
     HARD_BLOCK_COLOUR,
     HIDDEN_BLOCK_COLOUR,
@@ -14,9 +15,11 @@ from mario.constants.view import (
     PIPE_COLOUR,
     QUESTION_BLOCK_COLOUR,
     SKY_COLOUR,
+    SQUASHED_GOOMBA_DRAWN_HEIGHT_PIXELS,
 )
+from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
-from mario.snapshots.world_snapshot import WorldSnapshot
+from mario.snapshots.world_snapshot import EnemySnapshot, WorldSnapshot
 
 TILE_COLOURS = {
     TileKind.GROUND: GROUND_COLOUR,
@@ -33,10 +36,17 @@ TILE_COLOURS = {
 }
 
 
+ENEMY_COLOURS = {
+    EnemyKind.GOOMBA: GOOMBA_COLOUR,
+}
+
+
 class DebugRenderer:
     def draw(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
         screen.fill(SKY_COLOUR)
         self._draw_tiles(snapshot, screen)
+        for enemy in snapshot.enemies:
+            self._draw_enemy(enemy, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
         screen.fill(MARIO_COLOUR, pygame.Rect(mario.x_pixels - snapshot.screen_left_x_pixels,
                                               mario.y_pixels, mario.width_pixels, mario.height_pixels))
@@ -52,3 +62,11 @@ class DebugRenderer:
                 screen_x = (tiles.first_column + column_offset) * TILE_SIZE_PIXELS - snapshot.screen_left_x_pixels
                 screen.fill(colour, pygame.Rect(screen_x, row * TILE_SIZE_PIXELS,
                                                 TILE_SIZE_PIXELS, TILE_SIZE_PIXELS))
+
+    @staticmethod
+    def _draw_enemy(enemy: EnemySnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
+        """Its hitbox; a squashed Goomba flattened onto its feet."""
+        drawn_height = SQUASHED_GOOMBA_DRAWN_HEIGHT_PIXELS if enemy.is_defeated else enemy.height_pixels
+        drawn_top_y = enemy.y_pixels + enemy.height_pixels - drawn_height
+        screen.fill(ENEMY_COLOURS[enemy.kind], pygame.Rect(enemy.x_pixels - screen_left_x_pixels, drawn_top_y,
+                                                           enemy.width_pixels, drawn_height))

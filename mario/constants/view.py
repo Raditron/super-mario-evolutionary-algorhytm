@@ -27,6 +27,9 @@ PIPE_COLOUR = (0, 168, 0)
 FLAGPOLE_COLOUR = (240, 240, 240)
 CASTLE_STOPPER_COLOUR = (60, 60, 60)
 MARIO_COLOUR = (216, 40, 0)
+GOOMBA_COLOUR = (136, 76, 0)
+# A squashed Goomba is drawn flattened to this height, standing on its feet.
+SQUASHED_GOOMBA_DRAWN_HEIGHT_PIXELS = 8
 
 # --- HUD (TopStatusBarLine, StatusBarData, WriteBottomStatusLine) ----------------------------
 

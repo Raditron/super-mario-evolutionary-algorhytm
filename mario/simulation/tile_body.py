@@ -8,7 +8,9 @@ more than one tile per tick, so checking its leading edge is enough.
 from enum import Enum, auto
 
 from mario.constants.level import SUBPIXEL_TO_TILE_SHIFT, TILE_SIZE_SUBPIXELS
+from mario.constants.physics import SUBPIXEL_BITS
 from mario.level.static_level import StaticLevel
+from mario.simulation.hitbox import Hitbox
 
 
 class VerticalContact(Enum):
@@ -25,6 +27,11 @@ class TileBody:
         self.y = y
         self.width = width
         self.height = height
+
+    def hitbox(self) -> Hitbox:
+        """The box in whole level pixels."""
+        return Hitbox(self.x >> SUBPIXEL_BITS, self.y >> SUBPIXEL_BITS,
+                      self.width >> SUBPIXEL_BITS, self.height >> SUBPIXEL_BITS)
 
     def move_horizontally(self, level: StaticLevel, distance: int) -> bool:
         """Move by distance; True if a solid tile stopped the body."""
