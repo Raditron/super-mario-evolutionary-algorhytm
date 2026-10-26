@@ -3,10 +3,13 @@
 import numpy as np
 import pytest
 
+from mario.constants.physics import SUBPIXELS_PER_PIXEL
 from mario.level.static_level import StaticLevel
+from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
 from mario.simulation.goomba import Goomba
 from mario.simulation.observation_builder import ObservationBuilder
+from mario.simulation.tile_body import TileBody
 from tests.game.helpers import (
     HOLD_JUMP,
     HOLD_LEFT,
@@ -23,6 +26,7 @@ GRID_ROWS, GRID_COLUMNS = 12, 13
 GRID_CELLS = GRID_ROWS * GRID_COLUMNS
 OBSERVATION_LENGTH = GRID_CELLS + 4
 TOP_ROW = 2                                   # the grid's first row is the screen's row 2
+TILE_PIXELS = 16
 COLUMNS_BEHIND = 3
 GROUND_ROW = 13
 # World 1-1's first ? block (docs/research/world-1-1-layout.md); nothing else is above
@@ -36,8 +40,9 @@ TICKS_TO_REACH_FULL_RUN_SPEED = 200
 # Height runs from 0 with his feet at the band's top (row 2, y = 32) to 1 with them
 # on the ground (row 13, y = 208). A standing jump with jump held rises about 66 px
 # (docs/research/smb-physics-constants.md, accurate to about 1 px).
-BAND_PIXELS = 208 - 32
-HEIGHT_AT_THE_APEX = (208 - 66 - 32) / BAND_PIXELS
+BAND_TOP_Y_PIXELS = 32
+BAND_PIXELS = 208 - BAND_TOP_Y_PIXELS
+HEIGHT_AT_THE_APEX = (208 - 66 - BAND_TOP_Y_PIXELS) / BAND_PIXELS
 APEX_TOLERANCE = 1.5 / BAND_PIXELS
 # The first tick he moves down, his speed is below one tick of the falling gravity
 # (0.4375 px/f^2), as a share of the 4 px/f terminal fall.
@@ -46,12 +51,22 @@ LARGEST_SPEED_AFTER_THE_APEX = 0.4375 / 4
 # standing, some in the air, and some with a Goomba in view.
 PILOT_TICKS_PER_ATTEMPT = (0, 40, 90, 130, 170, 220, 300, 420, 600)
 PILOT_TICKS_WITH_GOOMBAS = 130
+# The spec's divisors for the two speeds, and how far apart two ways of dividing may round.
+RUN_CAP_PIXELS_PER_TICK = 2.5
+TERMINAL_FALL_PIXELS_PER_TICK = 4
+STATE_TOLERANCE = 1e-12
+
+
+def hitbox_centre_cell(body: TileBody) -> tuple[int, int]:
+    """The (column, row) of the tile holding the centre of the body's hitbox."""
+    hitbox = body.hitbox()
+    return ((hitbox.x_pixels + hitbox.width_pixels // 2) // TILE_PIXELS,
+            (hitbox.y_pixels + hitbox.height_pixels // 2) // TILE_PIXELS)
 
 
 def centre_column(attempt: Attempt) -> int:
     """The tile column holding Mario's centre x."""
-    hitbox = attempt.mario.hitbox()
-    return (hitbox.x_pixels + hitbox.width_pixels // 2) // 16
+    return hitbox_centre_cell(attempt.mario)[0]
 
 
 def with_goomba_at(attempt: Attempt, x_pixels: int) -> Goomba:
@@ -108,13 +123,11 @@ def test_a_goomba_marks_minus_1_in_exactly_the_cell_holding_its_hitbox_centre(go
     level = build_level(hard_blocks=hard_blocks)
     attempt = Attempt(level)
     goomba = with_goomba_at(attempt, goomba_x)
-    hitbox = goomba.hitbox()
-    goomba_centre_column = (hitbox.x_pixels + hitbox.width_pixels // 2) // 16
-    goomba_centre_row = (hitbox.y_pixels + hitbox.height_pixels // 2) // 16
+    goomba_centre_column, goomba_centre_row = hitbox_centre_cell(goomba)
     grid = grid_of(ObservationBuilder(level).build(attempt))
     assert np.count_nonzero(grid == -1) == 1
     assert grid[goomba_centre_row - TOP_ROW, goomba_centre_column - centre_column(attempt) + COLUMNS_BEHIND] == -1
-    assert goomba_centre_row == 12 and goomba_centre_column == goomba_x // 16
+    assert goomba_centre_row == 12 and goomba_centre_column == goomba_x // TILE_PIXELS
 
 
 def test_a_squashed_goomba_and_a_goomba_outside_the_window_are_not_shown(flat_level):
@@ -170,7 +183,30 @@ def test_at_the_top_of_a_standing_jump_mario_is_still_in_the_air_66_px_up(flat_l
     assert height == pytest.approx(HEIGHT_AT_THE_APEX, abs=APEX_TOLERANCE)
 
 
-def test_the_batched_build_equals_building_each_observation_on_its_own(world_1_1):
+def naive_observation(attempt: Attempt) -> np.ndarray:
+    """The Observation worked out from the spec one cell at a time, apart from the builder."""
+    level = attempt.level
+    first_column = centre_column(attempt) - COLUMNS_BEHIND
+    enemy_cells = {hitbox_centre_cell(enemy) for enemy in attempt.enemies.active if not enemy.is_defeated}
+    grid = np.zeros((GRID_ROWS, GRID_COLUMNS))
+    for row_in_window in range(GRID_ROWS):
+        for column_in_window in range(GRID_COLUMNS):
+            cell = (first_column + column_in_window, TOP_ROW + row_in_window)
+            if cell in enemy_cells:
+                grid[row_in_window, column_in_window] = -1
+            elif level.is_solid(*cell) and level.tile_kind(*cell) is not TileKind.CASTLE_STOPPER:
+                grid[row_in_window, column_in_window] = 1
+    mario = attempt.mario
+    feet_y_pixels = (mario.y + mario.height) / SUBPIXELS_PER_PIXEL
+    state = [mario.whole_speed_x / SUBPIXELS_PER_PIXEL / RUN_CAP_PIXELS_PER_TICK,
+             mario.velocity_y / SUBPIXELS_PER_PIXEL / TERMINAL_FALL_PIXELS_PER_TICK,
+             (feet_y_pixels - BAND_TOP_Y_PIXELS) / BAND_PIXELS,
+             1 if mario.is_on_ground else 0]
+    return np.concatenate([grid.ravel(), state])
+
+
+def attempts_in_different_states(world_1_1: StaticLevel) -> list[Attempt]:
+    """The scripted pilot's attempts spread over 1-1, plus one walked against the left edge."""
     attempts = []
     for ticks in PILOT_TICKS_PER_ATTEMPT:
         # the pilot doesn't jump Goombas, so the longer attempts run without them
@@ -179,11 +215,22 @@ def test_the_batched_build_equals_building_each_observation_on_its_own(world_1_1
         for _ in range(ticks):
             attempt.step(pilot.next_buttons(attempt))
         attempts.append(attempt)
-    builder = ObservationBuilder(world_1_1)
-    batch = builder.build_batch(attempts)
+    at_the_left_edge = Attempt(without_enemies(world_1_1))
+    for _ in range(TICKS_TO_REACH_THE_LEFT_EDGE):
+        at_the_left_edge.step(HOLD_LEFT)
+    attempts.append(at_the_left_edge)
+    return attempts
+
+
+def test_the_batched_build_matches_a_naive_cell_by_cell_observation(world_1_1):
+    attempts = attempts_in_different_states(world_1_1)
+    batch = ObservationBuilder(world_1_1).build_batch(attempts)
     assert batch.shape == (len(attempts), OBSERVATION_LENGTH)
     assert batch.dtype == np.float64
-    assert np.array_equal(batch, np.stack([builder.build(attempt) for attempt in attempts]))
+    for observation, attempt in zip(batch, attempts):
+        expected = naive_observation(attempt)
+        assert np.array_equal(observation[:GRID_CELLS], expected[:GRID_CELLS])
+        assert np.allclose(observation[GRID_CELLS:], expected[GRID_CELLS:], rtol=0, atol=STATE_TOLERANCE)
     on_ground = batch[:, OBSERVATION_LENGTH - 1]
     assert np.any(batch[:, :GRID_CELLS] == -1) and np.any(on_ground == 0) and np.any(on_ground == 1)
     assert len({tuple(observation) for observation in batch}) == len(attempts)
