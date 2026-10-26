@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 
 from mario.constants.level import SCREEN_WIDTH_PIXELS, TILE_SIZE_PIXELS
-from mario.constants.observation import OBSERVATION_COLUMNS, OBSERVATION_GRID_CELLS, OBSERVATION_ROWS
 from mario.constants.view import DEBUG_RECENT_GAME_EVENT_TICKS
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
@@ -75,10 +74,9 @@ class ObservationSnapshot:
 
     @classmethod
     def of(cls, attempt: Attempt, builder: ObservationBuilder) -> "ObservationSnapshot":
-        observation = builder.build(attempt)
-        cells = observation[:OBSERVATION_GRID_CELLS].reshape(OBSERVATION_ROWS, OBSERVATION_COLUMNS)
-        return cls(builder.window_first_column(attempt), tuple(map(tuple, cells.tolist())),
-                   tuple(observation[OBSERVATION_GRID_CELLS:].tolist()))
+        observation, first_column = builder.build_with_first_column(attempt)
+        return cls(first_column, tuple(map(tuple, builder.grid_of(observation).tolist())),
+                   tuple(builder.state_numbers_of(observation).tolist()))
 
 
 @dataclass(frozen=True)

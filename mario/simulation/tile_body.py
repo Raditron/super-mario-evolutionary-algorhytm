@@ -36,6 +36,21 @@ class TileBody:
         return Hitbox(self.x >> SUBPIXEL_BITS, self.y >> SUBPIXEL_BITS,
                       self.width >> SUBPIXEL_BITS, self.height >> SUBPIXEL_BITS)
 
+    @property
+    def feet_y(self) -> int:
+        """The y just below the box: the top of whatever it stands on."""
+        return self.y + self.height
+
+    @property
+    def centre_column(self) -> int:
+        """The tile column holding the box's centre."""
+        return (self.x + self.width // 2) >> SUBPIXEL_TO_TILE_SHIFT
+
+    @property
+    def centre_row(self) -> int:
+        """The tile row holding the box's centre."""
+        return (self.y + self.height // 2) >> SUBPIXEL_TO_TILE_SHIFT
+
     def sprite_top_has_reached(self, sprite_top_y_pixels: int) -> bool:
         """Whether the original's sprite has its top at this y or further down."""
         return (self.y >> SUBPIXEL_BITS) - self.hitbox_offset_y_pixels >= sprite_top_y_pixels
@@ -77,7 +92,7 @@ class TileBody:
         return VerticalContact.NONE
 
     def is_standing_on_solid_tile(self, level: StaticLevel) -> bool:
-        row_below = (self.y + self.height) >> SUBPIXEL_TO_TILE_SHIFT
+        row_below = self.feet_y >> SUBPIXEL_TO_TILE_SHIFT
         left_column = self.x >> SUBPIXEL_TO_TILE_SHIFT
         right_column = (self.x + self.width - 1) >> SUBPIXEL_TO_TILE_SHIFT
         return _row_has_solid_tile(level, row_below, left_column, right_column)
