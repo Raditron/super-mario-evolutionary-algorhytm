@@ -4,7 +4,25 @@ and over them the followed agent's Observation and the recent game events (#25).
 import pygame
 import pytest
 
-from mario.constants.level import SCREEN_HEIGHT_PIXELS, SCREEN_WIDTH_PIXELS
+from mario.constants.level import (
+    GOOMBA_HITBOX_HEIGHT_PIXELS,
+    GOOMBA_HITBOX_WIDTH_PIXELS,
+    LEVEL_TIMER_START_UNITS,
+    SCREEN_HEIGHT_PIXELS,
+    SCREEN_WIDTH_PIXELS,
+    SMALL_MARIO_HITBOX_HEIGHT_PIXELS,
+    SMALL_MARIO_HITBOX_WIDTH_PIXELS,
+    TILE_SIZE_PIXELS,
+)
+from mario.constants.observation import (
+    EMPTY_CELL,
+    ENEMY_CELL,
+    OBSERVATION_BOTTOM_ROW,
+    OBSERVATION_COLUMNS,
+    OBSERVATION_ROWS,
+    OBSERVATION_TOP_ROW,
+    SOLID_CELL,
+)
 from mario.constants.view import (
     DEBUG_GAME_EVENT_LINES,
     DEBUG_GAME_EVENTS_TOP_LEFT,
@@ -29,11 +47,15 @@ from mario.view.debug_renderer import DebugRenderer
 
 SCREEN_LEFT_X = 100
 GOOMBA_X, GOOMBA_Y = 300, 120                 # in level pixels, clear of the ground and Mario
+GOOMBA_RIGHT_X = GOOMBA_X + GOOMBA_HITBOX_WIDTH_PIXELS - 1    # its hitbox's last column of pixels
+GOOMBA_BOTTOM_Y = GOOMBA_Y + GOOMBA_HITBOX_HEIGHT_PIXELS - 1  # and last row
 # An Observation window starting at level column 8 (screen x 28), with one solid
 # cell and one enemy cell on its fourth row (screen row 5).
 WINDOW_FIRST_COLUMN = 8
 SOLID_CELL_AT, ENEMY_CELL_AT, EMPTY_CELL_AT = (3, 2), (3, 4), (3, 6)
 STANDING_STILL = (0.0, 0.0, 1.0, 1.0)
+HALF_TILE_PIXELS = TILE_SIZE_PIXELS // 2
+MARIO_Y_PIXELS = OBSERVATION_BOTTOM_ROW * TILE_SIZE_PIXELS - SMALL_MARIO_HITBOX_HEIGHT_PIXELS  # on the ground
 
 
 @pytest.fixture(autouse=True, scope="module")
@@ -47,14 +69,21 @@ def snapshot_with(enemies: tuple[EnemySnapshot, ...] = (), observation: Observat
                   recent_events: tuple[GameEvent, ...] = ()) -> WorldSnapshot:
     """A screen with no tiles, Mario at its left, and what is given."""
     return WorldSnapshot(tick=0, screen_left_x_pixels=SCREEN_LEFT_X, tiles=VisibleTiles(0, ()),
-                         mario=MarioSnapshot(SCREEN_LEFT_X, 194, 12, 14), enemies=enemies,
-                         hud=HudSnapshot(0, 0, 400), observation=observation, recent_events=recent_events)
+                         mario=MarioSnapshot(SCREEN_LEFT_X, MARIO_Y_PIXELS, SMALL_MARIO_HITBOX_WIDTH_PIXELS,
+                                             SMALL_MARIO_HITBOX_HEIGHT_PIXELS),
+                         enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
+                         observation=observation, recent_events=recent_events)
 
 
 def drawn(snapshot: WorldSnapshot) -> pygame.Surface:
     screen = pygame.Surface((SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS))
     DebugRenderer().draw(snapshot, screen)
     return screen
+
+
+def goomba_snapshot(is_defeated: bool) -> EnemySnapshot:
+    return EnemySnapshot(EnemyKind.GOOMBA, GOOMBA_X, GOOMBA_Y, GOOMBA_HITBOX_WIDTH_PIXELS,
+                         GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated)
 
 
 def drawn_with(goomba: EnemySnapshot) -> pygame.Surface:
@@ -66,15 +95,25 @@ def colour_at(screen: pygame.Surface, level_x: int, y: int) -> tuple[int, int, i
 
 
 def observation_with(state_numbers: tuple[float, ...] = STANDING_STILL) -> ObservationSnapshot:
-    cells = [[0.0] * 13 for _ in range(12)]
-    cells[SOLID_CELL_AT[0]][SOLID_CELL_AT[1]] = 1.0
-    cells[ENEMY_CELL_AT[0]][ENEMY_CELL_AT[1]] = -1.0
+    cells = [[EMPTY_CELL] * OBSERVATION_COLUMNS for _ in range(OBSERVATION_ROWS)]
+    cells[SOLID_CELL_AT[0]][SOLID_CELL_AT[1]] = SOLID_CELL
+    cells[ENEMY_CELL_AT[0]][ENEMY_CELL_AT[1]] = ENEMY_CELL
     return ObservationSnapshot(WINDOW_FIRST_COLUMN, tuple(map(tuple, cells)), state_numbers)
+
+
+def cell_centre_x(column: int) -> int:
+    """The level x of the middle of the window's column."""
+    return (WINDOW_FIRST_COLUMN + column) * TILE_SIZE_PIXELS + HALF_TILE_PIXELS
+
+
+def cell_centre_y(row: int) -> int:
+    """The y of the middle of the window's row."""
+    return (OBSERVATION_TOP_ROW + row) * TILE_SIZE_PIXELS + HALF_TILE_PIXELS
 
 
 def cell_centre_colour(screen: pygame.Surface, cell: tuple[int, int]) -> tuple[int, int, int]:
     row, column = cell
-    return colour_at(screen, (WINDOW_FIRST_COLUMN + column) * 16 + 8, (2 + row) * 16 + 8)
+    return colour_at(screen, cell_centre_x(column), cell_centre_y(row))
 
 
 def changed_rows(first: pygame.Surface, second: pygame.Surface) -> set[int]:
@@ -83,17 +122,17 @@ def changed_rows(first: pygame.Surface, second: pygame.Surface) -> set[int]:
 
 
 def test_a_goomba_is_drawn_as_its_hitbox_in_the_goomba_colour():
-    screen = drawn_with(EnemySnapshot(EnemyKind.GOOMBA, GOOMBA_X, GOOMBA_Y, 16, 16, is_defeated=False))
+    screen = drawn_with(goomba_snapshot(is_defeated=False))
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == GOOMBA_COLOUR
-    assert colour_at(screen, GOOMBA_X + 15, GOOMBA_Y + 15) == GOOMBA_COLOUR
-    assert colour_at(screen, GOOMBA_X + 16, GOOMBA_Y) == SKY_COLOUR
+    assert colour_at(screen, GOOMBA_RIGHT_X, GOOMBA_BOTTOM_Y) == GOOMBA_COLOUR
+    assert colour_at(screen, GOOMBA_RIGHT_X + 1, GOOMBA_Y) == SKY_COLOUR
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y - 1) == SKY_COLOUR
 
 
 def test_a_squashed_goomba_is_drawn_flattened_onto_its_feet():
-    screen = drawn_with(EnemySnapshot(EnemyKind.GOOMBA, GOOMBA_X, GOOMBA_Y, 16, 16, is_defeated=True))
+    screen = drawn_with(goomba_snapshot(is_defeated=True))
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == SKY_COLOUR
-    assert colour_at(screen, GOOMBA_X, GOOMBA_Y + 15) == GOOMBA_COLOUR
+    assert colour_at(screen, GOOMBA_X, GOOMBA_BOTTOM_Y) == GOOMBA_COLOUR
 
 
 def test_the_observation_window_is_drawn_translucent_over_the_level_each_cell_tinted_by_its_value():
@@ -101,8 +140,10 @@ def test_the_observation_window_is_drawn_translucent_over_the_level_each_cell_ti
     solid, enemy, empty = (cell_centre_colour(screen, cell) for cell in (SOLID_CELL_AT, ENEMY_CELL_AT, EMPTY_CELL_AT))
     assert len({solid, enemy, empty, SKY_COLOUR}) == 4
     assert solid != OBSERVATION_SOLID_TINT and enemy != OBSERVATION_ENEMY_TINT
-    assert colour_at(screen, WINDOW_FIRST_COLUMN * 16 - 1, 5 * 16 + 8) == SKY_COLOUR      # left of the window
-    assert colour_at(screen, WINDOW_FIRST_COLUMN * 16 + 8, 2 * 16 - 1) == SKY_COLOUR      # above it
+    window_left_x = WINDOW_FIRST_COLUMN * TILE_SIZE_PIXELS
+    window_top_y = OBSERVATION_TOP_ROW * TILE_SIZE_PIXELS
+    assert colour_at(screen, window_left_x - 1, cell_centre_y(SOLID_CELL_AT[0])) == SKY_COLOUR  # left of it
+    assert colour_at(screen, cell_centre_x(0), window_top_y - 1) == SKY_COLOUR                  # above it
 
 
 def test_no_observation_draws_no_window():
