@@ -160,7 +160,7 @@ What an agent perceives each tick: **160 numbers**, built by `ObservationBuilder
 2. **4 Mario-state numbers**, in this order:
    1. horizontal speed ÷ run cap (2.5 px/f): the whole speed that moves him (`Player_X_Speed`), negative to the left, so −1 to 1
    2. vertical speed ÷ terminal fall (4 px/f), positive when falling; the one-tick overshoot can take it to about 1.1
-   3. height: his feet within the 12-row band, 0 at the band's top edge (y = 32) and 1 standing on the ground (the top of row 13, y = 208). It isn't clipped, so it passes 1 as he falls into a pit.
+   3. height: his feet within the 12-row band, 0 at the band's top edge (y = 32) and 1 standing on the ground (the top of row 13, y = 208). It isn't clipped at either end: it goes below 0 when he jumps from high ground such as the staircase, and above 1 as he falls into a pit.
    4. on the ground: 0 or 1
 
 **Cell values**
@@ -171,9 +171,9 @@ What an agent perceives each tick: **160 numbers**, built by `ObservationBuilder
 **Rules for the grid**
 - Items aren't shown. Mario's fireballs aren't shown.
 - The hidden 1-UP block shows as empty until it's hit. A broken brick becomes empty.
-- Cells outside the area count as solid. The invisible left camera wall is not shown.
+- Cells outside the area count as solid. Invisible walls aren't shown: neither the left camera wall nor the invisible castle stopper (column 205), which shows as empty.
 - An enemy marks only the cell holding its hitbox centre, and overrides a solid tile in the same cell. A defeated enemy (a squashed Goomba) isn't shown.
-- A cell is solid exactly when the physics treats its tile as solid (built in #25).
+- A cell is solid exactly when the physics treats its tile as solid and it can be seen, so the castle stopper is left out (built in #25).
 - In the bonus room, the grid shows the room's tiles.
 
 **Constants** (`mario/constants/observation.py`): `OBSERVATION_COLUMNS_BEHIND = 3`, `OBSERVATION_COLUMNS_AHEAD = 9`, `OBSERVATION_TOP_ROW = 2`, `OBSERVATION_BOTTOM_ROW = 13`, the cell values and the scaling divisors.

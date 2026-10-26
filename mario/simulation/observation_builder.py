@@ -24,6 +24,7 @@ from mario.constants.observation import (
     SOLID_CELL,
 )
 from mario.level.static_level import StaticLevel
+from mario.level.tile_kind import INVISIBLE_SOLID_TILE_KINDS
 from mario.simulation.attempt import Attempt
 from mario.simulation.enemy import Enemy
 from mario.simulation.mario import Mario
@@ -85,13 +86,18 @@ def _centre_row(body: TileBody) -> int:
 
 def _grids_by_centre_column(level: StaticLevel) -> np.ndarray:
     """For every column Mario's centre can be in, the grid's tiles as one flat row.
-    A tile counts as solid exactly when the physics treats it so; columns outside
-    the level do too. The hidden 1-UP block isn't solid until hit, so it shows empty."""
+    A tile shows as solid when the physics treats it so and it can be seen; columns
+    outside the level do too. The hidden 1-UP block isn't solid until hit, so it
+    shows empty, and so does the invisible castle stopper."""
     grids = np.empty((level.width_tiles, OBSERVATION_GRID_CELLS), dtype=np.float64)
     for centre_column in range(level.width_tiles):
         first_column = centre_column - OBSERVATION_COLUMNS_BEHIND
-        cells = [SOLID_CELL if level.is_solid(column, row) else EMPTY_CELL
+        cells = [SOLID_CELL if _shows_as_solid(level, column, row) else EMPTY_CELL
                  for row in range(OBSERVATION_TOP_ROW, OBSERVATION_BOTTOM_ROW + 1)
                  for column in range(first_column, first_column + OBSERVATION_COLUMNS)]
         grids[centre_column] = cells
     return grids
+
+
+def _shows_as_solid(level: StaticLevel, column: int, row: int) -> bool:
+    return level.is_solid(column, row) and level.tile_kind(column, row) not in INVISIBLE_SOLID_TILE_KINDS

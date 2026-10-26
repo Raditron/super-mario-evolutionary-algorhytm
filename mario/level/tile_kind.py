@@ -52,6 +52,12 @@ SOLID_TILE_KINDS = frozenset({
     TileKind.CASTLE_STOPPER,
 })
 
+# Solid tiles nothing on screen shows: the castle stopper stands behind the castle
+# art, so the Observation leaves it out, as it does the camera wall.
+INVISIBLE_SOLID_TILE_KINDS = frozenset({
+    TileKind.CASTLE_STOPPER,
+})
+
 # Tiles that hold something and are hit from below.
 BLOCK_TILE_KINDS = frozenset({
     TileKind.BRICK,

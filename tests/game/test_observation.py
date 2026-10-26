@@ -31,6 +31,7 @@ FIRST_QUESTION_BLOCK_COLUMN, FIRST_QUESTION_BLOCK_ROW = 16, 9
 TICKS_TO_REACH_THE_LEFT_EDGE = 60
 TEST_LEVEL_WIDTH = 40
 HIDDEN_BLOCK_COLUMN, HIDDEN_BLOCK_ROW = 5, 9  # in the window above Mario's spawn
+CASTLE_STOPPER_COLUMN, CASTLE_STOPPER_ROW = 8, 12  # in the window, on the ground right of Mario's spawn
 TICKS_TO_REACH_FULL_RUN_SPEED = 200
 # Height runs from 0 with his feet at the band's top (row 2, y = 32) to 1 with them
 # on the ground (row 13, y = 208). A standing jump with jump held rises about 66 px
@@ -127,6 +128,16 @@ def test_the_hidden_block_shows_as_empty_until_it_is_hit():
     rows = ["." * TEST_LEVEL_WIDTH] * GROUND_ROW + ["X" * TEST_LEVEL_WIDTH] * 2
     rows[HIDDEN_BLOCK_ROW] = "." * HIDDEN_BLOCK_COLUMN + "U" + "." * (TEST_LEVEL_WIDTH - HIDDEN_BLOCK_COLUMN - 1)
     level = StaticLevel(rows)
+    grid = grid_of(ObservationBuilder(level).build(Attempt(level)))
+    assert np.count_nonzero(grid[:GROUND_ROW - TOP_ROW]) == 0
+
+
+def test_the_invisible_castle_stopper_shows_as_empty_like_the_camera_wall():
+    rows = ["." * TEST_LEVEL_WIDTH] * GROUND_ROW + ["X" * TEST_LEVEL_WIDTH] * 2
+    rows[CASTLE_STOPPER_ROW] = ("." * CASTLE_STOPPER_COLUMN + "W"
+                                + "." * (TEST_LEVEL_WIDTH - CASTLE_STOPPER_COLUMN - 1))
+    level = StaticLevel(rows)
+    assert level.is_solid(CASTLE_STOPPER_COLUMN, CASTLE_STOPPER_ROW)
     grid = grid_of(ObservationBuilder(level).build(Attempt(level)))
     assert np.count_nonzero(grid[:GROUND_ROW - TOP_ROW]) == 0
 
