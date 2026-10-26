@@ -8,8 +8,9 @@ from mario.constants.level import (
 )
 from mario.constants.scoring import COIN_POINTS, COINS_PER_EXTRA_LIFE, STARTING_LIVES
 from mario.constants.training import STALL_LIMIT_TICKS
+from mario.constants.view import DEBUG_RECENT_GAME_EVENT_TICKS
 from mario.modes.play_session import PlaySession
-from mario.simulation.attempt_result import EndReason
+from mario.simulation.attempt_result import EndReason, GameEvent, GameEventKind
 from tests.game.helpers import HOLD_NOTHING, HOLD_RIGHT_RUN, build_level, goomba_spawn
 
 PIT_BEFORE_THE_CHECKPOINT = range(10, 14)
@@ -108,3 +109,22 @@ def test_play_has_no_stall_rule():
     for _ in range(10 * STALL_LIMIT_TICKS):
         session.step(HOLD_NOTHING)
     assert (session.lives, session.attempt.ticks_elapsed) == (STARTING_LIVES, 10 * STALL_LIMIT_TICKS)
+
+
+def test_the_play_snapshot_carries_the_observation_for_the_debug_view():
+    session = PlaySession(build_level())
+    observation = session.snapshot().observation
+    assert observation.first_column == 0      # Mario's centre is in column 3, 3 columns behind
+    assert observation.cells[-1] == (1,) * 13  # the ground row
+    assert observation.cells[:-1] == ((0,) * 13,) * 11
+    assert observation.state_numbers == (0, 0, 1, 1)
+
+
+def test_the_play_snapshot_carries_the_recent_game_events():
+    session = PlaySession(build_level())
+    session.attempt.scoreboard.score_points(STOMP_POINTS, session.attempt.ticks_elapsed)
+    for _ in range(DEBUG_RECENT_GAME_EVENT_TICKS - 1):
+        session.step(HOLD_NOTHING)
+    assert session.snapshot().recent_events == (GameEvent(0, GameEventKind.SCORED_POINTS, STOMP_POINTS),)
+    session.step(HOLD_NOTHING)
+    assert session.snapshot().recent_events == ()

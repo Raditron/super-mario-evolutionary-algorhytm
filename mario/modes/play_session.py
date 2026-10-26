@@ -10,12 +10,14 @@ from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS
 from mario.constants.scoring import COINS_PER_EXTRA_LIFE, STARTING_LIVES
 from mario.level.static_level import StaticLevel
 from mario.simulation.attempt import Attempt
+from mario.simulation.observation_builder import ObservationBuilder
 from mario.snapshots.world_snapshot import HudSnapshot, WorldSnapshot
 
 
 class PlaySession:
     def __init__(self, level: StaticLevel):
         self._level = level
+        self._observation_builder = ObservationBuilder(level)
         self._start_new_game()
 
     @property
@@ -39,7 +41,7 @@ class PlaySession:
 
     def snapshot(self) -> WorldSnapshot:
         hud = HudSnapshot(self.score, self.coins, self.attempt.level_timer.time_left)
-        return WorldSnapshot.of(self.attempt, hud)
+        return WorldSnapshot.of(self.attempt, hud, self._observation_builder)
 
     def _start_new_game(self) -> None:
         self._lives_lost = 0
