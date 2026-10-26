@@ -33,6 +33,7 @@ GROUND_ROW = 13
 # the ground near it.
 FIRST_QUESTION_BLOCK_COLUMN, FIRST_QUESTION_BLOCK_ROW = 16, 9
 TICKS_TO_REACH_THE_LEFT_EDGE = 60
+COLUMNS_OUTSIDE = 2                           # how far outside the level a misplaced Mario is put
 TEST_LEVEL_WIDTH = 40
 HIDDEN_BLOCK_COLUMN, HIDDEN_BLOCK_ROW = 5, 9  # in the window above Mario's spawn
 CASTLE_STOPPER_COLUMN, CASTLE_STOPPER_ROW = 8, 12  # in the window, on the ground right of Mario's spawn
@@ -153,6 +154,17 @@ def test_the_invisible_castle_stopper_shows_as_empty_like_the_camera_wall():
     assert level.is_solid(CASTLE_STOPPER_COLUMN, CASTLE_STOPPER_ROW)
     grid = grid_of(ObservationBuilder(level).build(Attempt(level)))
     assert np.count_nonzero(grid[:GROUND_ROW - TOP_ROW]) == 0
+
+
+@pytest.mark.parametrize("past_the_left_edge", [True, False])
+def test_mario_outside_the_level_has_no_observation(flat_level, past_the_left_edge):
+    # The solid columns either side keep him in; were he out, numpy would wrap a
+    # column left of 0 round to the level's right end instead of failing.
+    attempt = Attempt(flat_level)
+    mario_x_tiles = -COLUMNS_OUTSIDE if past_the_left_edge else flat_level.width_tiles + COLUMNS_OUTSIDE
+    attempt.mario.x = mario_x_tiles * TILE_PIXELS * SUBPIXELS_PER_PIXEL
+    with pytest.raises(ValueError):
+        ObservationBuilder(flat_level).build(attempt)
 
 
 def state_numbers(builder: ObservationBuilder, attempt: Attempt) -> list[float]:

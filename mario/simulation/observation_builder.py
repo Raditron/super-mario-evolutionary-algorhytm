@@ -33,6 +33,7 @@ from mario.simulation.tile_body import TileBody
 
 class ObservationBuilder:
     def __init__(self, level: StaticLevel):
+        self._level_width_tiles = level.width_tiles
         self._grid_by_centre_column = _grids_by_centre_column(level)
         self._state_divisors = np.array(OBSERVATION_STATE_DIVISORS, dtype=np.float64)
 
@@ -49,6 +50,11 @@ class ObservationBuilder:
         """One Observation per attempt, as the rows of an (attempts x numbers) float64 array."""
         observations = np.empty((len(attempts), OBSERVATION_LENGTH), dtype=np.float64)
         centre_columns = [_centre_column(attempt.mario) for attempt in attempts]
+        # The solid columns either side keep Mario in the level, so this never fails;
+        # it guards the gather below, where numpy would wrap a column of -1 round to
+        # the level's right end. Two reductions per batch cost next to nothing.
+        if centre_columns and (min(centre_columns) < 0 or max(centre_columns) >= self._level_width_tiles):
+            raise ValueError(f"Mario's centre is outside the level, in columns {centre_columns}")
         observations[:, :OBSERVATION_GRID_CELLS] = self._grid_by_centre_column[centre_columns]
         for observation, attempt, centre_column in zip(observations, attempts, centre_columns):
             _mark_enemies(observation, attempt.enemies.active, centre_column - OBSERVATION_COLUMNS_BEHIND)
