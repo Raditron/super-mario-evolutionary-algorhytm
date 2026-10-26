@@ -46,8 +46,7 @@ OBSERVATION_CELL_GAP_PIXELS = 1
 OBSERVATION_STATE_LABELS = ("vx", "vy", "height", "ground")
 OBSERVATION_STATE_DECIMALS = 2
 OBSERVATION_STATE_TEXT_TOP_LEFT = (8, 228)
-# Game events stay listed for this long after they happen; the newest few are shown.
-DEBUG_RECENT_GAME_EVENT_TICKS = 180
+# Of the snapshot's recent game events, the newest few are listed.
 DEBUG_GAME_EVENT_LINES = 4
 DEBUG_GAME_EVENTS_TOP_LEFT = (8, 36)
 DEBUG_TEXT_LINE_PIXELS = 9

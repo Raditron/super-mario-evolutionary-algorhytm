@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from mario.constants.level import SCREEN_WIDTH_PIXELS, TILE_SIZE_PIXELS
-from mario.constants.view import DEBUG_RECENT_GAME_EVENT_TICKS
+from mario.constants.snapshots import RECENT_GAME_EVENT_TICKS
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
@@ -117,7 +117,7 @@ class WorldSnapshot:
 
 def _recent_events(attempt: Attempt) -> tuple[GameEvent, ...]:
     """The game events of the last few seconds, read back from the newest."""
-    oldest_recent_tick = attempt.ticks_elapsed - DEBUG_RECENT_GAME_EVENT_TICKS
+    oldest_recent_tick = attempt.ticks_elapsed - RECENT_GAME_EVENT_TICKS
     recent_count = 0
     for event in reversed(attempt.events):
         if event.tick <= oldest_recent_tick:

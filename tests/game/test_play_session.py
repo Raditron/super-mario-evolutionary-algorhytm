@@ -8,7 +8,7 @@ from mario.constants.level import (
 )
 from mario.constants.scoring import COIN_POINTS, COINS_PER_EXTRA_LIFE, STARTING_LIVES
 from mario.constants.training import STALL_LIMIT_TICKS
-from mario.constants.view import DEBUG_RECENT_GAME_EVENT_TICKS
+from mario.constants.snapshots import RECENT_GAME_EVENT_TICKS
 from mario.modes.play_session import PlaySession
 from mario.simulation.attempt_result import EndReason, GameEvent, GameEventKind
 from tests.game.helpers import HOLD_NOTHING, HOLD_RIGHT_RUN, build_level, goomba_spawn
@@ -123,7 +123,7 @@ def test_the_play_snapshot_carries_the_observation_for_the_debug_view():
 def test_the_play_snapshot_carries_the_recent_game_events():
     session = PlaySession(build_level())
     session.attempt.scoreboard.score_points(STOMP_POINTS, session.attempt.ticks_elapsed)
-    for _ in range(DEBUG_RECENT_GAME_EVENT_TICKS - 1):
+    for _ in range(RECENT_GAME_EVENT_TICKS - 1):
         session.step(HOLD_NOTHING)
     assert session.snapshot().recent_events == (GameEvent(0, GameEventKind.SCORED_POINTS, STOMP_POINTS),)
     session.step(HOLD_NOTHING)

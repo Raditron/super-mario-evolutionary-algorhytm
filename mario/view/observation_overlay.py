@@ -28,21 +28,21 @@ CELL_TINT_SIZE_PIXELS = TILE_SIZE_PIXELS - OBSERVATION_CELL_GAP_PIXELS
 
 
 class ObservationOverlay:
-    def __init__(self, text: DebugText):
-        self._text = text
+    def __init__(self, debug_text: DebugText):
+        self._debug_text = debug_text
 
     def draw(self, observation: ObservationSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         self._draw_cells(observation, screen_left_x_pixels, screen)
         state_line = "  ".join(f"{label} {number:+.{OBSERVATION_STATE_DECIMALS}f}"
                                for label, number in zip(OBSERVATION_STATE_LABELS, observation.state_numbers))
-        self._text.draw_lines([state_line], OBSERVATION_STATE_TEXT_TOP_LEFT, screen)
+        self._debug_text.draw_lines([state_line], OBSERVATION_STATE_TEXT_TOP_LEFT, screen)
 
     @staticmethod
     def _draw_cells(observation: ObservationSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         rows, columns = len(observation.cells), len(observation.cells[0])
         tints = pygame.Surface((columns * TILE_SIZE_PIXELS, rows * TILE_SIZE_PIXELS), pygame.SRCALPHA)
-        for row, values in enumerate(observation.cells):
-            for column, value in enumerate(values):
+        for row, row_values in enumerate(observation.cells):
+            for column, value in enumerate(row_values):
                 tints.fill(TINT_BY_CELL_VALUE[value], pygame.Rect(column * TILE_SIZE_PIXELS, row * TILE_SIZE_PIXELS,
                                                                   CELL_TINT_SIZE_PIXELS, CELL_TINT_SIZE_PIXELS))
         screen.blit(tints, (observation.first_column * TILE_SIZE_PIXELS - screen_left_x_pixels,

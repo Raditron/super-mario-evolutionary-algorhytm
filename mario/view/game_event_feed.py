@@ -8,12 +8,12 @@ from mario.view.debug_text import DebugText
 
 
 class GameEventFeed:
-    def __init__(self, text: DebugText):
-        self._text = text
+    def __init__(self, debug_text: DebugText):
+        self._debug_text = debug_text
 
     def draw(self, recent_events: tuple[GameEvent, ...], screen: pygame.Surface) -> None:
         lines = [_describe(event) for event in recent_events[-DEBUG_GAME_EVENT_LINES:]]
-        self._text.draw_lines(lines, DEBUG_GAME_EVENTS_TOP_LEFT, screen)
+        self._debug_text.draw_lines(lines, DEBUG_GAME_EVENTS_TOP_LEFT, screen)
 
 
 def _describe(event: GameEvent) -> str:

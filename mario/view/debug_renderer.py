@@ -49,9 +49,9 @@ class DebugRenderer:
     """Needs pygame's fonts initialised (the Window does it)."""
 
     def __init__(self):
-        text = DebugText()
-        self._observation_overlay = ObservationOverlay(text)
-        self._game_event_feed = GameEventFeed(text)
+        debug_text = DebugText()
+        self._observation_overlay = ObservationOverlay(debug_text)
+        self._game_event_feed = GameEventFeed(debug_text)
 
     def draw(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
         screen.fill(SKY_COLOUR)

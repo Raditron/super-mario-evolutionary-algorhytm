@@ -37,6 +37,10 @@ def test_simulation_level_and_controller_never_load_pygame():
 
 
 def test_simulation_has_no_randomness_wall_clock_or_floats():
+    """Attempt state is integers only. The one exception is ObservationBuilder: it
+    turns that integer state into float64 only at its output, the Observation, and
+    no float may ever flow back into Attempt state. It divides with numpy, which
+    this check doesn't see, so the rule rests on that boundary staying put."""
     for source_file in python_files("simulation"):
         assert not imported_module_names(source_file) & NONDETERMINISTIC_MODULES, source_file
         for node in ast.walk(ast.parse(source_file.read_text())):
