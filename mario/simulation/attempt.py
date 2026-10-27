@@ -11,14 +11,13 @@ ticks still count, and so does the stall rule.
 """
 
 from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS
-from mario.constants.physics import ENEMY_CHECK_TICK_INTERVAL
 from mario.constants.scoring import ITEM_POINTS
 from mario.controller.controller_state import ControllerState
 from mario.level.static_level import StaticLevel
 from mario.simulation.attempt_result import AttemptResult, DefeatMethod, EndReason, GameEvent, GameEventKind
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.blocks import Blocks, HeadHit
-from mario.simulation.enemy_collision_check import EnemyCollisionCheck, EnemyCollisionOutcome
+from mario.simulation.enemy_collision_check import EnemyCollisionCheck, EnemyCollisionOutcome, is_enemy_check_tick
 from mario.simulation.enemy_roster import EnemyRoster
 from mario.simulation.items import Items
 from mario.simulation.level_timer import LevelTimer
@@ -116,8 +115,7 @@ class Attempt:
         """The item is an enemy object to the original, checked against Mario
         after the enemies and on the same ticks, and only while nothing has hurt
         him (PlayerEnemyCollision)."""
-        if (self.ticks_elapsed % ENEMY_CHECK_TICK_INTERVAL != 0 or self._died_to_enemy
-                or self.mario.is_changing_size):
+        if not is_enemy_check_tick(self.ticks_elapsed) or self._died_to_enemy or self.mario.is_changing_size:
             return
         item = self.items.take_touched(self.mario.hitbox())
         if item is not None:

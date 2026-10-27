@@ -19,6 +19,12 @@ from mario.simulation.mario import Mario
 from mario.simulation.stomp_chain import StompChain
 
 
+def is_enemy_check_tick(tick: int) -> bool:
+    """Whether Mario is checked against enemy objects (and so the item) on this
+    tick: every other one (FrameCounter bit 0 clear)."""
+    return tick % ENEMY_CHECK_TICK_INTERVAL == 0
+
+
 @dataclass(frozen=True)
 class EnemyCollisionOutcome:
     """What one tick's check found: the points each stomp scored, in order (None
@@ -37,7 +43,7 @@ class EnemyCollisionCheck:
         enemy and bounces Mario at once."""
         if mario.is_on_ground:
             self._stomp_chain.land()
-        if tick % ENEMY_CHECK_TICK_INTERVAL != 0:
+        if not is_enemy_check_tick(tick):
             return EnemyCollisionOutcome()
         return self._check(mario, enemies)
 
@@ -49,13 +55,10 @@ class EnemyCollisionCheck:
                 continue
             if mario.velocity_y >= STOMP_MIN_FALL_SPEED or self._stomp_chain.stomped_this_tick:
                 points_per_stomp.append(self._stomp(mario, enemy))
-            elif mario.is_invulnerable:
-                continue
-            elif mario.is_big:
-                mario.take_damage()
-                return EnemyCollisionOutcome(tuple(points_per_stomp), mario_took_damage=True)
-            else:
-                return EnemyCollisionOutcome(tuple(points_per_stomp), mario_died=True)
+            elif not mario.is_invulnerable:
+                mario.get_hurt()
+                return EnemyCollisionOutcome(tuple(points_per_stomp), mario_took_damage=not mario.is_dead,
+                                             mario_died=mario.is_dead)
         return EnemyCollisionOutcome(tuple(points_per_stomp))
 
     def _stomp(self, mario: Mario, enemy: Enemy) -> int | None:

@@ -125,7 +125,8 @@ class Mario(TileBody):
         self.head_hit_tile: tuple[int, int] | None = None
         self.power_state = PowerState.SMALL
         self._body = MarioBody.SMALL
-        self.is_crouching = False                    # CrouchingFlag
+        self._is_crouching = False                   # CrouchingFlag
+        self.is_dead = False                         # an enemy's touch killed him
         self._size_change: SizeChange | None = None
         self._invulnerable_ticks_left = 0            # InjuryTimer
 
@@ -224,11 +225,14 @@ class Mario(TileBody):
         self.movement_state = MovementState.ON_GROUND
         self._size_change = SizeChange.growing()
 
-    def take_damage(self) -> None:
-        """An enemy hurt him while big (ForceInjury): he shrinks and can't be hurt
-        for a while. SetKRout puts him in the jumping state."""
+    def get_hurt(self) -> None:
+        """An enemy hurt him (ForceInjury): small, he dies; big, he shrinks and
+        can't be hurt for a while. SetKRout puts him in the jumping state."""
+        if not self.is_big:
+            self.is_dead = True
+            return
         self.power_state = PowerState.SMALL
-        self.is_crouching = False
+        self._is_crouching = False
         self.movement_state = MovementState.JUMPING
         self._size_change = SizeChange.shrinking()
         self._invulnerable_ticks_left = INJURY_INVULNERABLE_TICKS
@@ -246,10 +250,10 @@ class Mario(TileBody):
         """PlayerMovementSubs: big Mario crouches while he holds down on the ground,
         and keeps it in the air. Crouching, his box is small Mario's."""
         if not self.is_big:
-            self.is_crouching = False
+            self._is_crouching = False
         elif self.is_on_ground:
-            self.is_crouching = controller.down
-        body = MarioBody.BIG if self.is_big and not self.is_crouching else MarioBody.SMALL
+            self._is_crouching = controller.down
+        body = MarioBody.BIG if self.is_big and not self._is_crouching else MarioBody.SMALL
         if body is not self._body:
             self._take_body(body)
 

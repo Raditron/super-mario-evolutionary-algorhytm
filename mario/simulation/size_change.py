@@ -8,8 +8,15 @@ once the animation is over it is his new size until play resumes.
 
 from enum import IntEnum
 
-from mario.constants.level import GROW_ANIMATION_FRAMES, SHRINK_ANIMATION_FRAMES, SIZE_CHANGE_FRAME_TICKS
-from mario.constants.physics import GROW_SIZE_FLIP_TICK, GROW_TICKS, SHRINK_SIZE_FLIP_TICK, SHRINK_TICKS
+from mario.constants.size_change import (
+    GROW_ANIMATION_FRAMES,
+    GROW_SIZE_FLIP_TICK,
+    GROW_TICKS,
+    SHRINK_ANIMATION_FRAMES,
+    SHRINK_SIZE_FLIP_TICK,
+    SHRINK_TICKS,
+    SIZE_CHANGE_FRAME_TICKS,
+)
 
 
 class MarioBody(IntEnum):

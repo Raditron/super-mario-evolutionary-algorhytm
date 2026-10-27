@@ -145,18 +145,7 @@ MULTI_COIN_BRICK_TICKS = MULTI_COIN_BRICK_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
 # Big Mario's head breaks a plain brick; he keeps rising, at 2 px/f (the fraction is kept).
 BRICK_BREAK_SPEED = -2 * NES_Y_SPEED_UNIT
 
-# --- Growing and shrinking (SetPRout, PlayerChangeSize, PlayerInjuryBlink, HandleChangeSize) ---
-
-# While Mario changes size, the whole game stands still: TimerControl is set to
-# $FF and counts down one a tick, and play resumes once it reaches $C4 (growing)
-# or $C8 (shrinking). Timers, enemies and items wait too.
-SIZE_CHANGE_TIMER_START = 0xFF
-GROW_TICKS = SIZE_CHANGE_TIMER_START - 0xC4
-SHRINK_TICKS = SIZE_CHANGE_TIMER_START - 0xC8
-# His size flips once it reaches $F8 (growing) or $F0 (shrinking); from then on
-# his body follows the size-change animation (constants/level.py).
-GROW_SIZE_FLIP_TICK = SIZE_CHANGE_TIMER_START - 0xF8
-SHRINK_SIZE_FLIP_TICK = SIZE_CHANGE_TIMER_START - 0xF0
+# --- Getting hurt (InjuryTimer); growing and shrinking are in constants/size_change.py ---
 
 # After shrinking, Mario can't be hurt for 8 interval ticks (InjuryTimer). Like
 # STOMPED_GOOMBA_TICKS, the replica always takes the longest the interval clock allows.

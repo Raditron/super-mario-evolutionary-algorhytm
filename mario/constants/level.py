@@ -55,16 +55,6 @@ BIG_MARIO_HITBOX_HEIGHT_PIXELS = 28
 INTERMEDIATE_MARIO_HITBOX_OFFSET_Y_PIXELS = 11
 INTERMEDIATE_MARIO_HITBOX_HEIGHT_PIXELS = 21
 
-# While he grows or shrinks, from his size flip on (constants/physics.py), his
-# body follows the original's animation, each frame for 4 ticks (HandleChangeSize
-# steps every fourth frame, FrameCounter & 3). Frames are 0 small, 1 the
-# intermediate grow frame and 2 big. Growing is ChangeSizeOffsetAdder's first ten
-# entries; shrinking alternates the small and big swimming frames (its last ten:
-# $02 small, $00 big). Before the flip he has his old body, after the animation his new one.
-SIZE_CHANGE_FRAME_TICKS = 4
-GROW_ANIMATION_FRAMES = (0, 1, 0, 1, 0, 1, 2, 0, 1, 2)
-SHRINK_ANIMATION_FRAMES = (0, 2, 0, 2, 0, 2, 0, 2, 0, 2)
-
 # Mario has fallen into a pit once his sprite's top is this far down (Player_Y_HighPos = 2).
 PIT_DEATH_SPRITE_Y_PIXELS = 256
 
