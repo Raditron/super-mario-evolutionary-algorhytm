@@ -8,8 +8,15 @@ once the animation is over it is his new size until play resumes.
 
 from enum import IntEnum
 
-from mario.constants.level import GROW_ANIMATION_FRAMES, SHRINK_ANIMATION_FRAMES, SIZE_CHANGE_FRAME_TICKS
-from mario.constants.physics import GROW_SIZE_FLIP_TICK, GROW_TICKS, SHRINK_SIZE_FLIP_TICK, SHRINK_TICKS
+from mario.constants.size_change import (
+    GROW_ANIMATION_FRAMES,
+    GROW_SIZE_FLIP_TICK,
+    GROW_TICKS,
+    SHRINK_ANIMATION_FRAMES,
+    SHRINK_SIZE_FLIP_TICK,
+    SHRINK_TICKS,
+    SIZE_CHANGE_FRAME_TICKS,
+)
 
 
 class MarioBody(IntEnum):
@@ -42,8 +49,13 @@ class SizeChange:
         return self._ticks_elapsed >= self._ticks
 
     @property
+    def has_flipped(self) -> bool:
+        """Whether his size has flipped to the new one (the animation may still show the old)."""
+        return self._ticks_elapsed >= self._flip_tick
+
+    @property
     def shown_body(self) -> MarioBody:
-        if self._ticks_elapsed < self._flip_tick:
+        if not self.has_flipped:
             return self._body_before
         frame_index = (self._ticks_elapsed - self._flip_tick) // SIZE_CHANGE_FRAME_TICKS
         if frame_index < len(self._animation_frames):

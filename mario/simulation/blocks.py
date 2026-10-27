@@ -6,7 +6,7 @@ Big Mario breaks a plain brick, which leaves an empty tile; everything else,
 and every block small Mario hits, is bumped. A power-up ? block releases a
 Super Mushroom, and the hidden block a 1-UP mushroom (BumpBlock, SetupPowerUp).
 An enemy standing on a block while it bounces, or on a brick as it breaks, is
-defeated (HandleEToBGCollision). The multi-coin brick's timer is one for the
+defeated (HandleEToBGCollision); an item there hops away from Mario. The multi-coin brick's timer is one for the
 whole level, as in the original (BrickCoinTimerFlag); 1-1 has one such brick.
 """
 
@@ -20,9 +20,11 @@ from mario.simulation.attempt_result import DefeatMethod, GameEvent, GameEventKi
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.bouncing_block import BouncingBlock
 from mario.simulation.enemy import Enemy
+from mario.simulation.item_kind import ItemKind
 from mario.simulation.items import Items
-from mario.simulation.mushroom import ItemKind
+from mario.simulation.mushroom import Mushroom
 from mario.simulation.scoreboard import Scoreboard
+from mario.simulation.walking_body import WalkingBody
 
 
 class HeadHit(Enum):
@@ -80,6 +82,13 @@ class Blocks:
                 self._events.append(GameEvent(tick, GameEventKind.DEFEATED_ENEMY, DefeatMethod.BUMPED))
                 self._scoreboard.score_points(BUMPED_ENEMY_POINTS, tick)
 
+    def knock_items_on_bumped_blocks(self, items: list[Mushroom], mario_x: int) -> None:
+        """An item standing on a bouncing block, or on a brick broken this tick,
+        hops away from Mario. One still rising out of its block stands on nothing."""
+        for item in items:
+            if not item.is_emerging and self._is_on_a_bumped_block(item):
+                item.hop_away_from(mario_x)
+
     def step(self) -> None:
         """One tick passes: bumped blocks bounce, and timers count down."""
         for block in self.bouncing:
@@ -104,15 +113,15 @@ class Blocks:
             self._tiles.change_block(column, row, TileKind.USED_BLOCK)
         self._scoreboard.collect_coin(tick)
 
-    def _is_on_a_bumped_block(self, enemy: Enemy) -> bool:
-        """A broken brick's tile is already empty when enemies move, so an enemy
-        that stood on it has just started to fall but not yet moved."""
-        return (any(not enemy.is_falling and _is_on_top_of(enemy, block.column, block.row)
+    def _is_on_a_bumped_block(self, body: WalkingBody) -> bool:
+        """A broken brick's tile is already empty when enemies and items move, so
+        one that stood on it has just started to fall but not yet moved."""
+        return (any(not body.is_falling and _is_on_top_of(body, block.column, block.row)
                     for block in self.bouncing)
-                or any(_is_on_top_of(enemy, column, row) for column, row in self._broken_this_tick))
+                or any(_is_on_top_of(body, column, row) for column, row in self._broken_this_tick))
 
 
-def _is_on_top_of(enemy: Enemy, column: int, row: int) -> bool:
+def _is_on_top_of(body: WalkingBody, column: int, row: int) -> bool:
     """Its centre is over the tile and its feet are on top of it (the original's
     foot probe is at its bottom middle)."""
-    return enemy.centre_column == column and enemy.feet_y == row * TILE_SIZE_SUBPIXELS
+    return body.centre_column == column and body.feet_y == row * TILE_SIZE_SUBPIXELS

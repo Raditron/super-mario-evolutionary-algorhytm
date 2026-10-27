@@ -6,7 +6,9 @@ disassembly routine it comes from (docs/research/smb-physics-constants.md).
 
 Big Mario moves exactly as small Mario does; only his box differs: taller, or
 small Mario's while he crouches. Changing size stops him, and the whole game,
-for a while (SizeChange); after shrinking he can't be hurt for a while.
+for a while (SizeChange); after shrinking he can't be hurt for a while. Growing
+or standing up can put his box inside a solid tile, which his head and side
+probes then get him out of, as in the original.
 """
 
 from enum import Enum, StrEnum, auto
@@ -14,6 +16,8 @@ from enum import Enum, StrEnum, auto
 from mario.constants.level import (
     BIG_MARIO_HITBOX_HEIGHT_PIXELS,
     BIG_MARIO_HITBOX_OFFSET_Y_PIXELS,
+    BIG_MARIO_SIDE_PROBE_SPRITE_Y_PIXELS,
+    HEAD_PROBE_MIN_DEPTH_PIXELS,
     INTERMEDIATE_MARIO_HITBOX_HEIGHT_PIXELS,
     INTERMEDIATE_MARIO_HITBOX_OFFSET_Y_PIXELS,
     MARIO_START_SPRITE_X_PIXELS,
@@ -23,7 +27,9 @@ from mario.constants.level import (
     SMALL_MARIO_HITBOX_OFFSET_X_PIXELS,
     SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS,
     SMALL_MARIO_HITBOX_WIDTH_PIXELS,
+    SMALL_MARIO_SIDE_PROBE_SPRITE_Y_PIXELS,
     SUBPIXEL_TO_TILE_SHIFT,
+    TILE_SIZE_PIXELS,
 )
 from mario.constants.physics import (
     AIR_RUN_CAP_SPEED,
@@ -48,6 +54,7 @@ from mario.constants.physics import (
     RUNNING_SPEED_FLAG_SPEED,
     RUNNING_TIMER_TICKS,
     SKID_ACCELERATION_MULTIPLIER,
+    SIDE_PUSH_PIXELS,
     SKID_TURNAROUND_SPEED,
     SLOW_JUMP_FALLING_GRAVITY,
     SLOW_JUMP_RISING_GRAVITY,
@@ -88,6 +95,12 @@ BODY_BOXES_PIXELS = {
     MarioBody.INTERMEDIATE: (INTERMEDIATE_MARIO_HITBOX_OFFSET_Y_PIXELS, INTERMEDIATE_MARIO_HITBOX_HEIGHT_PIXELS),
     MarioBody.BIG: (BIG_MARIO_HITBOX_OFFSET_Y_PIXELS, BIG_MARIO_HITBOX_HEIGHT_PIXELS),
 }
+# The sprite y's of each body's side probes; nothing collides while the
+# intermediate grow frame shows.
+SIDE_PROBE_SPRITE_Y_PIXELS = {
+    MarioBody.SMALL: SMALL_MARIO_SIDE_PROBE_SPRITE_Y_PIXELS,
+    MarioBody.BIG: BIG_MARIO_SIDE_PROBE_SPRITE_Y_PIXELS,
+}
 
 
 class Mario(TileBody):
@@ -125,8 +138,10 @@ class Mario(TileBody):
         self.head_hit_tile: tuple[int, int] | None = None
         self.power_state = PowerState.SMALL
         self._body = MarioBody.SMALL
-        self.is_crouching = False                    # CrouchingFlag
+        self._is_crouching = False                   # CrouchingFlag
+        self.is_dead = False                         # an enemy's touch killed him
         self._size_change: SizeChange | None = None
+        self._power_state_after_size_change = PowerState.SMALL
         self._invulnerable_ticks_left = 0            # InjuryTimer
 
     @property
@@ -192,6 +207,7 @@ class Mario(TileBody):
         whole_speed_x = self.whole_speed_x
         if whole_speed_x != 0:
             self.moving_direction = RIGHT if whole_speed_x > 0 else LEFT
+        self._get_out_of_solid_tiles(tiles)
         if self.is_on_ground and not self.is_standing_on_solid_tile(tiles):
             self.movement_state = MovementState.FALLING
         self.jump_held_last_tick = controller.jump
@@ -220,36 +236,44 @@ class Mario(TileBody):
     def grow(self) -> None:
         """He collected a Super Mushroom while small. SetPRout puts him in the
         on-ground state wherever he is; he falls from there once play resumes."""
-        self.power_state = PowerState.BIG
         self.movement_state = MovementState.ON_GROUND
-        self._size_change = SizeChange.growing()
+        self._change_size(SizeChange.growing(), PowerState.BIG)
 
-    def take_damage(self) -> None:
-        """An enemy hurt him while big (ForceInjury): he shrinks and can't be hurt
-        for a while. SetKRout puts him in the jumping state."""
-        self.power_state = PowerState.SMALL
-        self.is_crouching = False
+    def get_hurt(self) -> None:
+        """An enemy hurt him (ForceInjury): small, he dies; big, he shrinks and
+        can't be hurt for a while. SetKRout puts him in the jumping state."""
+        if not self.is_big:
+            self.is_dead = True
+            return
+        self._is_crouching = False
         self.movement_state = MovementState.JUMPING
-        self._size_change = SizeChange.shrinking()
+        self._change_size(SizeChange.shrinking(), PowerState.SMALL)
         self._invulnerable_ticks_left = INJURY_INVULNERABLE_TICKS
 
     def continue_size_change(self, controller: ControllerState) -> None:
         """One tick of growing or shrinking, in which nothing else moves. The jump
-        button is still read, so a press must still be fresh when play resumes."""
+        button is still read, so a press must still be fresh when play resumes.
+        His power state changes with his size, at the flip (PlayerSize)."""
         self._size_change.step()
         self._take_body(self._size_change.shown_body)
+        if self._size_change.has_flipped:
+            self.power_state = self._power_state_after_size_change
         if self._size_change.is_over:
             self._size_change = None
         self.jump_held_last_tick = controller.jump
+
+    def _change_size(self, size_change: SizeChange, power_state_after: PowerState) -> None:
+        self._size_change = size_change
+        self._power_state_after_size_change = power_state_after
 
     def _update_crouching(self, controller: ControllerState) -> None:
         """PlayerMovementSubs: big Mario crouches while he holds down on the ground,
         and keeps it in the air. Crouching, his box is small Mario's."""
         if not self.is_big:
-            self.is_crouching = False
+            self._is_crouching = False
         elif self.is_on_ground:
-            self.is_crouching = controller.down
-        body = MarioBody.BIG if self.is_big and not self.is_crouching else MarioBody.SMALL
+            self._is_crouching = controller.down
+        body = MarioBody.BIG if self.is_big and not self._is_crouching else MarioBody.SMALL
         if body is not self._body:
             self._take_body(body)
 
@@ -347,7 +371,11 @@ class Mario(TileBody):
         self.gravity = self.falling_gravity
 
     def _move_horizontally(self, tiles: AttemptTiles) -> None:
-        if self.move_horizontally(tiles, self.whole_speed_x):
+        """Inside a solid tile, his box's edges don't stop him: his side probes
+        push him out afterwards, as they stop him at every wall in the original."""
+        if self.overlaps_solid_tile(tiles):
+            self.x += self.whole_speed_x
+        elif self.move_horizontally(tiles, self.whole_speed_x):
             self.velocity_x &= X_SUBSPEED_MASK
 
     def _move_vertically(self, tiles: AttemptTiles) -> None:
@@ -358,5 +386,48 @@ class Mario(TileBody):
             self.velocity_y = 0
             self.movement_state = MovementState.ON_GROUND
         elif contact is VerticalContact.HIT_CEILING:
-            self.velocity_y = HEAD_BUMP_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
-            self.head_hit_tile = (self.centre_column, (self.y >> SUBPIXEL_TO_TILE_SHIFT) - 1)
+            self._hit_head_on((self.y >> SUBPIXEL_TO_TILE_SHIFT) - 1)
+
+    def _hit_head_on(self, row: int) -> None:
+        """His head hit the tile in this row over his centre: his rise stops."""
+        self.velocity_y = HEAD_BUMP_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
+        self.head_hit_tile = (self.centre_column, row)
+
+    # --- PlayerBGCollision, once his box is inside a solid tile -------------------------------
+
+    def _get_out_of_solid_tiles(self, tiles: AttemptTiles) -> None:
+        """Growing or standing up can put his box inside a solid tile; elsewhere its
+        edges keep him out, and these probes find nothing."""
+        self._hit_head_from_inside(tiles)
+        self._push_out_sideways(tiles)
+
+    def _hit_head_from_inside(self, tiles: AttemptTiles) -> None:
+        """HeadChk: rising with his head probe far enough into a solid tile, he hits it."""
+        if self.velocity_y >= 0:
+            return
+        top_y_pixels = self.pixel_y
+        row = top_y_pixels // TILE_SIZE_PIXELS
+        if top_y_pixels % TILE_SIZE_PIXELS >= HEAD_PROBE_MIN_DEPTH_PIXELS and tiles.is_solid(self.centre_column, row):
+            self._hit_head_on(row)
+
+    def _push_out_sideways(self, tiles: AttemptTiles) -> None:
+        """SideCheckLoop, ImpedePlayerMove: a probe on his left side inside a solid
+        tile pushes him right, unless he is moving right; otherwise one on his right
+        side pushes him left, unless he is moving left. A push stops him."""
+        left_x_pixels = self.pixel_x
+        right_x_pixels = (self.x + self.width - 1) >> SUBPIXEL_BITS
+        if self._side_probe_is_in_solid_tile(tiles, left_x_pixels):
+            if self.whole_speed_x <= 0:
+                self._push_sideways(SIDE_PUSH_PIXELS)
+        elif self._side_probe_is_in_solid_tile(tiles, right_x_pixels) and self.whole_speed_x >= 0:
+            self._push_sideways(-SIDE_PUSH_PIXELS)
+
+    def _side_probe_is_in_solid_tile(self, tiles: AttemptTiles, x_pixels: int) -> bool:
+        sprite_y_pixels = self.pixel_y - self.hitbox_offset_y_pixels
+        column = x_pixels // TILE_SIZE_PIXELS
+        return any(tiles.is_solid(column, (sprite_y_pixels + probe_y_pixels) // TILE_SIZE_PIXELS)
+                   for probe_y_pixels in SIDE_PROBE_SPRITE_Y_PIXELS[self._body])
+
+    def _push_sideways(self, distance_pixels: int) -> None:
+        self.x += distance_pixels * SUBPIXELS_PER_PIXEL
+        self.velocity_x &= X_SUBSPEED_MASK

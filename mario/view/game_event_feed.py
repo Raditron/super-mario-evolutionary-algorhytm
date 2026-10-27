@@ -3,7 +3,7 @@
 import pygame
 
 from mario.constants.view import DEBUG_GAME_EVENT_LINES, DEBUG_GAME_EVENTS_TOP_LEFT
-from mario.simulation.attempt_result import GameEvent
+from mario.snapshots.world_snapshot import GameEvent
 from mario.view.debug_text import DebugText
 
 

@@ -54,16 +54,15 @@ BIG_MARIO_HITBOX_HEIGHT_PIXELS = 28
 # is only drawn: as a box midway between the small and big ones.
 INTERMEDIATE_MARIO_HITBOX_OFFSET_Y_PIXELS = 11
 INTERMEDIATE_MARIO_HITBOX_HEIGHT_PIXELS = 21
-
-# While he grows or shrinks, from his size flip on (constants/physics.py), his
-# body follows the original's animation, each frame for 4 ticks (HandleChangeSize
-# steps every fourth frame, FrameCounter & 3). Frames are 0 small, 1 the
-# intermediate grow frame and 2 big. Growing is ChangeSizeOffsetAdder's first ten
-# entries; shrinking alternates the small and big swimming frames (its last ten:
-# $02 small, $00 big). Before the flip he has his old body, after the animation his new one.
-SIZE_CHANGE_FRAME_TICKS = 4
-GROW_ANIMATION_FRAMES = (0, 1, 0, 1, 0, 1, 2, 0, 1, 2)
-SHRINK_ANIMATION_FRAMES = (0, 2, 0, 2, 0, 2, 0, 2, 0, 2)
+# His box's edges keep him out of solid tiles, but growing or standing up can put
+# it inside one. Then the original's own probes act (PlayerBGCollision): his head
+# probe, over his centre at his box's top, hits a tile it is at least this far
+# into (HeadChk: low nybble >= 4), and his side probes, at his box's left and
+# right edges, at these sprite y's, push him out (BlockBuffer_Y_Adder: big
+# Mario's at + 8 and + 24, small or crouching Mario's both at + 24).
+HEAD_PROBE_MIN_DEPTH_PIXELS = 4
+BIG_MARIO_SIDE_PROBE_SPRITE_Y_PIXELS = (8, 24)
+SMALL_MARIO_SIDE_PROBE_SPRITE_Y_PIXELS = (24,)
 
 # Mario has fallen into a pit once his sprite's top is this far down (Player_Y_HighPos = 2).
 PIT_DEATH_SPRITE_Y_PIXELS = 256

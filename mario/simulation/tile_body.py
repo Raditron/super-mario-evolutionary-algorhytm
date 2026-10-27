@@ -95,6 +95,15 @@ class TileBody:
                 return VerticalContact.HIT_CEILING
         return VerticalContact.NONE
 
+    def overlaps_solid_tile(self, tiles: AttemptTiles) -> bool:
+        """Whether the box is inside a solid tile, even in part."""
+        left_column = self.x >> SUBPIXEL_TO_TILE_SHIFT
+        right_column = (self.x + self.width - 1) >> SUBPIXEL_TO_TILE_SHIFT
+        top_row = self.y >> SUBPIXEL_TO_TILE_SHIFT
+        bottom_row = (self.y + self.height - 1) >> SUBPIXEL_TO_TILE_SHIFT
+        return any(_row_has_solid_tile(tiles, row, left_column, right_column)
+                   for row in range(top_row, bottom_row + 1))
+
     def is_standing_on_solid_tile(self, tiles: AttemptTiles) -> bool:
         row_below = self.feet_y >> SUBPIXEL_TO_TILE_SHIFT
         left_column = self.x >> SUBPIXEL_TO_TILE_SHIFT

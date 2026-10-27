@@ -1,10 +1,10 @@
-"""Power-ups: the Super Mushroom a power-up ? block releases, Mario growing when he
+"""Items: the Super Mushroom a power-up ? block releases, Mario growing when he
 collects it, and the hidden block's 1-UP mushroom (#19, spec sections 1 and 5)."""
 
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import GameEvent, GameEventKind
 from mario.simulation.mario import PowerState
-from mario.simulation.mushroom import ItemKind
+from mario.simulation.item_kind import ItemKind
 from mario.snapshots.world_snapshot import ItemSnapshot, WorldSnapshot
 from tests.game.helpers import (
     GROUND_TOP_ROW,
@@ -31,7 +31,7 @@ TICK_LIMIT = 600
 EMERGE_PIXELS = 16
 TICKS_PER_EMERGE_PIXEL = 4
 TICKS_BEFORE_IT_MOVES = 17 * TICKS_PER_EMERGE_PIXEL
-POWER_UP_POINTS = 1000                                  # HandlePowerUpCollision: floatey number $06
+ITEM_POINTS = 1000                                  # HandlePowerUpCollision: floatey number $06
 # Small Mario's box is 12 x 14; big Mario's is 28 tall, from his head probe at
 # sprite y + 4 to his feet (BlockBufferAdderData). The intermediate grow frame is
 # drawn 21 tall, midway between them.
@@ -54,6 +54,18 @@ GROW_HEIGHTS_BY_TICK += [BIG_MARIO_HEIGHT] * (GROW_TICKS - len(GROW_HEIGHTS_BY_T
 GOOMBA_START_X = 290
 GOOMBA_PEN_WALL = (14, GROUND_TOP_ROW - 1)
 PIT_FAR_RIGHT = range(40, 44)
+# A row of bricks right of the power-up block, closed by a wall the mushroom
+# turns at, so that it comes back left over Mario's head.
+BRICK = "B"
+BRICK_ROW_COLUMNS = range(MARIO_SPAWN_COLUMN + 1, MARIO_SPAWN_COLUMN + 7)
+BRICK_ROW_WALL = (BRICK_ROW_COLUMNS.stop, LOW_BLOCK_ROW - 1)
+MARIO_UNDER_THE_BRICKS_X = BRICK_ROW_COLUMNS.start * TILE_PIXELS + 2
+SETTLE_TICKS = 30
+# A mushroom on a block bumped from below is lifted 2 px, gets Y speed -3 px/f
+# and walks at 1 px/f away from Mario (ChkToStunEnemies, SetStun, EnemyBGCXSpdData).
+# It starts to fall the tick after, once nothing is under it.
+BUMPED_ITEM_LIFT_PIXELS = 2
+BUMPED_ITEM_RISE_PIXELS = 3
 
 
 def jump_until_the_head_hits(attempt: Attempt) -> None:
@@ -128,19 +140,74 @@ def test_the_mushroom_falls_off_its_block_and_turns_around_at_a_wall():
     assert positions[-1][0] < positions[-2][0]
 
 
+def centre_column(item: ItemSnapshot) -> int:
+    return (item.x_pixels + item.width_pixels // 2) // TILE_PIXELS
+
+
+def wait_until_it_walks_back_left_over(attempt: Attempt, column: int) -> None:
+    """Until the mushroom, turned at the wall, comes over the column from the right."""
+    previous_x = item_positions(attempt)[0][0]
+    while attempt.ticks_elapsed < TICK_LIMIT:
+        attempt.step(HOLD_NOTHING)
+        item = items_in(attempt)[0]
+        if item.x_pixels < previous_x and centre_column(item) == column:
+            return
+        previous_x = item.x_pixels
+
+
+def test_a_mushroom_on_a_block_bumped_from_below_hops_and_walks_away_from_mario():
+    level = build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}
+                        | {(column, LOW_BLOCK_ROW): BRICK for column in BRICK_ROW_COLUMNS},
+                        hard_blocks=frozenset({BRICK_ROW_WALL}))
+    attempt = Attempt(level)
+    jump_until_the_head_hits(attempt)
+    while attempt.mario.hitbox().x_pixels < MARIO_UNDER_THE_BRICKS_X or not attempt.mario.is_on_ground:
+        attempt.step(HOLD_RIGHT)
+    for _ in range(SETTLE_TICKS):
+        attempt.step(HOLD_NOTHING)
+    mario_column = attempt.mario.centre_column
+    wait_until_it_walks_back_left_over(attempt, mario_column)
+    jump_until_the_head_hits(attempt)
+    hit_x, hit_y = item_positions(attempt)[0]
+    assert centre_column(items_in(attempt)[0]) == mario_column and hit_x > attempt.mario.hitbox().x_pixels
+    assert hit_y == BLOCK_Y - TILE_PIXELS - BUMPED_ITEM_LIFT_PIXELS
+    after_the_hit = []
+    for _ in range(2):
+        attempt.step(HOLD_NOTHING)
+        after_the_hit.append(item_positions(attempt)[0])
+    assert after_the_hit == [(hit_x + 1, hit_y), (hit_x + 2, hit_y - BUMPED_ITEM_RISE_PIXELS)]
+    while items_in(attempt)[0].y_pixels != BLOCK_Y - TILE_PIXELS and attempt.ticks_elapsed < TICK_LIMIT:
+        attempt.step(HOLD_NOTHING)
+    landed_x = item_positions(attempt)[0][0]
+    attempt.step(HOLD_NOTHING)
+    assert item_positions(attempt)[0][0] == landed_x + 1
+
+
 def test_collecting_the_mushroom_scores_1000_points_and_makes_small_mario_big():
     attempt = Attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}))
     assert WorldSnapshot.of(attempt).mario.power_state is PowerState.SMALL
     collect_the_item(attempt, GameEventKind.COLLECTED_MUSHROOM)
     tick = attempt.ticks_elapsed
     assert attempt.events[-2:] == [GameEvent(tick, GameEventKind.COLLECTED_MUSHROOM),
-                                   GameEvent(tick, GameEventKind.SCORED_POINTS, POWER_UP_POINTS)]
+                                   GameEvent(tick, GameEventKind.SCORED_POINTS, ITEM_POINTS)]
     assert items_in(attempt) == ()
-    assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
     for _ in range(GROW_TICKS):
         attempt.step(HOLD_NOTHING)
     _, y, width, height = mario_box(attempt)
     assert (width, height, y + height) == (MARIO_WIDTH, BIG_MARIO_HEIGHT, GROUND_Y)
+    assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
+
+
+def test_mario_is_big_from_his_size_flip_on_not_from_the_touch():
+    """Until the flip his box is small Mario's, so the snapshot says small (the
+    original's PlayerSize flips at $F8)."""
+    attempt = Attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}))
+    collect_the_item(attempt, GameEventKind.COLLECTED_MUSHROOM)
+    power_states = [WorldSnapshot.of(attempt).mario.power_state]
+    for _ in range(GROW_FLIP_TICK):
+        attempt.step(HOLD_NOTHING)
+        power_states.append(WorldSnapshot.of(attempt).mario.power_state)
+    assert power_states == [PowerState.SMALL] * GROW_FLIP_TICK + [PowerState.BIG]
 
 
 def test_while_mario_grows_the_game_stands_still_and_his_box_follows_the_grow_animation():
@@ -165,7 +232,7 @@ def test_while_mario_grows_the_game_stands_still_and_his_box_follows_the_grow_an
 def test_a_mushroom_collected_while_big_scores_but_changes_nothing_until_the_fire_flower_is_built():
     attempt = big_mario_attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}))
     collect_the_item(attempt, GameEventKind.COLLECTED_MUSHROOM)
-    assert attempt.events[-1] == GameEvent(attempt.ticks_elapsed, GameEventKind.SCORED_POINTS, POWER_UP_POINTS)
+    assert attempt.events[-1] == GameEvent(attempt.ticks_elapsed, GameEventKind.SCORED_POINTS, ITEM_POINTS)
     assert not attempt.mario.is_changing_size
     assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
 

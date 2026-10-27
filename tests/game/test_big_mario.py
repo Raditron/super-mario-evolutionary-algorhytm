@@ -176,11 +176,23 @@ def test_big_mario_touched_by_a_goomba_becomes_small_and_survives():
     wait_until_hurt(attempt)
     tick = attempt.ticks_elapsed
     assert attempt.events == [GameEvent(tick, GameEventKind.TOOK_DAMAGE)]
-    assert WorldSnapshot.of(attempt).mario.power_state is PowerState.SMALL
     for _ in range(SHRINK_TICKS):
         attempt.step(HOLD_NOTHING)
     assert not attempt.is_over
     assert mario_box(attempt)[2:] == (MARIO_WIDTH, SMALL_MARIO_HEIGHT)
+    assert WorldSnapshot.of(attempt).mario.power_state is PowerState.SMALL
+
+
+def test_mario_is_small_from_his_size_flip_on_not_from_the_touch():
+    """Until the flip his box is big Mario's, so the snapshot says big (the
+    original's PlayerSize flips at $F0)."""
+    attempt = big_mario_attempt(build_level(enemy_spawns=(goomba_spawn(GOOMBA_START_X),)))
+    wait_until_hurt(attempt)
+    power_states = [WorldSnapshot.of(attempt).mario.power_state]
+    for _ in range(SHRINK_FLIP_TICK):
+        attempt.step(HOLD_NOTHING)
+        power_states.append(WorldSnapshot.of(attempt).mario.power_state)
+    assert power_states == [PowerState.BIG] * SHRINK_FLIP_TICK + [PowerState.SMALL]
 
 
 def test_while_mario_shrinks_the_game_stands_still_and_his_box_follows_the_shrink_animation():
