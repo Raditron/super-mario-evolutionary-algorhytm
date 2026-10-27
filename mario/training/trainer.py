@@ -2,12 +2,13 @@
 
 The algorithm is injected. The Trainer makes the run's one random generator
 from its seed, has the worker pool play each generation, scores each attempt
-with the algorithm's fitness, reports the generation, and asks the algorithm
-for the next genomes.
+with the algorithm's fitness, reports the generation to each listener in turn,
+and asks the algorithm for the next genomes.
 """
 
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -36,18 +37,19 @@ class GenerationListener(ABC):
 
 class Trainer:
     def __init__(self, algorithm: NeuroevolutionAlgorithm, worker_pool: AgentWorkerPool,
-                 run_settings: RunSettings, generation_listener: GenerationListener):
+                 run_settings: RunSettings, generation_listeners: Sequence[GenerationListener]):
         self._algorithm = algorithm
         self._worker_pool = worker_pool
         self._run_settings = run_settings
-        self._generation_listener = generation_listener
+        self._generation_listeners = generation_listeners
 
     def run(self) -> None:
         rng = np.random.default_rng(self._run_settings.seed)
         genomes = self._algorithm.initial_genomes(self._run_settings.population_size, rng)
         for generation in range(1, self._run_settings.generations + 1):
             report = self._play_generation(generation, genomes)
-            self._generation_listener.generation_finished(report)
+            for generation_listener in self._generation_listeners:
+                generation_listener.generation_finished(report)
             if generation < self._run_settings.generations:
                 genomes = self._algorithm.next_genomes(genomes, report.fitnesses, rng)
 

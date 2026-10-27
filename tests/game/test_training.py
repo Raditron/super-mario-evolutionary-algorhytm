@@ -31,7 +31,7 @@ def train(worker_count: int) -> list[GenerationReport]:
     run_settings = RunSettings(name="test", seed=SEED, generations=GENERATIONS, population_size=POPULATION_SIZE)
     algorithm_factory = AlgorithmFactory(create_random_buttons_algorithm, {})
     with AgentWorkerPool(algorithm_factory, worker_count) as worker_pool:
-        Trainer(algorithm_factory.create(), worker_pool, run_settings, collector).run()
+        Trainer(algorithm_factory.create(), worker_pool, run_settings, [collector]).run()
     return collector.reports
 
 

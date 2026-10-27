@@ -32,7 +32,7 @@ class TrainMode:
         algorithm = _create_algorithm(algorithm_factory)
         try:
             with AgentWorkerPool(algorithm_factory) as worker_pool:
-                Trainer(algorithm, worker_pool, config.run, GenerationPrinter()).run()
+                Trainer(algorithm, worker_pool, config.run, [GenerationPrinter()]).run()
         except WorkerStartError as problem:  # it built here, but not in a worker
             raise SystemExit(_not_ready(f"neuroevolution's {problem}")) from None
 
