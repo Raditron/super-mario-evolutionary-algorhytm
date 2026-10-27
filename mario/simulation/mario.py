@@ -146,6 +146,9 @@ class Mario(TileBody):
         self._power_state_after_size_change = PowerState.SMALL
         self._catching_fire_ticks_left = 0
         self._invulnerable_ticks_left = 0            # InjuryTimer
+        self._run_held_last_tick = False
+        # set each tick: fire Mario pressed run afresh while able to throw (ProcFireball_Bubble)
+        self.wants_to_throw_fireball = False
 
     @property
     def pixel_x(self) -> int:
@@ -154,6 +157,16 @@ class Mario(TileBody):
     @property
     def pixel_y(self) -> int:
         return self.y >> SUBPIXEL_BITS
+
+    @property
+    def sprite_x_pixels(self) -> int:
+        """The x of the original's 16 x 32 player sprite."""
+        return self.pixel_x - SMALL_MARIO_HITBOX_OFFSET_X_PIXELS
+
+    @property
+    def sprite_y_pixels(self) -> int:
+        """The y of the top of the original's 16 x 32 player sprite."""
+        return self.pixel_y - self.hitbox_offset_y_pixels
 
     @property
     def whole_speed_x(self) -> int:
@@ -223,6 +236,7 @@ class Mario(TileBody):
         if self.is_on_ground and not self.is_standing_on_solid_tile(tiles):
             self.movement_state = MovementState.FALLING
         self.jump_held_last_tick = controller.jump
+        self._read_fireball_throw(controller)
 
     def stop_at_screen_edge(self, pixel_x: int, keeps_speed: bool) -> None:
         """Hold Mario at a screen edge (the original's KeepOnscr)."""
@@ -287,6 +301,8 @@ class Mario(TileBody):
         else:
             self._catching_fire_ticks_left -= 1
         self.jump_held_last_tick = controller.jump
+        self._run_held_last_tick = controller.run
+        self.wants_to_throw_fireball = False
 
     def _continue_size_change(self) -> None:
         """His power state changes with his size, at the flip (PlayerSize)."""
@@ -296,6 +312,16 @@ class Mario(TileBody):
             self.power_state = self._power_state_after_size_change
         if self._size_change.is_over:
             self._size_change = None
+
+    def _read_fireball_throw(self, controller: ControllerState) -> None:
+        """ProcFireball_Bubble, after he has moved: fiery, he throws on a fresh run
+        press, unless he is crouching or his sprite's top is above the screen
+        (Player_Y_HighPos is not 1). Whether a fireball slot is free is for his
+        fireballs to say."""
+        run_pressed_afresh = controller.run and not self._run_held_last_tick
+        self.wants_to_throw_fireball = (self.is_fiery and run_pressed_afresh and not self._is_crouching
+                                        and self.sprite_y_pixels >= 0)
+        self._run_held_last_tick = controller.run
 
     def _change_size(self, size_change: SizeChange, power_state_after: PowerState) -> None:
         self._size_change = size_change

@@ -36,6 +36,8 @@ DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS = 8
 SUPER_MUSHROOM_COLOUR = (252, 116, 180)
 ONE_UP_MUSHROOM_COLOUR = (0, 200, 120)
 FIRE_FLOWER_COLOUR = (252, 160, 68)
+FIREBALL_COLOUR = (252, 216, 0)
+EXPLODING_FIREBALL_COLOUR = (252, 100, 0)
 # While he can't be hurt, Mario is drawn only on ticks that are a multiple of this
 # (PlayerGfxHandler skips him on odd frames while InjuryTimer runs).
 INVULNERABLE_MARIO_DRAWN_EVERY_TICKS = 2

@@ -1,8 +1,8 @@
 """What every walking enemy shares.
 
 An enemy spawns at its fixed spawn position and starts walking left; it walks
-as every WalkingBody does. One defeated by a bumped block jumps up away from
-Mario and falls through everything, out of the level.
+as every WalkingBody does. One defeated by a bumped block or a fireball jumps up
+away from Mario and falls through everything, out of the level.
 """
 
 from abc import ABC, abstractmethod
@@ -14,6 +14,7 @@ from mario.constants.physics import (
     BUMPED_ENEMY_SPEED_X,
     ENEMY_GRAVITY,
     ENEMY_TERMINAL_FALL_SPEED,
+    FIREBALL_DEFEAT_SPEED_Y,
     SUBPIXELS_PER_PIXEL,
 )
 from mario.level.static_level import EnemyKind, EnemySpawn
@@ -26,6 +27,8 @@ class Enemy(WalkingBody, ABC):
     """An enemy's position is the top-left corner of its hitbox."""
 
     kind: EnemyKind
+    # What defeating it with a fireball scores (ShellOrBlockDefeat).
+    fireball_defeat_points: int
 
     def __init__(self, spawn: EnemySpawn, width_pixels: int, height_pixels: int, walk_speed: int):
         """The enemy starts at its spawn x, a little above the tile it rests on."""
@@ -47,6 +50,11 @@ class Enemy(WalkingBody, ABC):
         return not self.is_defeated
 
     @property
+    def can_be_hit_by_fireball(self) -> bool:
+        """FireballEnemyCDLoop skips a defeated enemy."""
+        return not self.is_defeated
+
+    @property
     def is_gone(self) -> bool:
         """Whether it has finished being defeated and leaves play."""
         return False
@@ -57,9 +65,17 @@ class Enemy(WalkingBody, ABC):
 
     def defeat_by_bump(self, mario_x: int) -> None:
         """The block under it was bumped (KillEnemyAboveBlock, ChkToStunEnemies)."""
+        self._knock_off(mario_x, BUMP_DEFEAT_SPEED_Y)
+
+    def defeat_by_fireball(self, mario_x: int) -> None:
+        """A fireball hit it (HandleEnemyFBallCol, ShellOrBlockDefeat, ChkToStunEnemies)."""
+        self._knock_off(mario_x, FIREBALL_DEFEAT_SPEED_Y)
+
+    def _knock_off(self, mario_x: int, velocity_y: int) -> None:
+        """Lifted, it jumps away from Mario, and from then on falls through everything."""
         self._is_knocked_off = True
         self.y -= BUMPED_ENEMY_LIFT_PIXELS * SUBPIXELS_PER_PIXEL
-        self.velocity_y = BUMP_DEFEAT_SPEED_Y
+        self.velocity_y = velocity_y
         self.velocity_x = BUMPED_ENEMY_SPEED_X if self.x >= mario_x else -BUMPED_ENEMY_SPEED_X
 
     @property

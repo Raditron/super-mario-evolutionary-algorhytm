@@ -8,6 +8,7 @@ from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
 from mario.simulation.enemy import Enemy
+from mario.simulation.fireball import Fireball
 from mario.simulation.mario import Mario
 from mario.simulation.item import Item
 from mario.simulation.observation_builder import ObservationBuilder
@@ -89,6 +90,22 @@ class ItemSnapshot:
 
 
 @dataclass(frozen=True)
+class FireballSnapshot:
+    """One of Mario's fireballs: its box in level pixels, and whether it is exploding."""
+    x_pixels: int
+    y_pixels: int
+    width_pixels: int
+    height_pixels: int
+    is_exploding: bool
+
+    @classmethod
+    def of(cls, fireball: Fireball) -> "FireballSnapshot":
+        hitbox = fireball.hitbox()
+        return cls(hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
+                   fireball.is_exploding)
+
+
+@dataclass(frozen=True)
 class HudSnapshot:
     """The numbers the HUD shows: score, coins and the level timer's time left."""
     score: int
@@ -124,6 +141,7 @@ class WorldSnapshot:
     hud: HudSnapshot
     bouncing_blocks: tuple[BouncingBlockSnapshot, ...] = ()
     items: tuple[ItemSnapshot, ...] = ()
+    fireballs: tuple[FireballSnapshot, ...] = ()
     observation: ObservationSnapshot | None = None
     recent_events: tuple[GameEvent, ...] = ()        # oldest first
 
@@ -149,6 +167,7 @@ class WorldSnapshot:
             bouncing_blocks=tuple(BouncingBlockSnapshot(block.column, block.row, block.offset_y_pixels)
                                   for block in attempt.blocks.bouncing),
             items=tuple(ItemSnapshot.of(item) for item in attempt.items.active),
+            fireballs=tuple(FireballSnapshot.of(fireball) for fireball in attempt.fireballs.active),
             observation=(ObservationSnapshot.of(attempt, observation_builder)
                          if observation_builder is not None else None),
             recent_events=_recent_events(attempt),

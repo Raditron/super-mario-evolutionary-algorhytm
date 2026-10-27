@@ -19,6 +19,7 @@ from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.blocks import Blocks, HeadHit
 from mario.simulation.enemy_collision_check import EnemyCollisionCheck, EnemyCollisionOutcome, is_enemy_check_tick
 from mario.simulation.enemy_roster import EnemyRoster
+from mario.simulation.fireballs import Fireballs
 from mario.simulation.items import Items
 from mario.simulation.level_timer import LevelTimer
 from mario.simulation.mario import Mario
@@ -48,6 +49,7 @@ class Attempt:
         self.events: list[GameEvent] = []
         self.scoreboard = Scoreboard(self.events)
         self.blocks = Blocks(self.tiles, self.scoreboard, self.items, self.events)
+        self.fireballs = Fireballs(self.scoreboard, self.events)
         self._stall_rule = StallRule(self.mario.pixel_x) if ends_on_stall else None
         self.end_reason: EndReason | None = None
 
@@ -85,6 +87,8 @@ class Attempt:
         if self.mario.head_hit_tile is not None:
             self._hit_block_from_below(*self.mario.head_hit_tile)
         self.scroll.follow(self.mario, self.mario.pixel_x - pixel_x_before)
+        self.fireballs.step(self.mario, self.tiles, self.scroll.left_x_pixels, self.enemies.active,
+                            self.ticks_elapsed)
         self.enemies.step(self.tiles, self.scroll.left_x_pixels)
         self.blocks.defeat_enemies_on_bumped_blocks(self.enemies.active, self.mario.x, self.ticks_elapsed)
         self._record_enemy_collisions(
@@ -110,6 +114,7 @@ class Attempt:
                 self.scoreboard.score_points(points, self.ticks_elapsed)
         if outcome.mario_took_damage:
             self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.TOOK_DAMAGE))
+            self.fireballs.clear()
         self._died_to_enemy = outcome.mario_died
 
     def _collect_touched_item(self) -> None:

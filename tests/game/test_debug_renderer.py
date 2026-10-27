@@ -5,6 +5,7 @@ import pygame
 import pytest
 
 from mario.constants.level import (
+    FIREBALL_SIZE_PIXELS,
     GOOMBA_HITBOX_HEIGHT_PIXELS,
     GOOMBA_HITBOX_WIDTH_PIXELS,
     LEVEL_TIMER_START_UNITS,
@@ -29,6 +30,8 @@ from mario.constants.view import (
     DEBUG_GAME_EVENT_LINES,
     DEBUG_GAME_EVENTS_TOP_LEFT,
     DEBUG_TEXT_LINE_PIXELS,
+    EXPLODING_FIREBALL_COLOUR,
+    FIREBALL_COLOUR,
     FIRE_FLOWER_COLOUR,
     FIRE_MARIO_COLOUR,
     GOOMBA_COLOUR,
@@ -47,6 +50,7 @@ from mario.simulation.attempt_result import DefeatMethod, GameEvent, GameEventKi
 from mario.simulation.item_kind import ItemKind
 from mario.snapshots.world_snapshot import (
     EnemySnapshot,
+    FireballSnapshot,
     HudSnapshot,
     ItemSnapshot,
     MarioSnapshot,
@@ -79,6 +83,7 @@ def fonts():
 
 def snapshot_with(enemies: tuple[EnemySnapshot, ...] = (), observation: ObservationSnapshot | None = None,
                   recent_events: tuple[GameEvent, ...] = (), items: tuple[ItemSnapshot, ...] = (),
+                  fireballs: tuple[FireballSnapshot, ...] = (),
                   tiles: VisibleTiles = VisibleTiles(0, ()), tick: int = 0,
                   mario_is_invulnerable: bool = False,
                   mario_power_state: PowerState = PowerState.SMALL) -> WorldSnapshot:
@@ -88,7 +93,8 @@ def snapshot_with(enemies: tuple[EnemySnapshot, ...] = (), observation: Observat
                                              SMALL_MARIO_HITBOX_HEIGHT_PIXELS, mario_power_state,
                                              is_invulnerable=mario_is_invulnerable),
                          enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
-                         items=items, observation=observation, recent_events=recent_events)
+                         items=items, fireballs=fireballs, observation=observation,
+                         recent_events=recent_events)
 
 
 def drawn(snapshot: WorldSnapshot) -> pygame.Surface:
@@ -185,6 +191,15 @@ def test_a_mushroom_rising_out_of_its_block_is_drawn_behind_it():
 def test_mario_is_drawn_in_his_power_states_colour(power_state, colour):
     screen = drawn(snapshot_with(mario_power_state=power_state))
     assert colour_at(screen, SCREEN_LEFT_X, MARIO_Y_PIXELS) == colour
+
+
+@pytest.mark.parametrize("is_exploding, colour", [(False, FIREBALL_COLOUR), (True, EXPLODING_FIREBALL_COLOUR)])
+def test_a_fireball_is_drawn_as_its_box_flying_or_exploding(is_exploding, colour):
+    fireball = FireballSnapshot(GOOMBA_X, GOOMBA_Y, FIREBALL_SIZE_PIXELS, FIREBALL_SIZE_PIXELS, is_exploding)
+    screen = drawn(snapshot_with(fireballs=(fireball,)))
+    assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == colour
+    assert colour_at(screen, GOOMBA_X + FIREBALL_SIZE_PIXELS - 1, GOOMBA_Y + FIREBALL_SIZE_PIXELS - 1) == colour
+    assert colour_at(screen, GOOMBA_X + FIREBALL_SIZE_PIXELS, GOOMBA_Y) == SKY_COLOUR
 
 
 def test_invulnerable_mario_blinks_drawn_only_on_even_ticks():

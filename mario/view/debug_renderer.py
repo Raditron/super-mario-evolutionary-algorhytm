@@ -8,6 +8,8 @@ from mario.constants.view import (
     BRICK_COLOUR,
     CASTLE_STOPPER_COLOUR,
     DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS,
+    EXPLODING_FIREBALL_COLOUR,
+    FIREBALL_COLOUR,
     FIRE_FLOWER_COLOUR,
     FIRE_MARIO_COLOUR,
     FLAGPOLE_COLOUR,
@@ -26,7 +28,14 @@ from mario.constants.view import (
 )
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
-from mario.snapshots.world_snapshot import EnemySnapshot, ItemKind, ItemSnapshot, PowerState, WorldSnapshot
+from mario.snapshots.world_snapshot import (
+    EnemySnapshot,
+    FireballSnapshot,
+    ItemKind,
+    ItemSnapshot,
+    PowerState,
+    WorldSnapshot,
+)
 from mario.view.debug_text import DebugText
 from mario.view.game_event_feed import GameEventFeed
 from mario.view.observation_overlay import ObservationOverlay
@@ -86,6 +95,8 @@ class DebugRenderer:
                 self._draw_item(item, snapshot.screen_left_x_pixels, screen)
         for enemy in snapshot.enemies:
             self._draw_enemy(enemy, snapshot.screen_left_x_pixels, screen)
+        for fireball in snapshot.fireballs:
+            self._draw_fireball(fireball, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
         if not mario.is_invulnerable or snapshot.tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0:
             _fill_level_box(screen, MARIO_COLOURS[mario.power_state], snapshot.screen_left_x_pixels,
@@ -116,6 +127,12 @@ class DebugRenderer:
         drawn_top_y_pixels = enemy.y_pixels + enemy.height_pixels - drawn_height_pixels
         _fill_level_box(screen, ENEMY_COLOURS[enemy.kind], screen_left_x_pixels,
                         enemy.x_pixels, drawn_top_y_pixels, enemy.width_pixels, drawn_height_pixels)
+
+    @staticmethod
+    def _draw_fireball(fireball: FireballSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
+        colour = EXPLODING_FIREBALL_COLOUR if fireball.is_exploding else FIREBALL_COLOUR
+        _fill_level_box(screen, colour, screen_left_x_pixels,
+                        fireball.x_pixels, fireball.y_pixels, fireball.width_pixels, fireball.height_pixels)
 
     @staticmethod
     def _draw_item(item: ItemSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:

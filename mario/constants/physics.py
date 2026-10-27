@@ -107,6 +107,9 @@ BUMPED_ENEMY_LIFT_PIXELS = 2                                 # ChkToStunEnemies 
 # An enemy defeated by a bumped block (a Goomba; a Koopa is only stunned) jumps
 # faster (KillEnemyAboveBlock), then falls through everything (MoveDefeatedEnemy).
 BUMP_DEFEAT_SPEED_Y = -4 * NES_Y_SPEED_UNIT
+# An enemy defeated by a fireball gets only SetStun's jump (ShellOrBlockDefeat),
+# then falls through everything too.
+FIREBALL_DEFEAT_SPEED_Y = BUMPED_ENEMY_SPEED_Y
 MUSHROOM_SPEED = 16 * NES_X_SPEED_UNIT                       # 1.0 px/f, starts moving right
 # An item rises out of its block 1 px every 4 ticks for 16 px, and a mushroom
 # sets off one step (4 ticks) after that (GrowThePowerUp). Mario can touch it
@@ -155,6 +158,23 @@ BRICK_BREAK_SPEED = -2 * NES_Y_SPEED_UNIT
 # STOMPED_GOOMBA_TICKS, the replica always takes the longest the interval clock allows.
 INJURY_INVULNERABLE_INTERVAL_TICKS = 8
 INJURY_INVULNERABLE_TICKS = INJURY_INVULNERABLE_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
+
+# --- Fireballs (ProcFireball_Bubble, FireballObjCore, FireballBGCollision) ---------------------
+
+# Fire Mario has two fireball slots, so at most this many fly (or explode) at once.
+FIREBALL_SLOTS = 2
+# A fireball flies at 4 px/f the way Mario faces (FireballXSpdData $40 / $C0) and
+# starts falling at 4 px/f; it falls with gravity $50 up to 3 px/f (with
+# ImposeGravity's >= $80 quirk, so the 4 px/f start lasts two ticks).
+FIREBALL_SPEED = 0x40 * NES_X_SPEED_UNIT
+FIREBALL_START_FALL_SPEED = 4 * NES_Y_SPEED_UNIT
+FIREBALL_GRAVITY = 0x50 * NES_GRAVITY_UNIT
+FIREBALL_TERMINAL_FALL_SPEED = 3 * NES_Y_SPEED_UNIT
+# Landing on a solid tile, it bounces up at this speed; the fraction is kept.
+FIREBALL_BOUNCE_SPEED = -3 * NES_Y_SPEED_UNIT
+# An exploding fireball keeps its slot until the 7th tick after it exploded
+# (DrawExplosion_Fireball: state $80 counts up, freed at $86).
+FIREBALL_EXPLOSION_TICKS = 7
 
 # --- The Mario-enemy check (PlayerEnemyCollision) ----------------------------------------
 
