@@ -77,6 +77,8 @@ MARIO_TERMINAL_FALL_SPEED = 4 * NES_Y_SPEED_UNIT
 FALL_CAP_FRACTION_THRESHOLD = 0x80 * NES_Y_SUBSPEED_UNIT
 HEAD_BUMP_SPEED = 1 * NES_Y_SPEED_UNIT                       # after hitting a hard or used block from below
 BLOCK_BUMP_SPEED = 0 * NES_Y_SPEED_UNIT                      # after bumping a block (BumpBlock)
+# A side probe inside a solid tile pushes Mario out by this much a tick (ImpedePlayerMove).
+SIDE_PUSH_PIXELS = 1
 
 DEATH_JUMP_SPEED = -4 * NES_Y_SPEED_UNIT
 DEATH_GRAVITY = 0x28 * NES_GRAVITY_UNIT
