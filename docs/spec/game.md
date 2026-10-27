@@ -71,7 +71,7 @@ config.toml       the run settings the user edits (section 10)
 - `view` reads only `WorldSnapshot`s. It is the only package that imports pygame, so workers and headless training never load it.
 - `recording` knows only `AttemptResult`s, Controller logs, floats and flat arrays.
 - `statistics` reads only run-folder files. It never imports the simulation.
-- Only `training` imports `neuroevolution`, and only in train mode. `play`, `replay` and `stats` work while the algorithm is empty or half-written.
+- Only `TrainMode` (in `modes/`) imports `neuroevolution`, through the one fixed import of section 9; `training` gets the algorithm by injection and never imports it (ADR 0001). `play`, `replay` and `stats` work while the algorithm is empty or half-written.
 
 **The game package is frozen once built.** The user's code changes; the game's doesn't. That's why the seam (section 9) hands over everything the game knows.
 
@@ -214,6 +214,7 @@ class Brain(Protocol):
 
 - **One fixed import, in train mode only:** `from neuroevolution import create_algorithm`. `create_algorithm(settings: dict)` receives the `[algorithm]` table of `config.toml` as a plain dict; parsing it is the user's job. Each worker process calls it once to build brains locally.
 - **Genome:** a flat 1-D numpy float array. **Fitness:** one float per agent. `fitnesses` lines up with `genomes` by agent index.
+- **Brain rows:** a brain is built from one chunk's genomes. Every tick until the chunk's last attempt ends, `decide` gets one row per agent of the chunk, in genome order: row i is always agent i. An agent whose attempt has ended keeps its row, which repeats its last Observation, and its answer is ignored.
 - **Randomness:** the game makes one `numpy.random.default_rng([run] seed)` per run and passes it to `initial_genomes` and `next_genomes`. The simulation itself uses none.
 - **The Trainer takes the algorithm by injection.** `TrainMode` does the fixed import. The game's own tests drive the Trainer with a test double in `tests/game/` that presses random buttons. That double is not a neural network or a GA: the user writes those.
 
