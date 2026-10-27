@@ -1,0 +1,12 @@
+# The settings for the next training run: py -m mario train [config]
+# Game constants never go here; they live in mario/constants/.
+
+[run]
+name = "first-run"          # used in the run folder's name
+seed = 1                    # the one random seed of the run
+generations = 100
+population_size = 1000
+
+# The learning algorithm's own settings, with keys it chooses. The game hands
+# this table, unread, to neuroevolution.create_algorithm as a plain dict.
+[algorithm]

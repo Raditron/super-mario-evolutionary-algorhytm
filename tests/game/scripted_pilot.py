@@ -1,4 +1,4 @@
-"""A hand-written test pilot: runs right and jumps at walls and pits.
+"""A hand-written test pilot: runs right and jumps at walls and pits, and at enemies if asked.
 
 A test tool only, not an agent: it reads the Attempt directly.
 """
@@ -15,20 +15,30 @@ RUN_RIGHT_AND_JUMP = ControllerState.bitmask(right=True, run=True, jump=True)
 
 
 class ScriptedPilot:
-    def __init__(self):
+    def __init__(self, enemy_look_ahead_pixels: int | None = None):
+        """enemy_look_ahead_pixels: also jump at an undefeated enemy whose left edge is at
+        most this far ahead of Mario's; None ignores enemies."""
+        self._enemy_look_ahead_pixels = enemy_look_ahead_pixels
         self._jump_held_last_tick = False
 
     def next_buttons(self, attempt: Attempt) -> int:
         mario = attempt.mario
         if mario.is_on_ground:
-            wants_jump = not self._jump_held_last_tick and self._obstacle_ahead(attempt)
+            wants_jump = not self._jump_held_last_tick and (
+                self._wall_or_pit_ahead(attempt) or self._enemy_ahead(attempt))
         else:
             wants_jump = self._jump_held_last_tick
         self._jump_held_last_tick = wants_jump
         return RUN_RIGHT_AND_JUMP if wants_jump else RUN_RIGHT
 
+    def _enemy_ahead(self, attempt: Attempt) -> bool:
+        if self._enemy_look_ahead_pixels is None:
+            return False
+        return any(0 <= enemy.hitbox().x_pixels - attempt.mario.pixel_x <= self._enemy_look_ahead_pixels
+                   for enemy in attempt.enemies.active if not enemy.is_defeated)
+
     @staticmethod
-    def _obstacle_ahead(attempt: Attempt) -> bool:
+    def _wall_or_pit_ahead(attempt: Attempt) -> bool:
         mario = attempt.mario
         level = attempt.level
         right_edge_x = mario.pixel_x + (mario.width >> SUBPIXEL_BITS)

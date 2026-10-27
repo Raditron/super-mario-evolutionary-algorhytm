@@ -9,31 +9,59 @@ import mario
 import mario.constants.physics as physics_constants
 
 PACKAGE_ROOT = Path(mario.__file__).parent
-PYGAME_FREE_PACKAGES = ("simulation", "level", "controller")
-NONDETERMINISTIC_MODULES = {"random", "time", "datetime", "secrets", "uuid"}
+PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training")
+USERS_PACKAGE = "neuroevolution"
+THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE = PACKAGE_ROOT / "modes" / "train_mode.py"
+PACKAGES_THAT_DEPEND_ON_THE_CONTROLLER = ("mario.simulation", "mario.training")
+NONDETERMINISTIC_MODULES ={"random", "time", "datetime", "secrets", "uuid"}
 
 
 def python_files(package: str) -> list[Path]:
     return sorted((PACKAGE_ROOT / package).rglob("*.py"))
 
 
-def imported_module_names(source_file: Path) -> set[str]:
+def imported_dotted_names(source_file: Path) -> set[str]:
+    """Every module the file imports, in full; `from a import b` counts as both a and a.b."""
     tree = ast.parse(source_file.read_text())
     names = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            names.update(alias.name.split(".")[0] for alias in node.names)
+            names.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module:
-            names.add(node.module.split(".")[0])
+            names.add(node.module)
+            names.update(f"{node.module}.{alias.name}" for alias in node.names)
     return names
 
 
-def test_simulation_level_and_controller_never_load_pygame():
+def imported_module_names(source_file: Path) -> set[str]:
+    """The top-level packages the file imports."""
+    return {name.split(".")[0] for name in imported_dotted_names(source_file)}
+
+
+def imports_any_of(source_file: Path, packages: tuple[str, ...]) -> bool:
+    return any(name == package or name.startswith(f"{package}.")
+               for name in imported_dotted_names(source_file) for package in packages)
+
+
+def test_simulation_level_controller_and_training_never_load_pygame():
     modules = [".".join(("mario",) + path.relative_to(PACKAGE_ROOT).with_suffix("").parts)
                for package in PYGAME_FREE_PACKAGES for path in python_files(package)]
+    modules.append("mario.modes.train_mode")
     probe = f"import sys\nfor name in {modules!r}: __import__(name)\nprint('pygame' in sys.modules)"
     loaded = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, check=True)
     assert loaded.stdout.strip() == "False"
+
+
+def test_only_train_mode_imports_the_users_package():
+    importers = [source_file for source_file in sorted(PACKAGE_ROOT.rglob("*.py"))
+                 if USERS_PACKAGE in imported_module_names(source_file)]
+    assert importers == [THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE]
+
+
+def test_the_controller_imports_neither_the_simulation_nor_training():
+    """simulation and training both depend on the controller, so it can't depend back on them."""
+    for source_file in python_files("controller"):
+        assert not imports_any_of(source_file, PACKAGES_THAT_DEPEND_ON_THE_CONTROLLER), source_file
 
 
 def test_simulation_has_no_randomness_wall_clock_or_floats():

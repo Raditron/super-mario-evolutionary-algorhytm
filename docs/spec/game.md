@@ -52,7 +52,7 @@ mario/
   controller/     Controller bitmask, ControllerSource, ControllerLogSource,
                   BrainControllerSource (no pygame)
   snapshots/      WorldSnapshot + the shared-memory channel
-  training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool
+  training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool, ChunkPlayer
   recording/      RunFolder, RunRecorder
   statistics/     charts and summary from run folders (only matplotlib importer)
   view/           Window, KeyboardControllerSource, SpriteRenderer, DebugRenderer,
@@ -67,10 +67,11 @@ config.toml       the run settings the user edits (section 10)
 
 **Dependency rules**
 - `simulation` depends only on `level`, `controller` and `constants`.
+- `controller` depends only on `constants`: it never imports `simulation` or `training`, which both depend on it.
 - `view` reads only `WorldSnapshot`s. It is the only package that imports pygame, so workers and headless training never load it.
 - `recording` knows only `AttemptResult`s, Controller logs, floats and flat arrays.
 - `statistics` reads only run-folder files. It never imports the simulation.
-- Only `training` imports `neuroevolution`, and only in train mode. `play`, `replay` and `stats` work while the algorithm is empty or half-written.
+- Only `TrainMode` (in `modes/`) imports `neuroevolution`, through the one fixed import of section 9; `training` gets the algorithm by injection and never imports it (ADR 0001). `play`, `replay` and `stats` work while the algorithm is empty or half-written.
 
 **The game package is frozen once built.** The user's code changes; the game's doesn't. That's why the seam (section 9) hands over everything the game knows.
 
@@ -83,7 +84,7 @@ config.toml       the run settings the user edits (section 10)
 - **Deterministic.** The simulation has no RNG and no floats. The same Controller log always gives the same attempt, bit for bit, and replays rely on this.
 - **Where buttons come from** is the only difference between modes, through one `ControllerSource` interface:
   - `KeyboardControllerSource`: play
-  - `BrainControllerSource`: train. Lock-step over a batch: Observations → `brain.decide` → step every agent.
+  - `BrainControllerSource`: train. It turns a brain's (agents × 5) bools for one tick into each agent's bitmask; training's `ChunkPlayer` runs the lock-step over a chunk: Observations → `brain.decide` → step every agent.
   - `ControllerLogSource`: replay
 
 ### Physics (#2, #8)
@@ -213,12 +214,13 @@ class Brain(Protocol):
 
 - **One fixed import, in train mode only:** `from neuroevolution import create_algorithm`. `create_algorithm(settings: dict)` receives the `[algorithm]` table of `config.toml` as a plain dict; parsing it is the user's job. Each worker process calls it once to build brains locally.
 - **Genome:** a flat 1-D numpy float array. **Fitness:** one float per agent. `fitnesses` lines up with `genomes` by agent index.
+- **Brain rows:** a brain is built from one chunk's genomes. Every tick until the chunk's last attempt ends, `decide` gets one row per agent of the chunk, in genome order: row i is always agent i. An agent whose attempt has ended keeps its row, which repeats its last Observation, and its answer is ignored.
 - **Randomness:** the game makes one `numpy.random.default_rng([run] seed)` per run and passes it to `initial_genomes` and `next_genomes`. The simulation itself uses none.
 - **The Trainer takes the algorithm by injection.** `TrainMode` does the fixed import. The game's own tests drive the Trainer with a test double in `tests/game/` that presses random buttons. That double is not a neural network or a GA: the user writes those.
 
 **One generation:**
 1. Send genomes to the worker pool.
-2. Each worker runs its chunk in lock-step with `build_brain` and `BrainControllerSource`.
+2. Each worker runs its chunk in lock-step with `build_brain` and `ChunkPlayer` (which reads the brain's buttons through `BrainControllerSource`).
 3. `AttemptResult`s and Controller logs come back.
 4. `fitness` is called on each result.
 5. Record the generation (section 10).
