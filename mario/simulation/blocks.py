@@ -7,8 +7,9 @@ else, and every block small Mario hits, is bumped. A power-up ? block releases a
 Super Mushroom for small Mario and a fire flower for big Mario, and the hidden
 block a 1-UP mushroom (BumpBlock, SetupPowerUp).
 An enemy standing on a block while it bounces, or on a brick as it breaks, is
-defeated (HandleEToBGCollision); an item there hops away from Mario. The multi-coin brick's timer is one for the
-whole level, as in the original (BrickCoinTimerFlag); 1-1 has one such brick.
+defeated (HandleEToBGCollision); a mushroom there hops away from Mario. The
+multi-coin brick's timer is one for the whole level, as in the original
+(BrickCoinTimerFlag); 1-1 has one such brick.
 """
 
 from enum import Enum, auto
@@ -22,8 +23,8 @@ from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.bouncing_block import BouncingBlock
 from mario.simulation.enemy import Enemy
 from mario.simulation.item_kind import ItemKind
-from mario.simulation.item import Item
 from mario.simulation.items import Items
+from mario.simulation.mushroom import Mushroom
 from mario.simulation.scoreboard import Scoreboard
 from mario.simulation.walking_body import WalkingBody
 
@@ -83,8 +84,8 @@ class Blocks:
                 self._events.append(GameEvent(tick, GameEventKind.DEFEATED_ENEMY, DefeatMethod.BUMPED))
                 self._scoreboard.score_points(BUMPED_ENEMY_POINTS, tick)
 
-    def knock_items_on_bumped_blocks(self, items: list[Item], mario_x: int) -> None:
-        """An item standing on a bouncing block, or on a brick broken this tick,
+    def knock_items_on_bumped_blocks(self, items: list[Mushroom], mario_x: int) -> None:
+        """A walking item standing on a bouncing block, or on a brick broken this tick,
         hops away from Mario. One still rising out of its block stands on nothing."""
         for item in items:
             if not item.is_emerging and self._is_on_a_bumped_block(item):

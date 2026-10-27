@@ -152,7 +152,7 @@ MULTI_COIN_BRICK_TICKS = MULTI_COIN_BRICK_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
 # Big Mario's head breaks a plain brick; he keeps rising, at 2 px/f (the fraction is kept).
 BRICK_BREAK_SPEED = -2 * NES_Y_SPEED_UNIT
 
-# --- Getting hurt (InjuryTimer); growing and shrinking are in constants/size_change.py ---
+# --- Getting hurt (InjuryTimer); growing, shrinking and catching fire are in constants/size_change.py ---
 
 # After shrinking, Mario can't be hurt for 8 interval ticks (InjuryTimer). Like
 # STOMPED_GOOMBA_TICKS, the replica always takes the longest the interval clock allows.

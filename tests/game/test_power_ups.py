@@ -11,7 +11,6 @@ from tests.game.helpers import (
     HOLD_JUMP,
     HOLD_NOTHING,
     HOLD_RIGHT,
-    big_mario_attempt,
     build_level,
     goomba_spawn,
 )

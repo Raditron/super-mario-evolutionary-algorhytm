@@ -11,12 +11,16 @@ from mario.constants.level import (
     ENEMY_REMOVAL_RANGE_PIXELS,
     SCREEN_RIGHT_EDGE_OFFSET_PIXELS,
 )
-from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.fire_flower import FireFlower
 from mario.simulation.hitbox import Hitbox
 from mario.simulation.item import Item
 from mario.simulation.item_kind import ItemKind
-from mario.simulation.mushroom import Mushroom
+from mario.simulation.mushroom import Mushroom, OneUpMushroom, SuperMushroom
+from mario.simulation.playfield import Playfield
+
+ITEM_CLASS_BY_KIND: dict[ItemKind, type[Item]] = {
+    item_class.kind: item_class for item_class in (SuperMushroom, OneUpMushroom, FireFlower)
+}
 
 
 class Items:
@@ -27,15 +31,19 @@ class Items:
     def active(self) -> list[Item]:
         return [] if self._item is None else [self._item]
 
-    def release(self, kind: ItemKind, block_column: int, block_row: int) -> None:
-        self._item = (FireFlower(block_column, block_row) if kind is ItemKind.FIRE_FLOWER
-                      else Mushroom(kind, block_column, block_row))
+    @property
+    def walking(self) -> list[Mushroom]:
+        """The active items that walk, and so can be knocked by a bumped block."""
+        return [item for item in self.active if isinstance(item, Mushroom)]
 
-    def step(self, tiles: AttemptTiles, screen_left_x_pixels: int) -> None:
+    def release(self, kind: ItemKind, block_column: int, block_row: int) -> None:
+        self._item = ITEM_CLASS_BY_KIND[kind](block_column, block_row)
+
+    def step(self, playfield: Playfield) -> None:
         if self._item is None:
             return
-        self._item.step(tiles)
-        if _is_out_of_play(self._item, screen_left_x_pixels):
+        self._item.step(playfield.tiles)
+        if _is_out_of_play(self._item, playfield.screen_left_x_pixels):
             self._item = None
 
     def take_touched(self, mario_hitbox: Hitbox) -> Item | None:

@@ -10,8 +10,6 @@ from abc import ABC, abstractmethod
 from mario.constants.level import ENEMY_FELL_OUT_SPRITE_Y_PIXELS, ENEMY_SPAWN_DROP_PIXELS, TILE_SIZE_PIXELS
 from mario.constants.physics import (
     BUMP_DEFEAT_SPEED_Y,
-    BUMPED_ENEMY_LIFT_PIXELS,
-    BUMPED_ENEMY_SPEED_X,
     ENEMY_GRAVITY,
     ENEMY_TERMINAL_FALL_SPEED,
     FIREBALL_DEFEAT_SPEED_Y,
@@ -74,9 +72,7 @@ class Enemy(WalkingBody, ABC):
     def _knock_off(self, mario_x: int, velocity_y: int) -> None:
         """Lifted, it jumps away from Mario, and from then on falls through everything."""
         self._is_knocked_off = True
-        self.y -= BUMPED_ENEMY_LIFT_PIXELS * SUBPIXELS_PER_PIXEL
-        self.velocity_y = velocity_y
-        self.velocity_x = BUMPED_ENEMY_SPEED_X if self.x >= mario_x else -BUMPED_ENEMY_SPEED_X
+        self.jump_away_from(mario_x, velocity_y)
 
     @property
     def has_fallen_out(self) -> bool:

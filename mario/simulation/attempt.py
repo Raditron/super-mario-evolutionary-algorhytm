@@ -23,6 +23,7 @@ from mario.simulation.fireballs import Fireballs
 from mario.simulation.items import Items
 from mario.simulation.level_timer import LevelTimer
 from mario.simulation.mario import Mario
+from mario.simulation.playfield import Playfield
 from mario.simulation.item_kind import ItemKind
 from mario.simulation.item import Item
 from mario.simulation.scoreboard import Scoreboard
@@ -39,6 +40,7 @@ class Attempt:
         self.tiles = AttemptTiles(level)
         self.mario = Mario(screen_left_x_pixels)
         self.scroll = Scroll(self.mario.pixel_x, screen_left_x_pixels)
+        self._playfield = Playfield(self.tiles, self.scroll)
         self.enemies = EnemyRoster(level.enemy_spawns)
         self.items = Items()
         self._enemy_collision_check = EnemyCollisionCheck()
@@ -49,7 +51,7 @@ class Attempt:
         self.events: list[GameEvent] = []
         self.scoreboard = Scoreboard(self.events)
         self.blocks = Blocks(self.tiles, self.scoreboard, self.items, self.events)
-        self.fireballs = Fireballs(self.scoreboard, self.events)
+        self.fireballs = Fireballs(self.mario, self.scoreboard, self.events)
         self._stall_rule = StallRule(self.mario.pixel_x) if ends_on_stall else None
         self.end_reason: EndReason | None = None
 
@@ -87,14 +89,13 @@ class Attempt:
         if self.mario.head_hit_tile is not None:
             self._hit_block_from_below(*self.mario.head_hit_tile)
         self.scroll.follow(self.mario, self.mario.pixel_x - pixel_x_before)
-        self.fireballs.step(self.mario, self.tiles, self.scroll.left_x_pixels, self.enemies.active,
-                            self.ticks_elapsed)
-        self.enemies.step(self.tiles, self.scroll.left_x_pixels)
+        self.fireballs.step(self._playfield, self.enemies.active, self.ticks_elapsed)
+        self.enemies.step(self._playfield)
         self.blocks.defeat_enemies_on_bumped_blocks(self.enemies.active, self.mario.x, self.ticks_elapsed)
         self._record_enemy_collisions(
             self._enemy_collision_check.step(self.ticks_elapsed, self.mario, self.enemies.active))
-        self.items.step(self.tiles, self.scroll.left_x_pixels)
-        self.blocks.knock_items_on_bumped_blocks(self.items.active, self.mario.x)
+        self.items.step(self._playfield)
+        self.blocks.knock_items_on_bumped_blocks(self.items.walking, self.mario.x)
         self._collect_touched_item()
         self.furthest_x = max(self.furthest_x, self.mario.pixel_x)
         self.blocks.step()
@@ -133,9 +134,7 @@ class Attempt:
         if item.kind is ItemKind.ONE_UP_MUSHROOM:
             self.scoreboard.collect_one_up(self.ticks_elapsed)
             return
-        collected = (GameEventKind.COLLECTED_FIRE_FLOWER if item.kind is ItemKind.FIRE_FLOWER
-                     else GameEventKind.COLLECTED_MUSHROOM)
-        self.events.append(GameEvent(self.ticks_elapsed, collected))
+        self.events.append(GameEvent(self.ticks_elapsed, item.collected_event_kind))
         self.scoreboard.score_points(ITEM_POINTS, self.ticks_elapsed)
         self.mario.power_up()
 

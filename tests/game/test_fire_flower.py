@@ -142,7 +142,7 @@ def test_a_fire_flower_collected_by_small_mario_only_makes_him_big():
     attempt = Attempt(build_level())
     walk_into_an_item_on_the_ground(attempt, ItemKind.FIRE_FLOWER, GameEventKind.COLLECTED_FIRE_FLOWER)
     assert GameEventKind.COLLECTED_FIRE_FLOWER in event_kinds(attempt)
-    while attempt.mario.is_changing_size:
+    while attempt.mario.is_changing_power_state:
         attempt.step(HOLD_NOTHING)
     assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
 

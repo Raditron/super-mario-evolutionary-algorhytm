@@ -1,6 +1,6 @@
 """One of fire Mario's fireballs (the original's fireball object, FireballObjCore).
 
-It flies at a steady speed the way Mario faced when he threw it, and falls with
+It flies at a steady speed the way Mario faced when he shot it, and falls with
 its own gravity. Its position is the top-left corner of its 8 x 8 box, in
 sub-pixels; it moves vertically first, then horizontally, as ImposeGravity and
 MoveObjectHorizontally do.
@@ -36,13 +36,14 @@ from mario.constants.physics import (
     Y_SUBSPEED_MASK,
 )
 from mario.simulation.attempt_tiles import AttemptTiles
+from mario.simulation.playfield import Playfield
 from mario.simulation.gravity import add_gravity
 from mario.simulation.hitbox import Hitbox
 
 
 class Fireball:
     def __init__(self, mario_sprite_x_pixels: int, mario_sprite_y_pixels: int, direction: int):
-        """Thrown by Mario with his sprite at that position, facing that direction."""
+        """Shot by Mario with his sprite at that position, facing that direction."""
         self.x = (mario_sprite_x_pixels + FIREBALL_START_OFFSET_X_PIXELS) * SUBPIXELS_PER_PIXEL
         self.y = mario_sprite_y_pixels * SUBPIXELS_PER_PIXEL
         self.velocity_x = direction * FIREBALL_SPEED
@@ -71,19 +72,19 @@ class Fireball:
     def hitbox(self) -> Hitbox:
         return Hitbox(self.pixel_x, self.pixel_y, FIREBALL_SIZE_PIXELS, FIREBALL_SIZE_PIXELS)
 
-    def step(self, tiles: AttemptTiles, screen_left_x_pixels: int) -> None:
+    def step(self, playfield: Playfield) -> None:
         if self.is_exploding:
             self._explosion_ticks += 1
         else:
-            self._fly(tiles, screen_left_x_pixels)
+            self._fly(playfield)
 
-    def _fly(self, tiles: AttemptTiles, screen_left_x_pixels: int) -> None:
+    def _fly(self, playfield: Playfield) -> None:
         """One tick of flight, then its tile probe and the screen's edges."""
         self.y += self.velocity_y
         self.velocity_y = add_gravity(self.velocity_y, FIREBALL_GRAVITY, FIREBALL_TERMINAL_FALL_SPEED)
         self.x += self.velocity_x
-        self._probe_tiles(tiles)
-        screen_x_pixels = self.pixel_x - screen_left_x_pixels
+        self._probe_tiles(playfield.tiles)
+        screen_x_pixels = self.pixel_x - playfield.screen_left_x_pixels
         self._has_left_the_screen = (screen_x_pixels <= 0
                                      or screen_x_pixels >= FIREBALL_REMOVAL_SCREEN_RIGHT_X_PIXELS
                                      or self.pixel_y >= FIREBALL_FELL_OUT_Y_PIXELS)

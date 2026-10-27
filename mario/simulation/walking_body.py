@@ -5,14 +5,20 @@ It walks at a steady speed, turns around at walls, and falls off ledges with
 enemy gravity, still walking. It uses the same axis-separated tile collision as Mario.
 """
 
-from mario.constants.physics import ENEMY_GRAVITY, ENEMY_TERMINAL_FALL_SPEED
+from mario.constants.physics import (
+    BUMPED_ENEMY_LIFT_PIXELS,
+    BUMPED_ENEMY_SPEED_X,
+    ENEMY_GRAVITY,
+    ENEMY_TERMINAL_FALL_SPEED,
+    SUBPIXELS_PER_PIXEL,
+)
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.gravity import add_gravity
 from mario.simulation.tile_body import TileBody, VerticalContact
 
 
 class WalkingBody(TileBody):
-    def __init__(self, x: int, y: int, width: int, height: int, velocity_x: int):
+    def __init__(self, x: int, y: int, width: int, height: int, velocity_x: int = 0):
         super().__init__(x, y, width, height)
         self.velocity_x = velocity_x
         self.velocity_y = 0
@@ -26,6 +32,13 @@ class WalkingBody(TileBody):
             self._fall(tiles)
         elif not self.is_standing_on_solid_tile(tiles):
             self.is_falling = True
+
+    def jump_away_from(self, mario_x: int, velocity_y: int) -> None:
+        """ChkToStunEnemies, SetStun, which treat every enemy object alike: lifted a
+        little, it jumps at this speed and moves away from Mario."""
+        self.y -= BUMPED_ENEMY_LIFT_PIXELS * SUBPIXELS_PER_PIXEL
+        self.velocity_y = velocity_y
+        self.velocity_x = BUMPED_ENEMY_SPEED_X if self.x >= mario_x else -BUMPED_ENEMY_SPEED_X
 
     def _fall(self, tiles: AttemptTiles) -> None:
         contact = self.move_vertically(tiles, self.velocity_y)
