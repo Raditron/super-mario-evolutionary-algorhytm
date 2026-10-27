@@ -7,7 +7,7 @@ or broken, training stops with a message saying so instead of a traceback.
 
 from pathlib import Path
 
-from mario.training.agent_worker_pool import AgentWorkerPool
+from mario.training.agent_worker_pool import AgentWorkerPool, WorkerStartError
 from mario.training.algorithm_factory import AlgorithmFactory, CreateAlgorithm
 from mario.training.generation_printer import GenerationPrinter
 from mario.training.neuroevolution_algorithm import NeuroevolutionAlgorithm
@@ -30,8 +30,11 @@ class TrainMode:
             raise SystemExit(f"Can't read the run's config: {problem}") from None
         algorithm_factory = AlgorithmFactory(_import_create_algorithm(), config.algorithm_settings)
         algorithm = _create_algorithm(algorithm_factory)
-        with AgentWorkerPool(algorithm_factory) as worker_pool:
-            Trainer(algorithm, worker_pool, config.run, GenerationPrinter()).run()
+        try:
+            with AgentWorkerPool(algorithm_factory) as worker_pool:
+                Trainer(algorithm, worker_pool, config.run, GenerationPrinter()).run()
+        except WorkerStartError as problem:  # it built here, but not in a worker
+            raise SystemExit(_not_ready(f"neuroevolution's {problem}")) from None
 
 
 def _import_create_algorithm() -> CreateAlgorithm:

@@ -25,6 +25,15 @@ population_size = 4
 """
 RANDOM_BUTTONS_PACKAGE = ("from tests.game.random_buttons_algorithm import "
                           "create_random_buttons_algorithm as create_algorithm\n")
+FAILS_ONLY_IN_A_WORKER_PACKAGE = """
+import multiprocessing
+from tests.game.random_buttons_algorithm import create_random_buttons_algorithm
+
+def create_algorithm(settings):
+    if multiprocessing.parent_process() is not None:
+        raise RuntimeError("broken in a worker process")
+    return create_random_buttons_algorithm(settings)
+"""
 NOT_READY = "isn't ready"
 
 
@@ -44,7 +53,9 @@ def train_in(folder: Path, neuroevolution_init: str | None) -> subprocess.Comple
     "def build_something_else(): pass\n",                        # no create_algorithm
     "def create_algorithm(settings):\n    raise NotImplementedError\n",
     "def create_algorithm(settings):\n    return object()\n",    # not a NeuroevolutionAlgorithm
-], ids=["fails-on-import", "no-create-algorithm", "create-algorithm-raises", "wrong-type"])
+    FAILS_ONLY_IN_A_WORKER_PACKAGE,
+], ids=["fails-on-import", "no-create-algorithm", "create-algorithm-raises", "wrong-type",
+        "create-algorithm-raises-only-in-a-worker"])
 def test_train_exits_with_a_clear_message_when_the_users_package_isnt_working(tmp_path, neuroevolution_init):
     finished = train_in(tmp_path, neuroevolution_init)
     assert finished.returncode != 0
