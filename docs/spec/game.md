@@ -52,7 +52,7 @@ mario/
   controller/     Controller bitmask, ControllerSource, ControllerLogSource,
                   BrainControllerSource (no pygame)
   snapshots/      WorldSnapshot + the shared-memory channel
-  training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool
+  training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool, ChunkPlayer
   recording/      RunFolder, RunRecorder
   statistics/     charts and summary from run folders (only matplotlib importer)
   view/           Window, KeyboardControllerSource, SpriteRenderer, DebugRenderer,
@@ -67,6 +67,7 @@ config.toml       the run settings the user edits (section 10)
 
 **Dependency rules**
 - `simulation` depends only on `level`, `controller` and `constants`.
+- `controller` depends only on `constants`: it never imports `simulation` or `training`, which both depend on it.
 - `view` reads only `WorldSnapshot`s. It is the only package that imports pygame, so workers and headless training never load it.
 - `recording` knows only `AttemptResult`s, Controller logs, floats and flat arrays.
 - `statistics` reads only run-folder files. It never imports the simulation.
@@ -83,7 +84,7 @@ config.toml       the run settings the user edits (section 10)
 - **Deterministic.** The simulation has no RNG and no floats. The same Controller log always gives the same attempt, bit for bit, and replays rely on this.
 - **Where buttons come from** is the only difference between modes, through one `ControllerSource` interface:
   - `KeyboardControllerSource`: play
-  - `BrainControllerSource`: train. Lock-step over a batch: Observations → `brain.decide` → step every agent.
+  - `BrainControllerSource`: train. It turns a brain's (agents × 5) bools for one tick into each agent's bitmask; training's `ChunkPlayer` runs the lock-step over a chunk: Observations → `brain.decide` → step every agent.
   - `ControllerLogSource`: replay
 
 ### Physics (#2, #8)
@@ -218,7 +219,7 @@ class Brain(Protocol):
 
 **One generation:**
 1. Send genomes to the worker pool.
-2. Each worker runs its chunk in lock-step with `build_brain` and `BrainControllerSource`.
+2. Each worker runs its chunk in lock-step with `build_brain` and `ChunkPlayer` (which reads the brain's buttons through `BrainControllerSource`).
 3. `AttemptResult`s and Controller logs come back.
 4. `fitness` is called on each result.
 5. Record the generation (section 10).

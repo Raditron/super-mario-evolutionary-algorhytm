@@ -20,8 +20,8 @@ from mario.constants.training import (
     CHUNKS_PER_WORKER,
     TRAINING_WORKER_COUNT,
 )
-from mario.controller.brain_controller_source import BrainControllerSource, PlayedAttempt
 from mario.level.static_level import StaticLevel
+from mario.training.chunk_player import ChunkPlayer, PlayedAttempt
 from mario.training.neuroevolution_algorithm import NeuroevolutionAlgorithm
 
 # How every process builds the user's algorithm: create_algorithm(settings).
@@ -79,10 +79,10 @@ class _Worker:
 
     def __init__(self, algorithm: NeuroevolutionAlgorithm):
         self._algorithm = algorithm
-        self._brain_controller_source = BrainControllerSource(StaticLevel.load_world_1_1())
+        self._chunk_player = ChunkPlayer(StaticLevel.load_world_1_1())
 
     def play(self, genomes: list[np.ndarray]) -> list[PlayedAttempt]:
-        return self._brain_controller_source.play(self._algorithm.build_brain(genomes), len(genomes))
+        return self._chunk_player.play(self._algorithm.build_brain(genomes), len(genomes))
 
 
 # The worker of this process, set once when the pool starts it.

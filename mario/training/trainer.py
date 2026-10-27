@@ -12,8 +12,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from mario.controller.brain_controller_source import PlayedAttempt
 from mario.training.agent_worker_pool import AgentWorkerPool
+from mario.training.chunk_player import PlayedAttempt
 from mario.training.neuroevolution_algorithm import NeuroevolutionAlgorithm
 from mario.training.run_config import RunSettings
 
