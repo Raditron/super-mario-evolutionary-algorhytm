@@ -34,7 +34,8 @@ from mario.controller.controller_bitmask import held_buttons_from_bitmasks
 from mario.level.static_level import StaticLevel
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import AttemptResult
-from mario.training.agent_worker_pool import AgentWorkerPool, AlgorithmFactory
+from mario.training.agent_worker_pool import AgentWorkerPool
+from mario.training.algorithm_factory import AlgorithmFactory
 from mario.training.neuroevolution_algorithm import Brain, NeuroevolutionAlgorithm
 from mario.training.run_config import RunSettings
 from mario.training.trainer import GenerationListener, GenerationReport, Trainer
@@ -132,12 +133,12 @@ class GenerationTimer(GenerationListener):
         self.agent_ticks.append(sum(played.attempt_result.ticks_elapsed for played in report.played_attempts))
 
 
-def time_workload(name: str, create_algorithm: AlgorithmFactory, settings: dict) -> None:
+def time_workload(name: str, algorithm_factory: AlgorithmFactory) -> None:
     timer = GenerationTimer()
     run_settings = RunSettings(name=name, seed=BENCHMARK_SEED, generations=TIMED_GENERATIONS,
                                population_size=BENCHMARK_POPULATION_SIZE)
-    with AgentWorkerPool(create_algorithm, settings) as worker_pool:
-        Trainer(create_algorithm(settings), worker_pool, run_settings, timer).run()
+    with AgentWorkerPool(algorithm_factory) as worker_pool:
+        Trainer(algorithm_factory.create(), worker_pool, run_settings, timer).run()
     seconds_per_generation = statistics.median(timer.seconds)
     agent_ticks_per_second = sum(timer.agent_ticks) / sum(timer.seconds)
     ticks_per_attempt = sum(timer.agent_ticks) / (TIMED_GENERATIONS * BENCHMARK_POPULATION_SIZE)
@@ -158,9 +159,9 @@ def main() -> None:
           f"| {PROJECTED_GENERATIONS} gen, measured | {PROJECTED_GENERATIONS} gen at "
           f"{PROJECTED_TICKS_PER_ATTEMPT} ticks |")
     print("|---|---|---|---|---|---|---|")
-    time_workload("random buttons (test double)", create_random_buttons_algorithm, {})
-    time_workload("long attempts (pilot + placeholder network)", create_pilot_replay_algorithm,
-                  {PILOT_LOG_SETTING: pilot_controller_log()})
+    time_workload("random buttons (test double)", AlgorithmFactory(create_random_buttons_algorithm, {}))
+    time_workload("long attempts (pilot + placeholder network)", AlgorithmFactory(
+        create_pilot_replay_algorithm, {PILOT_LOG_SETTING: pilot_controller_log()}))
 
 
 if __name__ == "__main__":

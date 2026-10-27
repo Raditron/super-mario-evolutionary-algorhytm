@@ -9,7 +9,7 @@ built from their genomes, and the PlayedAttempts come back in agent order.
 
 import multiprocessing
 import os
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 import numpy as np
@@ -19,27 +19,20 @@ from mario.constants.training import (
     BLAS_THREADS_PER_WORKER,
     CHUNKS_PER_WORKER,
     TRAINING_WORKER_COUNT,
+    WORKER_START_METHOD,
 )
 from mario.level.static_level import StaticLevel
+from mario.training.algorithm_factory import AlgorithmFactory
 from mario.training.chunk_player import ChunkPlayer, PlayedAttempt
 from mario.training.neuroevolution_algorithm import NeuroevolutionAlgorithm
 
-# How every process builds the user's algorithm: create_algorithm(settings).
-AlgorithmFactory = Callable[[dict], NeuroevolutionAlgorithm]
-
-# Workers are started fresh rather than forked, the same on every platform.
-WORKER_START_METHOD = "spawn"
-
 
 class AgentWorkerPool:
-    def __init__(self, create_algorithm: AlgorithmFactory, algorithm_settings: dict,
-                 worker_count: int = TRAINING_WORKER_COUNT):
-        """create_algorithm must be importable by name (a module-level function), since
-        each worker process imports it to build its own algorithm."""
+    def __init__(self, algorithm_factory: AlgorithmFactory, worker_count: int = TRAINING_WORKER_COUNT):
         self._chunk_count = worker_count * CHUNKS_PER_WORKER
         with _blas_pinned_in_new_processes():
             self._pool = multiprocessing.get_context(WORKER_START_METHOD).Pool(
-                worker_count, initializer=_start_worker, initargs=(create_algorithm, algorithm_settings))
+                worker_count, initializer=_start_worker, initargs=(algorithm_factory,))
 
     def __enter__(self) -> "AgentWorkerPool":
         return self
@@ -89,9 +82,9 @@ class _Worker:
 _this_process_worker: _Worker | None = None
 
 
-def _start_worker(create_algorithm: AlgorithmFactory, algorithm_settings: dict) -> None:
+def _start_worker(algorithm_factory: AlgorithmFactory) -> None:
     global _this_process_worker
-    _this_process_worker = _Worker(create_algorithm(algorithm_settings))
+    _this_process_worker = _Worker(algorithm_factory.create())
 
 
 def _play_chunk(genomes: list[np.ndarray]) -> list[PlayedAttempt]:

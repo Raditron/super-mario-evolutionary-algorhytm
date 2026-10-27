@@ -7,7 +7,8 @@ or broken, training stops with a message saying so instead of a traceback.
 
 from pathlib import Path
 
-from mario.training.agent_worker_pool import AgentWorkerPool, AlgorithmFactory
+from mario.training.agent_worker_pool import AgentWorkerPool
+from mario.training.algorithm_factory import AlgorithmFactory, CreateAlgorithm
 from mario.training.generation_printer import GenerationPrinter
 from mario.training.neuroevolution_algorithm import NeuroevolutionAlgorithm
 from mario.training.run_config import RunConfig
@@ -27,13 +28,13 @@ class TrainMode:
             config = RunConfig.load(self._config_path)
         except (OSError, ValueError) as problem:
             raise SystemExit(f"Can't read the run's config: {problem}") from None
-        create_algorithm = _import_create_algorithm()
-        algorithm = _create_algorithm(create_algorithm, config.algorithm_settings)
-        with AgentWorkerPool(create_algorithm, config.algorithm_settings) as worker_pool:
+        algorithm_factory = AlgorithmFactory(_import_create_algorithm(), config.algorithm_settings)
+        algorithm = _create_algorithm(algorithm_factory)
+        with AgentWorkerPool(algorithm_factory) as worker_pool:
             Trainer(algorithm, worker_pool, config.run, GenerationPrinter()).run()
 
 
-def _import_create_algorithm() -> AlgorithmFactory:
+def _import_create_algorithm() -> CreateAlgorithm:
     try:
         from neuroevolution import create_algorithm
     except Exception as problem:  # a half-written package can fail in any way on import
@@ -42,9 +43,9 @@ def _import_create_algorithm() -> AlgorithmFactory:
     return create_algorithm
 
 
-def _create_algorithm(create_algorithm: AlgorithmFactory, algorithm_settings: dict) -> NeuroevolutionAlgorithm:
+def _create_algorithm(algorithm_factory: AlgorithmFactory) -> NeuroevolutionAlgorithm:
     try:
-        algorithm = create_algorithm(algorithm_settings)
+        algorithm = algorithm_factory.create()
     except Exception as problem:  # the user's code, half-written
         raise SystemExit(_not_ready(f"neuroevolution's create_algorithm(settings) failed "
                                     f"({type(problem).__name__}: {problem})")) from None

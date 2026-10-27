@@ -11,6 +11,8 @@ DEFAULT_CONFIG_FILE_NAME = "config.toml"
 
 # Worker processes playing agents, created once per run.
 TRAINING_WORKER_COUNT = 8
+# Workers are started fresh rather than forked, the same on every platform.
+WORKER_START_METHOD = "spawn"
 # Each generation's population is split into this many chunks per worker, so a
 # worker that finishes a chunk of short attempts early picks up another.
 CHUNKS_PER_WORKER = 2
