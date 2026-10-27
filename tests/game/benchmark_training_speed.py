@@ -10,10 +10,11 @@ runs them, with two workloads (as in docs/research/simulation-speed.md):
 - random: the random-buttons test double. Honest early generations: short
   attempts, mostly stalls.
 - long: every agent walks the whole level. Its brain pays for a placeholder
-  network every tick (156+4 inputs -> 24 tanh -> 5, random weights that never
-  learn, one stacked matmul for the chunk) but throws the answer away and
-  presses a scripted pilot's recorded buttons instead. The placeholder is a
-  timing tool only, not the user's network, and nothing here is a GA.
+  network every tick (OBSERVATION_LENGTH = 160 inputs -> 24 tanh -> 5, random
+  weights that never learn, one stacked matmul for the chunk) but throws the
+  answer away and presses a scripted pilot's recorded buttons instead. The
+  placeholder is a timing tool only, not the user's network, and nothing here
+  is a GA.
 
 For each it prints the median seconds per generation and the projection for
 100 generations, both as measured and with every attempt lasting 2400 ticks.
@@ -28,7 +29,6 @@ import numpy as np
 
 from mario.constants.controller import CONTROLLER_BUTTONS
 from mario.constants.observation import OBSERVATION_LENGTH
-from mario.constants.physics import SUBPIXEL_BITS
 from mario.constants.training import TRAINING_WORKER_COUNT
 from mario.controller.controller_bitmask import held_buttons_from_bitmasks
 from mario.level.static_level import StaticLevel
@@ -62,19 +62,10 @@ ENEMY_LOOK_AHEAD_PIXELS = 32
 PILOT_LOG_SETTING = "pilot_controller_log"
 
 
-class LevelWalkingPilot(ScriptedPilot):
-    """The scripted pilot, which also jumps at Goombas."""
-
-    def _obstacle_ahead(self, attempt: Attempt) -> bool:
-        return super()._obstacle_ahead(attempt) or any(
-            0 <= (enemy.x >> SUBPIXEL_BITS) - attempt.mario.pixel_x <= ENEMY_LOOK_AHEAD_PIXELS
-            for enemy in attempt.enemies.active if not enemy.is_defeated)
-
-
 def pilot_controller_log() -> list[int]:
     """The pilot's buttons, tick by tick, for one training attempt through World 1-1."""
     attempt = Attempt(StaticLevel.load_world_1_1(), ends_on_stall=True)
-    pilot = LevelWalkingPilot()
+    pilot = ScriptedPilot(enemy_look_ahead_pixels=ENEMY_LOOK_AHEAD_PIXELS)
     buttons_per_tick = []
     while not attempt.is_over:
         buttons_per_tick.append(pilot.next_buttons(attempt))
