@@ -11,6 +11,12 @@ STOMP_CHAIN_POINTS = (100, 200, 400, 500, 800, 1000, 2000, 4000, 5000, 8000)
 # An enemy defeated by bumping the block under it (GiveOEPoints).
 BUMPED_ENEMY_POINTS = 100
 
+# A power-up collected (HandlePowerUpCollision: floatey number $06). The 1-UP
+# mushroom gives a life instead (floatey number $0B).
+POWER_UP_POINTS = 1000
+# A brick big Mario breaks (BrickShatter: DigitModifier+5 = 5, the tens digit).
+BROKEN_BRICK_POINTS = 50
+
 # --- Play mode only (PlaySession) ---------------------------------------------------------
 
 STARTING_LIVES = 3                                           # PrimaryGameSetup

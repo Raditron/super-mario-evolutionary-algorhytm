@@ -104,8 +104,12 @@ BUMPED_ENEMY_LIFT_PIXELS = 2                                 # ChkToStunEnemies 
 # faster (KillEnemyAboveBlock), then falls through everything (MoveDefeatedEnemy).
 BUMP_DEFEAT_SPEED_Y = -4 * NES_Y_SPEED_UNIT
 MUSHROOM_SPEED = 16 * NES_X_SPEED_UNIT                       # 1.0 px/f, starts moving right
-POWER_UP_EMERGE_PIXELS = 16                                  # rises out of its block this far
+# A power-up rises out of its block 1 px every 4 ticks for 16 px, and a mushroom
+# sets off one step (4 ticks) after that (GrowThePowerUp). Mario can touch it
+# once it has risen this far (its state has reached 6).
+POWER_UP_EMERGE_PIXELS = 16
 POWER_UP_EMERGE_TICKS_PER_PIXEL = 4
+POWER_UP_TOUCHABLE_RISE_PIXELS = 5
 STARMAN_SPEED = 16 * NES_X_SPEED_UNIT
 STARMAN_GRAVITY = 0x1C * NES_GRAVITY_UNIT
 STARMAN_BOUNCE_SPEED = -3 * NES_Y_SPEED_UNIT
@@ -135,6 +139,29 @@ BLOCK_BOUNCE_TERMINAL_FALL_SPEED = 8 * NES_Y_SPEED_UNIT      # MaxSpdBlockData
 # STOMPED_GOOMBA_TICKS, the replica always takes the longest the interval clock allows.
 MULTI_COIN_BRICK_INTERVAL_TICKS = 0x0B
 MULTI_COIN_BRICK_TICKS = MULTI_COIN_BRICK_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
+
+# --- Breaking a brick (BrickShatter) ---------------------------------------------------------
+
+# Big Mario's head breaks a plain brick; he keeps rising, at 2 px/f (the fraction is kept).
+BRICK_BREAK_SPEED = -2 * NES_Y_SPEED_UNIT
+
+# --- Growing and shrinking (SetPRout, PlayerChangeSize, PlayerInjuryBlink, HandleChangeSize) ---
+
+# While Mario changes size, the whole game stands still: TimerControl is set to
+# $FF and counts down one a tick, and play resumes once it reaches $C4 (growing)
+# or $C8 (shrinking). Timers, enemies and items wait too.
+SIZE_CHANGE_TIMER_START = 0xFF
+GROW_TICKS = SIZE_CHANGE_TIMER_START - 0xC4
+SHRINK_TICKS = SIZE_CHANGE_TIMER_START - 0xC8
+# His size flips once it reaches $F8 (growing) or $F0 (shrinking); from then on
+# his body follows the size-change animation (constants/level.py).
+GROW_SIZE_FLIP_TICK = SIZE_CHANGE_TIMER_START - 0xF8
+SHRINK_SIZE_FLIP_TICK = SIZE_CHANGE_TIMER_START - 0xF0
+
+# After shrinking, Mario can't be hurt for 8 interval ticks (InjuryTimer). Like
+# STOMPED_GOOMBA_TICKS, the replica always takes the longest the interval clock allows.
+INJURY_INVULNERABLE_INTERVAL_TICKS = 8
+INJURY_INVULNERABLE_TICKS = INJURY_INVULNERABLE_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
 
 # --- The Mario-enemy check (PlayerEnemyCollision) ----------------------------------------
 

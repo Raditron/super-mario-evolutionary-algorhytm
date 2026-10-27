@@ -1,7 +1,11 @@
 """The Mario-vs-enemy check (the original's PlayerEnemyCollision), run every other tick.
 
 Touching an enemy while moving down at 1 px/f or more stomps it, and so does any
-touch on a tick he has already stomped one; any other touch kills small Mario.
+touch on a tick he has already stomped one. Any other touch hurts him
+(ChkForPlayerInjury, ForceInjury): it kills small Mario and makes big Mario
+small, after which he can't be hurt for a while. Once he is hurt, no further
+enemy is checked that tick, since the original only checks while its player
+control routine runs.
 
 Where his feet are doesn't matter, as in the original (ChkForPlayerInjury): he
 falls up to about 9 px between two checks, more than half a Goomba.
@@ -18,8 +22,9 @@ from mario.simulation.stomp_chain import StompChain
 @dataclass(frozen=True)
 class EnemyCollisionOutcome:
     """What one tick's check found: the points each stomp scored, in order (None
-    beyond the stomp chain's table), and whether an enemy killed Mario."""
+    beyond the stomp chain's table), and whether an enemy hurt big Mario or killed small Mario."""
     points_per_stomp: tuple[int | None, ...] = ()
+    mario_took_damage: bool = False
     mario_died: bool = False
 
 
@@ -44,6 +49,11 @@ class EnemyCollisionCheck:
                 continue
             if mario.velocity_y >= STOMP_MIN_FALL_SPEED or self._stomp_chain.stomped_this_tick:
                 points_per_stomp.append(self._stomp(mario, enemy))
+            elif mario.is_invulnerable:
+                continue
+            elif mario.is_big:
+                mario.take_damage()
+                return EnemyCollisionOutcome(tuple(points_per_stomp), mario_took_damage=True)
             else:
                 return EnemyCollisionOutcome(tuple(points_per_stomp), mario_died=True)
         return EnemyCollisionOutcome(tuple(points_per_stomp))

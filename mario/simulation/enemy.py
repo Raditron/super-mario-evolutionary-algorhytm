@@ -1,9 +1,8 @@
-"""What every walking enemy shares (the original's MoveNormalEnemy and EnemyToBGCollisionDet).
+"""What every walking enemy shares.
 
-An enemy spawns at its fixed spawn position, starts walking left, turns around
-at walls, and falls off ledges with enemy gravity, still walking. It uses the
-same axis-separated tile collision as Mario. One defeated by a bumped block
-jumps up away from Mario and falls through everything, out of the level.
+An enemy spawns at its fixed spawn position and starts walking left; it walks
+as every WalkingBody does. One defeated by a bumped block jumps up away from
+Mario and falls through everything, out of the level.
 """
 
 from abc import ABC, abstractmethod
@@ -20,10 +19,10 @@ from mario.constants.physics import (
 from mario.level.static_level import EnemyKind, EnemySpawn
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.gravity import add_gravity
-from mario.simulation.tile_body import TileBody, VerticalContact
+from mario.simulation.walking_body import WalkingBody
 
 
-class Enemy(TileBody, ABC):
+class Enemy(WalkingBody, ABC):
     """An enemy's position is the top-left corner of its hitbox."""
 
     kind: EnemyKind
@@ -34,10 +33,8 @@ class Enemy(TileBody, ABC):
         super().__init__(spawn.x_pixels * SUBPIXELS_PER_PIXEL,
                          (resting_top_y_pixels - ENEMY_SPAWN_DROP_PIXELS) * SUBPIXELS_PER_PIXEL,
                          width_pixels * SUBPIXELS_PER_PIXEL,
-                         height_pixels * SUBPIXELS_PER_PIXEL)
-        self.velocity_x = -walk_speed
-        self.velocity_y = 0
-        self.is_falling = True
+                         height_pixels * SUBPIXELS_PER_PIXEL,
+                         -walk_speed)
         self._is_knocked_off = False
 
     @property
@@ -74,19 +71,7 @@ class Enemy(TileBody, ABC):
         if self._is_knocked_off:
             self._fall_through_everything()
             return
-        if self.move_horizontally(tiles, self.velocity_x):
-            self.velocity_x = -self.velocity_x
-        if self.is_falling:
-            self._fall(tiles)
-        elif not self.is_standing_on_solid_tile(tiles):
-            self.is_falling = True
-
-    def _fall(self, tiles: AttemptTiles) -> None:
-        contact = self.move_vertically(tiles, self.velocity_y)
-        self.velocity_y = add_gravity(self.velocity_y, ENEMY_GRAVITY, ENEMY_TERMINAL_FALL_SPEED)
-        if contact is VerticalContact.LANDED:
-            self.velocity_y = 0
-            self.is_falling = False
+        self.walk(tiles)
 
     def _fall_through_everything(self) -> None:
         """MoveDefeatedEnemy: no tile stops it."""

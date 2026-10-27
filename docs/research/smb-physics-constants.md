@@ -291,6 +291,40 @@ These facts were sourced from [D] while building the blocks. Line numbers refer 
 - **One enemy per bump:** the original's `$00` write is not copied. Every enemy standing on a bouncing block is defeated. In 1-1, two Goombas are never over the same block: the pair stands 24 px apart.
 - **Who is left of whom:** the direction away from Mario compares the enemy's x with the left edge of Mario's hitbox, not his sprite x, which is 2 px further left.
 
+## Added during the build (#19)
+
+These facts were sourced from [D] while building the mushroom, big Mario, brick breaking, damage and the 1-UP. Line numbers refer to the same file.
+
+| Fact | Value | Source |
+|---|---|---|
+| Big Mario's background probes | Big Mario uses adder set `$00`: head at sprite (8, 4), feet at (3, 32) and (12, 32), sides at (2, 8), (2, 24), (13, 8) and (13, 24). Crouching (and small) uses set `$0E`, small Mario's. The replica's boxes: **big 12 × 28 at sprite offset (2, 4)**; crouching, small Mario's 12 × 14 at (2, 18). | [D] `ChkCollSize` l. 11929-11940, `BlockBufferAdderData` l. 13027, `BlockBuffer_X_Adder` l. 13030, `BlockBuffer_Y_Adder` l. 13036 |
+| Crouching | Each frame, big Mario on the ground has `CrouchingFlag` set from the down button. In the air the flag keeps its value; small Mario's is always 0. | [D] `PlayerMovementSubs` l. 5874-5882 |
+| What big Mario's head does | The block object gets the breakable state `$12` when big. A block holding something (`BrickQBlockMetatiles`: ? blocks and the bricks with coins, a Starman, a vine or a 1-UP) is set back to the unbreakable `$11` and bumped as for small Mario. A plain brick is broken. Crouching changes only the block object's y. | [D] `PlayerHeadCollision`/`DBlockSte` l. 7219-7277, `BrickQBlockMetatiles` l. 7361-7366, `BlockBumpedChk` l. 7368-7374 |
+| Breaking a brick | `BrickShatter`: Mario's Y speed byte set to −2 (`$FE`), so he keeps rising; 50 points (`DigitModifier+5` = 5). The bounce lockout `BlockBounceTimer` = `$10` is set as for a bump. The block buffer gets the blank metatile `$00` later in the same frame, after the enemies have run. | [D] `BrickShatter` l. 7379-7391, `PlayerHeadCollision` l. 7263-7264, `BlockObjMT_Updater` l. 7502-7523, `GameEngine` l. 5310-5323 |
+| Enemy on a breaking brick | During that frame the brick's tile is the blank-but-solid `$23`, so an enemy standing on it is defeated as on a bouncing block. | [D] `PlayerHeadCollision` l. 7261-7262, `HandleEToBGCollision` l. 12436-12453, `GameEngine` l. 5310-5323 |
+| What a power-up block releases | `MushFlowerBlock` (type 0) and `ExtraLifeMushBlock` (type 3). Type 0 becomes the fire flower when `PlayerStatus` is not small. | [D] `BumpBlock` jump table l. 7326-7334, `MushFlowerBlock` l. 7338, `ExtraLifeMushBlock` l. 7346-7349, `SetupPowerUp` l. 7144-7149 |
+| One power-up at a time | It always takes enemy slot 5, so a new one replaces the old. | [D] `SetupPowerUp` l. 7125-7128 |
+| Power-up start | x = the block's x; sprite y = the block's y − 8, so its 16 × 16 box (enemy probes) starts exactly over the block. | [D] `SetupPowerUp` l. 7129-7137 |
+| Rising out of the block | Every 4th frame (`FrameCounter & 3` = 0) it rises 1 px and its state goes up by 1, from 1. On the 17th step (state was `$11`) it gets X speed `$10` (1 px/f) to the right instead, and moves from the next frame. Mario can touch it once the state is ≥ 6 (5 px risen). It is drawn behind the background until then. | [D] `GrowThePowerUp` l. 7181-7199 |
+| Mushroom movement | Both mushrooms move as an enemy does (`MoveNormalEnemy`, `EnemyToBGCollisionDet`): turn at walls, fall with enemy gravity. Nothing moves while `TimerControl` is set. | [D] `PowerUpObjHandler` l. 7159-7179 |
+| Power-up removal | As every enemy object: once more than 72 px past either screen edge. | [D] `OffscreenBoundsCheck` l. 11006-11050 |
+| Collecting | Through `PlayerEnemyCollision`: every other frame, only while the player control routine runs (`GameEngineSubroutine` = 8). Slot 5 is checked after the enemies. A mushroom or fire flower gives 1000 points (floatey number `$06`); the 1-UP gives a life instead (`$0B`). Small Mario becomes super (routine `$09`); super becomes fiery. | [D] `PlayerEnemyCollision` l. 11293-11314, `CheckForPUpCollision` l. 11316-11320, `HandlePowerUpCollision` l. 11237-11252, `Shroom_Flower_PUp`/`UpToSuper` l. 11254-11280, `FloateyNumTileData` l. 1262-1274 |
+| The freeze | `SetPRout` sets `TimerControl` = `$FF`. Each frame the NMI counts it down and runs no frame or interval timers while it isn't 0, and enemies and power-ups don't move. It also sets `Player_State`: 0 (on the ground) for a power-up, 1 (jumping) for an injury. The jump button is still saved every frame. | [D] `SetPRout`/`SetKRout` l. 11415-11422, `UpToFiery` l. 11277-11280, `NMI` l. 785-800, `GameEngine` l. 5357 |
+| Growing | `PlayerChangeSize`: the size flips at `TimerControl` = `$F8` (7 frames in) and play resumes at `$C4` (59 frames). | [D] `PlayerChangeSize` l. 5732-5740, `InitChangeSize` l. 5753-5761, `DonePlayerTask` l. 5772-5777 |
+| Shrinking | `PlayerInjuryBlink`: frozen until `$F0`, where the size flips (the `ExitBlink` branch falls through to `InitChangeSize`), then movement stays off while the change-size flag is set, and play resumes at `$C8` (55 frames). | [D] `PlayerInjuryBlink` l. 5744-5751, `PlayerMovementSubs` l. 5884-5885 |
+| Size-change animation | From the flip, the frame steps every 4th frame, 10 frames. Growing shows `ChangeSizeOffsetAdder` 0, 1, 0, 1, 0, 1, 2, 0, 1, 2 (small, intermediate, big). The intermediate grow frame is 24 px tall: its top row of tiles is blank. Shrinking alternates the small and big swimming frames (`$02`, `$00` × 5). | [D] `HandleChangeSize` l. 14693-14726, `ChangeSizeOffsetAdder` l. 14689-14691, `PlayerGraphicsTable` l. 14429 |
+| Damage | Big Mario touched by an enemy (not a stomp) becomes small and `InjuryTimer` = 8. It is an interval timer (`$079E`), so it counts every 21 frames, and not during the freeze. While it runs a touch hurts nothing, but a stomp still counts (it is checked first). Small Mario dies. | [D] `ChkForPlayerInjury` l. 11376-11391, `InjurePlayer`/`ForceInjury` l. 11401-11415, `InjuryTimer` l. 99 |
+| Blinking | While `InjuryTimer` runs, Mario isn't drawn on odd frames. | [D] `PlayerGfxHandler` l. 14435-14440 |
+
+**Replica choices**:
+- **Timing phase:** the rise steps and the injury timer depend on the original's free-running frame and interval clocks. As with `STOMPED_GOOMBA_TICKS`, the replica always takes the longest: the mushroom's first rise comes 4 ticks after release (the release tick counts as its first), and invulnerability lasts 8 × 21 = 168 ticks after the freeze, 223 ticks from the hit.
+- **The 17th step:** the original's last rise puts the mushroom 1 px above the block, and landing snaps it back. The replica rises 16 px and sets off at the same moment.
+- **Shrinking:** the original runs the player routine with movement off from `$F0` to `$C8`. The replica freezes Mario for all 55 ticks, which looks the same.
+- **The freeze stops everything**, the level timer and bouncing blocks included. The ticks still count, and so does the stall rule.
+- **Big Mario and a mushroom:** in the original he would become fiery. Until the fire flower (#20), the power-up block gives big Mario a mushroom too, and collecting it scores 1000 points and changes nothing else.
+- **Intermediate grow frame:** nothing collides while it shows, so it is only drawn, as a 12 × 21 box from sprite y + 11, midway between the small and big boxes.
+- **Not reproduced:** an enemy that hurts Mario while walking away from him turns around (`ChkEnemyFaceRight`); the per-enemy collision bit, which stops one continuous touch from hurting twice; a bumped block knocking a mushroom; the brick chunks (drawing only).
+
 ## Not covered or uncertain
 
 - **Swimming** (rows 5–6 of the jump tables), **springboards** (Y −12 if A held, −7 otherwise [S]), **vines** and **whirlpools**. None of these appear in 1-1.

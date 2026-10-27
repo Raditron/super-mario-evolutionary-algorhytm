@@ -1,7 +1,8 @@
-"""One Attempt's score and coins, as the original counts them.
+"""One Attempt's score, coins and 1-UPs, as the original counts them.
 
 Every change is also a game event: points as scored_points (the amount as its
-detail), a coin as collected_coin followed by its 200 points (GiveOneCoin).
+detail), a coin as collected_coin followed by its 200 points (GiveOneCoin), a
+1-UP as collected_one_up. Only play mode turns 1-UPs into lives (PlaySession).
 """
 
 from mario.constants.scoring import COIN_POINTS
@@ -13,6 +14,11 @@ class Scoreboard:
         self._events = events
         self.score = 0
         self.coins = 0
+        self.one_ups = 0
+
+    def collect_one_up(self, tick: int) -> None:
+        self.one_ups += 1
+        self._events.append(GameEvent(tick, GameEventKind.COLLECTED_ONE_UP))
 
     def score_points(self, points: int, tick: int) -> None:
         self.score += points
