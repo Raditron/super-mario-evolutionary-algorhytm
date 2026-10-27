@@ -3,10 +3,13 @@
 import argparse
 from pathlib import Path
 
+from mario.constants.recording import RUNS_FOLDER_NAME
 from mario.constants.training import DEFAULT_CONFIG_FILE_NAME
 
 # config.toml sits at the repo root, next to the mario package.
 DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / DEFAULT_CONFIG_FILE_NAME
+# Run folders are made in runs/ of the folder train is run from: the repo root, where py -m mario runs.
+RUNS_ROOT = Path(RUNS_FOLDER_NAME)
 
 
 def main() -> None:
@@ -22,7 +25,7 @@ def main() -> None:
         PlayMode.with_keyboard().run()
     elif arguments.command == "train":
         from mario.modes.train_mode import TrainMode
-        TrainMode(arguments.config).run()
+        TrainMode(arguments.config, RUNS_ROOT).run()
 
 
 if __name__ == "__main__":

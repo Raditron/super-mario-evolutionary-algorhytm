@@ -5,6 +5,7 @@ Each test runs the command in a fresh folder holding its own stand-in
 """
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -69,3 +70,17 @@ def test_train_runs_every_generation_and_prints_one_line_each(tmp_path):
     lines = finished.stdout.splitlines()
     assert [line.split(" · ")[0] for line in lines] == ["generation 1", "generation 2"]
     assert all("best fitness" in line and "mean fitness" in line and line.endswith(" s") for line in lines)
+
+
+def test_train_records_the_run_in_its_own_folder_under_runs(tmp_path):
+    finished = train_in(tmp_path, RANDOM_BUTTONS_PACKAGE)
+    assert finished.returncode == 0, finished.stderr
+    [run_folder] = (tmp_path / "runs").iterdir()
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}_smoke", run_folder.name)
+    assert (run_folder / "config.toml").read_text() == SMALL_RUN_CONFIG
+    assert sorted(path.name for path in (run_folder / "generations").iterdir()) == ["0001", "0002"]
+
+
+def test_train_makes_no_run_folder_when_the_users_package_isnt_working(tmp_path):
+    train_in(tmp_path, "raise ImportError('half-written')\n")
+    assert not (tmp_path / "runs").exists()
