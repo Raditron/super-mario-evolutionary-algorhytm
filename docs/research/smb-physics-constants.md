@@ -323,6 +323,7 @@ These facts were sourced from [D] while building the mushroom, big Mario, brick 
 - **The freeze stops everything**, the level timer and bouncing blocks included. The ticks still count, and so does the stall rule.
 - **Big Mario and a mushroom:** in the original he would become fiery. Until the fire flower (#20), the power-up block gives big Mario a mushroom too, and collecting it scores 1000 points and changes nothing else.
 - **Intermediate grow frame:** nothing collides while it shows, so it is only drawn, as a 12 × 21 box from sprite y + 11, midway between the small and big boxes.
+- **Power state:** the original changes `PlayerStatus` at the touch and `PlayerSize` at the flip. The replica has one power state, which changes at the flip with his box, so the snapshot never says big with small Mario's box (or small with big Mario's).
 - **Not reproduced:** an enemy that hurts Mario while walking away from him turns around (`ChkEnemyFaceRight`); the per-enemy collision bit, which stops one continuous touch from hurting twice; a bumped block knocking a mushroom; the brick chunks (drawing only).
 
 ## Not covered or uncertain

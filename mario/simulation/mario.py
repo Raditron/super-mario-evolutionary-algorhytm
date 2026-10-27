@@ -128,6 +128,7 @@ class Mario(TileBody):
         self._is_crouching = False                   # CrouchingFlag
         self.is_dead = False                         # an enemy's touch killed him
         self._size_change: SizeChange | None = None
+        self._power_state_after_size_change = PowerState.SMALL
         self._invulnerable_ticks_left = 0            # InjuryTimer
 
     @property
@@ -221,9 +222,8 @@ class Mario(TileBody):
     def grow(self) -> None:
         """He collected a Super Mushroom while small. SetPRout puts him in the
         on-ground state wherever he is; he falls from there once play resumes."""
-        self.power_state = PowerState.BIG
         self.movement_state = MovementState.ON_GROUND
-        self._size_change = SizeChange.growing()
+        self._change_size(SizeChange.growing(), PowerState.BIG)
 
     def get_hurt(self) -> None:
         """An enemy hurt him (ForceInjury): small, he dies; big, he shrinks and
@@ -231,20 +231,26 @@ class Mario(TileBody):
         if not self.is_big:
             self.is_dead = True
             return
-        self.power_state = PowerState.SMALL
         self._is_crouching = False
         self.movement_state = MovementState.JUMPING
-        self._size_change = SizeChange.shrinking()
+        self._change_size(SizeChange.shrinking(), PowerState.SMALL)
         self._invulnerable_ticks_left = INJURY_INVULNERABLE_TICKS
 
     def continue_size_change(self, controller: ControllerState) -> None:
         """One tick of growing or shrinking, in which nothing else moves. The jump
-        button is still read, so a press must still be fresh when play resumes."""
+        button is still read, so a press must still be fresh when play resumes.
+        His power state changes with his size, at the flip (PlayerSize)."""
         self._size_change.step()
         self._take_body(self._size_change.shown_body)
+        if self._size_change.has_flipped:
+            self.power_state = self._power_state_after_size_change
         if self._size_change.is_over:
             self._size_change = None
         self.jump_held_last_tick = controller.jump
+
+    def _change_size(self, size_change: SizeChange, power_state_after: PowerState) -> None:
+        self._size_change = size_change
+        self._power_state_after_size_change = power_state_after
 
     def _update_crouching(self, controller: ControllerState) -> None:
         """PlayerMovementSubs: big Mario crouches while he holds down on the ground,

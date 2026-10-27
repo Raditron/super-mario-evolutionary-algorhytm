@@ -49,8 +49,13 @@ class SizeChange:
         return self._ticks_elapsed >= self._ticks
 
     @property
+    def has_flipped(self) -> bool:
+        """Whether his size has flipped to the new one (the animation may still show the old)."""
+        return self._ticks_elapsed >= self._flip_tick
+
+    @property
     def shown_body(self) -> MarioBody:
-        if self._ticks_elapsed < self._flip_tick:
+        if not self.has_flipped:
             return self._body_before
         frame_index = (self._ticks_elapsed - self._flip_tick) // SIZE_CHANGE_FRAME_TICKS
         if frame_index < len(self._animation_frames):

@@ -136,11 +136,23 @@ def test_collecting_the_mushroom_scores_1000_points_and_makes_small_mario_big():
     assert attempt.events[-2:] == [GameEvent(tick, GameEventKind.COLLECTED_MUSHROOM),
                                    GameEvent(tick, GameEventKind.SCORED_POINTS, ITEM_POINTS)]
     assert items_in(attempt) == ()
-    assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
     for _ in range(GROW_TICKS):
         attempt.step(HOLD_NOTHING)
     _, y, width, height = mario_box(attempt)
     assert (width, height, y + height) == (MARIO_WIDTH, BIG_MARIO_HEIGHT, GROUND_Y)
+    assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
+
+
+def test_mario_is_big_from_his_size_flip_on_not_from_the_touch():
+    """Until the flip his box is small Mario's, so the snapshot says small (the
+    original's PlayerSize flips at $F8)."""
+    attempt = Attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}))
+    collect_the_item(attempt, GameEventKind.COLLECTED_MUSHROOM)
+    power_states = [WorldSnapshot.of(attempt).mario.power_state]
+    for _ in range(GROW_FLIP_TICK):
+        attempt.step(HOLD_NOTHING)
+        power_states.append(WorldSnapshot.of(attempt).mario.power_state)
+    assert power_states == [PowerState.SMALL] * GROW_FLIP_TICK + [PowerState.BIG]
 
 
 def test_while_mario_grows_the_game_stands_still_and_his_box_follows_the_grow_animation():
