@@ -7,11 +7,16 @@ from mario.constants.snapshots import RECENT_GAME_EVENT_TICKS
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
-from mario.simulation.attempt_result import GameEvent
 from mario.simulation.enemy import Enemy
-from mario.simulation.mario import Mario, PowerState
-from mario.simulation.mushroom import ItemKind, Mushroom
+from mario.simulation.mario import Mario
+from mario.simulation.mushroom import Mushroom
 from mario.simulation.observation_builder import ObservationBuilder
+
+# The game's vocabulary a snapshot carries, handed on so that the view needs
+# nothing from the simulation (spec section 3).
+from mario.simulation.attempt_result import GameEvent as GameEvent
+from mario.simulation.item_kind import ItemKind as ItemKind
+from mario.simulation.mario import PowerState as PowerState
 
 # A screen scrolled part-way into a tile shows one column more than it is wide.
 VISIBLE_COLUMNS = SCREEN_WIDTH_PIXELS // TILE_SIZE_PIXELS + 1

@@ -1,10 +1,10 @@
-"""Power-ups: the Super Mushroom a power-up ? block releases, Mario growing when he
+"""Items: the Super Mushroom a power-up ? block releases, Mario growing when he
 collects it, and the hidden block's 1-UP mushroom (#19, spec sections 1 and 5)."""
 
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import GameEvent, GameEventKind
 from mario.simulation.mario import PowerState
-from mario.simulation.mushroom import ItemKind
+from mario.simulation.item_kind import ItemKind
 from mario.snapshots.world_snapshot import ItemSnapshot, WorldSnapshot
 from tests.game.helpers import (
     GROUND_TOP_ROW,
@@ -31,7 +31,7 @@ TICK_LIMIT = 600
 EMERGE_PIXELS = 16
 TICKS_PER_EMERGE_PIXEL = 4
 TICKS_BEFORE_IT_MOVES = 17 * TICKS_PER_EMERGE_PIXEL
-POWER_UP_POINTS = 1000                                  # HandlePowerUpCollision: floatey number $06
+ITEM_POINTS = 1000                                  # HandlePowerUpCollision: floatey number $06
 # Small Mario's box is 12 x 14; big Mario's is 28 tall, from his head probe at
 # sprite y + 4 to his feet (BlockBufferAdderData). The intermediate grow frame is
 # drawn 21 tall, midway between them.
@@ -134,7 +134,7 @@ def test_collecting_the_mushroom_scores_1000_points_and_makes_small_mario_big():
     collect_the_item(attempt, GameEventKind.COLLECTED_MUSHROOM)
     tick = attempt.ticks_elapsed
     assert attempt.events[-2:] == [GameEvent(tick, GameEventKind.COLLECTED_MUSHROOM),
-                                   GameEvent(tick, GameEventKind.SCORED_POINTS, POWER_UP_POINTS)]
+                                   GameEvent(tick, GameEventKind.SCORED_POINTS, ITEM_POINTS)]
     assert items_in(attempt) == ()
     assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
     for _ in range(GROW_TICKS):
@@ -165,7 +165,7 @@ def test_while_mario_grows_the_game_stands_still_and_his_box_follows_the_grow_an
 def test_a_mushroom_collected_while_big_scores_but_changes_nothing_until_the_fire_flower_is_built():
     attempt = big_mario_attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}))
     collect_the_item(attempt, GameEventKind.COLLECTED_MUSHROOM)
-    assert attempt.events[-1] == GameEvent(attempt.ticks_elapsed, GameEventKind.SCORED_POINTS, POWER_UP_POINTS)
+    assert attempt.events[-1] == GameEvent(attempt.ticks_elapsed, GameEventKind.SCORED_POINTS, ITEM_POINTS)
     assert not attempt.mario.is_changing_size
     assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
 

@@ -42,7 +42,7 @@ from mario.constants.view import (
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt_result import DefeatMethod, GameEvent, GameEventKind
-from mario.simulation.mushroom import ItemKind
+from mario.simulation.item_kind import ItemKind
 from mario.snapshots.world_snapshot import (
     EnemySnapshot,
     HudSnapshot,

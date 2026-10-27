@@ -21,7 +21,7 @@ from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.bouncing_block import BouncingBlock
 from mario.simulation.enemy import Enemy
 from mario.simulation.items import Items
-from mario.simulation.mushroom import ItemKind
+from mario.simulation.item_kind import ItemKind
 from mario.simulation.scoreboard import Scoreboard
 
 

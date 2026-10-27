@@ -24,8 +24,7 @@ from mario.constants.view import (
 )
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
-from mario.simulation.mushroom import ItemKind
-from mario.snapshots.world_snapshot import EnemySnapshot, ItemSnapshot, WorldSnapshot
+from mario.snapshots.world_snapshot import EnemySnapshot, ItemKind, ItemSnapshot, WorldSnapshot
 from mario.view.debug_text import DebugText
 from mario.view.game_event_feed import GameEventFeed
 from mario.view.observation_overlay import ObservationOverlay

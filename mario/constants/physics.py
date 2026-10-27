@@ -104,12 +104,12 @@ BUMPED_ENEMY_LIFT_PIXELS = 2                                 # ChkToStunEnemies 
 # faster (KillEnemyAboveBlock), then falls through everything (MoveDefeatedEnemy).
 BUMP_DEFEAT_SPEED_Y = -4 * NES_Y_SPEED_UNIT
 MUSHROOM_SPEED = 16 * NES_X_SPEED_UNIT                       # 1.0 px/f, starts moving right
-# A power-up rises out of its block 1 px every 4 ticks for 16 px, and a mushroom
+# An item rises out of its block 1 px every 4 ticks for 16 px, and a mushroom
 # sets off one step (4 ticks) after that (GrowThePowerUp). Mario can touch it
 # once it has risen this far (its state has reached 6).
-POWER_UP_EMERGE_PIXELS = 16
-POWER_UP_EMERGE_TICKS_PER_PIXEL = 4
-POWER_UP_TOUCHABLE_RISE_PIXELS = 5
+ITEM_EMERGE_PIXELS = 16
+ITEM_EMERGE_TICKS_PER_PIXEL = 4
+ITEM_TOUCHABLE_RISE_PIXELS = 5
 STARMAN_SPEED = 16 * NES_X_SPEED_UNIT
 STARMAN_GRAVITY = 0x1C * NES_GRAVITY_UNIT
 STARMAN_BOUNCE_SPEED = -3 * NES_Y_SPEED_UNIT

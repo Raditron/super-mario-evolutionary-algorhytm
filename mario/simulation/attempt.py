@@ -12,7 +12,7 @@ ticks still count, and so does the stall rule.
 
 from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS
 from mario.constants.physics import ENEMY_CHECK_TICK_INTERVAL
-from mario.constants.scoring import POWER_UP_POINTS
+from mario.constants.scoring import ITEM_POINTS
 from mario.controller.controller_state import ControllerState
 from mario.level.static_level import StaticLevel
 from mario.simulation.attempt_result import AttemptResult, DefeatMethod, EndReason, GameEvent, GameEventKind
@@ -23,7 +23,8 @@ from mario.simulation.enemy_roster import EnemyRoster
 from mario.simulation.items import Items
 from mario.simulation.level_timer import LevelTimer
 from mario.simulation.mario import Mario
-from mario.simulation.mushroom import ItemKind, Mushroom
+from mario.simulation.item_kind import ItemKind
+from mario.simulation.mushroom import Mushroom
 from mario.simulation.scoreboard import Scoreboard
 from mario.simulation.scroll import Scroll
 from mario.simulation.stall_rule import StallRule
@@ -112,7 +113,7 @@ class Attempt:
         self._died_to_enemy = outcome.mario_died
 
     def _collect_touched_item(self) -> None:
-        """The power-up is an enemy object to the original, checked against Mario
+        """The item is an enemy object to the original, checked against Mario
         after the enemies and on the same ticks, and only while nothing has hurt
         him (PlayerEnemyCollision)."""
         if (self.ticks_elapsed % ENEMY_CHECK_TICK_INTERVAL != 0 or self._died_to_enemy
@@ -129,7 +130,7 @@ class Attempt:
             self.scoreboard.collect_one_up(self.ticks_elapsed)
             return
         self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.COLLECTED_MUSHROOM))
-        self.scoreboard.score_points(POWER_UP_POINTS, self.ticks_elapsed)
+        self.scoreboard.score_points(ITEM_POINTS, self.ticks_elapsed)
         if not self.mario.is_big:
             self.mario.grow()
 

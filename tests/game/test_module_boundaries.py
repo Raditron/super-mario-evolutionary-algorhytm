@@ -13,6 +13,7 @@ PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training")
 USERS_PACKAGE = "neuroevolution"
 THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE = PACKAGE_ROOT / "modes" / "train_mode.py"
 PACKAGES_THAT_DEPEND_ON_THE_CONTROLLER = ("mario.simulation", "mario.training")
+THE_SIMULATION = ("mario.simulation",)
 NONDETERMINISTIC_MODULES ={"random", "time", "datetime", "secrets", "uuid"}
 
 
@@ -62,6 +63,13 @@ def test_the_controller_imports_neither_the_simulation_nor_training():
     """simulation and training both depend on the controller, so it can't depend back on them."""
     for source_file in python_files("controller"):
         assert not imports_any_of(source_file, PACKAGES_THAT_DEPEND_ON_THE_CONTROLLER), source_file
+
+
+def test_the_view_never_imports_the_simulation():
+    """The view reads only WorldSnapshots (spec section 3): what it needs of the
+    game's vocabulary, the snapshots module hands on."""
+    for source_file in python_files("view"):
+        assert not imports_any_of(source_file, THE_SIMULATION), source_file
 
 
 def test_simulation_has_no_randomness_wall_clock_or_floats():
