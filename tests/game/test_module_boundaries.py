@@ -9,7 +9,9 @@ import mario
 import mario.constants.physics as physics_constants
 
 PACKAGE_ROOT = Path(mario.__file__).parent
-PYGAME_FREE_PACKAGES = ("simulation", "level", "controller")
+PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training")
+USERS_PACKAGE = "neuroevolution"
+THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE = PACKAGE_ROOT / "modes" / "train_mode.py"
 NONDETERMINISTIC_MODULES = {"random", "time", "datetime", "secrets", "uuid"}
 
 
@@ -28,12 +30,19 @@ def imported_module_names(source_file: Path) -> set[str]:
     return names
 
 
-def test_simulation_level_and_controller_never_load_pygame():
+def test_simulation_level_controller_and_training_never_load_pygame():
     modules = [".".join(("mario",) + path.relative_to(PACKAGE_ROOT).with_suffix("").parts)
                for package in PYGAME_FREE_PACKAGES for path in python_files(package)]
+    modules.append("mario.modes.train_mode")
     probe = f"import sys\nfor name in {modules!r}: __import__(name)\nprint('pygame' in sys.modules)"
     loaded = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, check=True)
     assert loaded.stdout.strip() == "False"
+
+
+def test_only_train_mode_imports_the_users_package():
+    importers = [source_file for source_file in sorted(PACKAGE_ROOT.rglob("*.py"))
+                 if USERS_PACKAGE in imported_module_names(source_file)]
+    assert importers == [THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE]
 
 
 def test_simulation_has_no_randomness_wall_clock_or_floats():

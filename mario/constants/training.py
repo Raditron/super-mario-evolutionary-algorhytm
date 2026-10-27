@@ -4,6 +4,9 @@
 # position in the area Mario is in.
 STALL_LIMIT_TICKS = 180
 
+# py -m mario train reads the run's settings from this file at the repo root by default.
+DEFAULT_CONFIG_FILE_NAME = "config.toml"
+
 # --- The worker pool (#4, spec section 9) --------------------------------------------------
 
 # Worker processes playing agents, created once per run.
