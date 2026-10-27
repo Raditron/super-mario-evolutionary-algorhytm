@@ -1,4 +1,5 @@
-"""The Debug view: the level as the game treats it, as coloured, filled hitboxes."""
+"""The Debug view: the level as the game treats it, as coloured, filled hitboxes,
+with the followed agent's Observation over it and the recent game events."""
 
 import pygame
 
@@ -20,6 +21,9 @@ from mario.constants.view import (
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.snapshots.world_snapshot import EnemySnapshot, WorldSnapshot
+from mario.view.debug_text import DebugText
+from mario.view.game_event_feed import GameEventFeed
+from mario.view.observation_overlay import ObservationOverlay
 
 TILE_COLOURS = {
     TileKind.GROUND: GROUND_COLOUR,
@@ -42,6 +46,13 @@ ENEMY_COLOURS = {
 
 
 class DebugRenderer:
+    """Needs pygame's fonts initialised (the Window does it)."""
+
+    def __init__(self):
+        debug_text = DebugText()
+        self._observation_overlay = ObservationOverlay(debug_text)
+        self._game_event_feed = GameEventFeed(debug_text)
+
     def draw(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
         screen.fill(SKY_COLOUR)
         self._draw_tiles(snapshot, screen)
@@ -50,6 +61,9 @@ class DebugRenderer:
         mario = snapshot.mario
         _fill_level_box(screen, MARIO_COLOUR, snapshot.screen_left_x_pixels,
                         mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels)
+        if snapshot.observation is not None:
+            self._observation_overlay.draw(snapshot.observation, snapshot.screen_left_x_pixels, screen)
+        self._game_event_feed.draw(snapshot.recent_events, screen)
 
     @staticmethod
     def _draw_tiles(snapshot: WorldSnapshot, screen: pygame.Surface) -> None:

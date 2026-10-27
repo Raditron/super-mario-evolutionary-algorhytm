@@ -1,40 +1,172 @@
-"""The Debug view draws Goombas as coloured hitboxes, a squashed one flattened (#17)."""
+"""The Debug view draws Goombas as coloured hitboxes, a squashed one flattened (#17),
+and over them the followed agent's Observation and the recent game events (#25)."""
 
 import pygame
+import pytest
 
-from mario.constants.level import SCREEN_HEIGHT_PIXELS, SCREEN_WIDTH_PIXELS
-from mario.constants.view import GOOMBA_COLOUR, SKY_COLOUR
+from mario.constants.level import (
+    GOOMBA_HITBOX_HEIGHT_PIXELS,
+    GOOMBA_HITBOX_WIDTH_PIXELS,
+    LEVEL_TIMER_START_UNITS,
+    SCREEN_HEIGHT_PIXELS,
+    SCREEN_WIDTH_PIXELS,
+    SMALL_MARIO_HITBOX_HEIGHT_PIXELS,
+    SMALL_MARIO_HITBOX_WIDTH_PIXELS,
+    TILE_SIZE_PIXELS,
+)
+from mario.constants.observation import (
+    EMPTY_CELL,
+    ENEMY_CELL,
+    OBSERVATION_BOTTOM_ROW,
+    OBSERVATION_COLUMNS,
+    OBSERVATION_ROWS,
+    OBSERVATION_TOP_ROW,
+    SOLID_CELL,
+)
+from mario.constants.view import (
+    DEBUG_GAME_EVENT_LINES,
+    DEBUG_GAME_EVENTS_TOP_LEFT,
+    DEBUG_TEXT_LINE_PIXELS,
+    GOOMBA_COLOUR,
+    OBSERVATION_ENEMY_TINT,
+    OBSERVATION_SOLID_TINT,
+    OBSERVATION_STATE_TEXT_TOP_LEFT,
+    SKY_COLOUR,
+)
 from mario.level.static_level import EnemyKind
-from mario.snapshots.world_snapshot import EnemySnapshot, HudSnapshot, MarioSnapshot, VisibleTiles, WorldSnapshot
+from mario.simulation.attempt_result import DefeatMethod, GameEvent, GameEventKind
+from mario.snapshots.world_snapshot import (
+    EnemySnapshot,
+    HudSnapshot,
+    MarioSnapshot,
+    ObservationSnapshot,
+    VisibleTiles,
+    WorldSnapshot,
+)
 from mario.view.debug_renderer import DebugRenderer
 
 SCREEN_LEFT_X = 100
 GOOMBA_X, GOOMBA_Y = 300, 120                 # in level pixels, clear of the ground and Mario
+GOOMBA_RIGHT_X = GOOMBA_X + GOOMBA_HITBOX_WIDTH_PIXELS - 1    # its hitbox's last column of pixels
+GOOMBA_BOTTOM_Y = GOOMBA_Y + GOOMBA_HITBOX_HEIGHT_PIXELS - 1  # and last row
+# An Observation window starting at level column 8 (screen x 28), with one solid
+# cell and one enemy cell on its fourth row (screen row 5).
+WINDOW_FIRST_COLUMN = 8
+SOLID_CELL_AT, ENEMY_CELL_AT, EMPTY_CELL_AT = (3, 2), (3, 4), (3, 6)
+STANDING_STILL = (0.0, 0.0, 1.0, 1.0)
+HALF_TILE_PIXELS = TILE_SIZE_PIXELS // 2
+MARIO_Y_PIXELS = OBSERVATION_BOTTOM_ROW * TILE_SIZE_PIXELS - SMALL_MARIO_HITBOX_HEIGHT_PIXELS  # on the ground
 
 
-def drawn_with(goomba: EnemySnapshot) -> pygame.Surface:
-    """A screen with no tiles, Mario at its left and the Goomba."""
-    snapshot = WorldSnapshot(tick=0, screen_left_x_pixels=SCREEN_LEFT_X, tiles=VisibleTiles(0, ()),
-                             mario=MarioSnapshot(SCREEN_LEFT_X, 194, 12, 14), enemies=(goomba,),
-                             hud=HudSnapshot(0, 0, 400))
+@pytest.fixture(autouse=True, scope="module")
+def fonts():
+    pygame.font.init()
+    yield
+    pygame.font.quit()
+
+
+def snapshot_with(enemies: tuple[EnemySnapshot, ...] = (), observation: ObservationSnapshot | None = None,
+                  recent_events: tuple[GameEvent, ...] = ()) -> WorldSnapshot:
+    """A screen with no tiles, Mario at its left, and what is given."""
+    return WorldSnapshot(tick=0, screen_left_x_pixels=SCREEN_LEFT_X, tiles=VisibleTiles(0, ()),
+                         mario=MarioSnapshot(SCREEN_LEFT_X, MARIO_Y_PIXELS, SMALL_MARIO_HITBOX_WIDTH_PIXELS,
+                                             SMALL_MARIO_HITBOX_HEIGHT_PIXELS),
+                         enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
+                         observation=observation, recent_events=recent_events)
+
+
+def drawn(snapshot: WorldSnapshot) -> pygame.Surface:
     screen = pygame.Surface((SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS))
     DebugRenderer().draw(snapshot, screen)
     return screen
+
+
+def goomba_snapshot(is_defeated: bool) -> EnemySnapshot:
+    return EnemySnapshot(EnemyKind.GOOMBA, GOOMBA_X, GOOMBA_Y, GOOMBA_HITBOX_WIDTH_PIXELS,
+                         GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated)
+
+
+def drawn_with(goomba: EnemySnapshot) -> pygame.Surface:
+    return drawn(snapshot_with(enemies=(goomba,)))
 
 
 def colour_at(screen: pygame.Surface, level_x: int, y: int) -> tuple[int, int, int]:
     return tuple(screen.get_at((level_x - SCREEN_LEFT_X, y)))[:3]
 
 
+def observation_with(state_numbers: tuple[float, ...] = STANDING_STILL) -> ObservationSnapshot:
+    cells = [[EMPTY_CELL] * OBSERVATION_COLUMNS for _ in range(OBSERVATION_ROWS)]
+    cells[SOLID_CELL_AT[0]][SOLID_CELL_AT[1]] = SOLID_CELL
+    cells[ENEMY_CELL_AT[0]][ENEMY_CELL_AT[1]] = ENEMY_CELL
+    return ObservationSnapshot(WINDOW_FIRST_COLUMN, tuple(map(tuple, cells)), state_numbers)
+
+
+def cell_centre_x(column: int) -> int:
+    """The level x of the middle of the window's column."""
+    return (WINDOW_FIRST_COLUMN + column) * TILE_SIZE_PIXELS + HALF_TILE_PIXELS
+
+
+def cell_centre_y(row: int) -> int:
+    """The y of the middle of the window's row."""
+    return (OBSERVATION_TOP_ROW + row) * TILE_SIZE_PIXELS + HALF_TILE_PIXELS
+
+
+def cell_centre_colour(screen: pygame.Surface, cell: tuple[int, int]) -> tuple[int, int, int]:
+    row, column = cell
+    return colour_at(screen, cell_centre_x(column), cell_centre_y(row))
+
+
+def changed_rows(first: pygame.Surface, second: pygame.Surface) -> set[int]:
+    return {y for x in range(SCREEN_WIDTH_PIXELS) for y in range(SCREEN_HEIGHT_PIXELS)
+            if first.get_at((x, y)) != second.get_at((x, y))}
+
+
 def test_a_goomba_is_drawn_as_its_hitbox_in_the_goomba_colour():
-    screen = drawn_with(EnemySnapshot(EnemyKind.GOOMBA, GOOMBA_X, GOOMBA_Y, 16, 16, is_defeated=False))
+    screen = drawn_with(goomba_snapshot(is_defeated=False))
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == GOOMBA_COLOUR
-    assert colour_at(screen, GOOMBA_X + 15, GOOMBA_Y + 15) == GOOMBA_COLOUR
-    assert colour_at(screen, GOOMBA_X + 16, GOOMBA_Y) == SKY_COLOUR
+    assert colour_at(screen, GOOMBA_RIGHT_X, GOOMBA_BOTTOM_Y) == GOOMBA_COLOUR
+    assert colour_at(screen, GOOMBA_RIGHT_X + 1, GOOMBA_Y) == SKY_COLOUR
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y - 1) == SKY_COLOUR
 
 
 def test_a_squashed_goomba_is_drawn_flattened_onto_its_feet():
-    screen = drawn_with(EnemySnapshot(EnemyKind.GOOMBA, GOOMBA_X, GOOMBA_Y, 16, 16, is_defeated=True))
+    screen = drawn_with(goomba_snapshot(is_defeated=True))
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == SKY_COLOUR
-    assert colour_at(screen, GOOMBA_X, GOOMBA_Y + 15) == GOOMBA_COLOUR
+    assert colour_at(screen, GOOMBA_X, GOOMBA_BOTTOM_Y) == GOOMBA_COLOUR
+
+
+def test_the_observation_window_is_drawn_translucent_over_the_level_each_cell_tinted_by_its_value():
+    screen = drawn(snapshot_with(observation=observation_with()))
+    solid, enemy, empty = (cell_centre_colour(screen, cell) for cell in (SOLID_CELL_AT, ENEMY_CELL_AT, EMPTY_CELL_AT))
+    assert len({solid, enemy, empty, SKY_COLOUR}) == 4
+    assert solid != OBSERVATION_SOLID_TINT and enemy != OBSERVATION_ENEMY_TINT
+    window_left_x = WINDOW_FIRST_COLUMN * TILE_SIZE_PIXELS
+    window_top_y = OBSERVATION_TOP_ROW * TILE_SIZE_PIXELS
+    assert colour_at(screen, window_left_x - 1, cell_centre_y(SOLID_CELL_AT[0])) == SKY_COLOUR  # left of it
+    assert colour_at(screen, cell_centre_x(0), window_top_y - 1) == SKY_COLOUR                  # above it
+
+
+def test_no_observation_draws_no_window():
+    screen = drawn(snapshot_with())
+    assert cell_centre_colour(screen, SOLID_CELL_AT) == SKY_COLOUR
+
+
+def test_the_four_state_numbers_are_written_on_their_own_line():
+    standing = drawn(snapshot_with(observation=observation_with()))
+    jumping = drawn(snapshot_with(observation=observation_with((0.5, -0.75, 0.625, 0.0))))
+    text_top = OBSERVATION_STATE_TEXT_TOP_LEFT[1]
+    assert changed_rows(standing, jumping)
+    assert changed_rows(standing, jumping) <= set(range(text_top, text_top + DEBUG_TEXT_LINE_PIXELS))
+
+
+def test_the_recent_game_events_and_points_scored_are_listed_newest_last():
+    stomp = (GameEvent(30, GameEventKind.DEFEATED_ENEMY, DefeatMethod.STOMP),
+             GameEvent(30, GameEventKind.SCORED_POINTS, 100))
+    listed = drawn(snapshot_with(recent_events=stomp))
+    events_top = DEBUG_GAME_EVENTS_TOP_LEFT[1]
+    assert changed_rows(drawn(snapshot_with()), listed)
+    assert changed_rows(drawn(snapshot_with()), listed) <= set(
+        range(events_top, events_top + DEBUG_GAME_EVENT_LINES * DEBUG_TEXT_LINE_PIXELS))
+    many = tuple(GameEvent(tick, GameEventKind.SCORED_POINTS, 100) for tick in range(DEBUG_GAME_EVENT_LINES + 1))
+    assert not changed_rows(drawn(snapshot_with(recent_events=many)),
+                            drawn(snapshot_with(recent_events=many[1:])))

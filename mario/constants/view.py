@@ -32,6 +32,28 @@ GOOMBA_COLOUR = (136, 76, 0)
 # height, standing on its feet.
 DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS = 8
 
+# --- Debug view: the followed agent's Observation and recent game events (#25) ---------------
+
+# The Observation's 13 x 12 window is drawn over the level, each cell tinted by
+# its value (RGB), at this opacity (0 transparent to 255 opaque), with this gap
+# between cells so each one shows.
+OBSERVATION_EMPTY_TINT = (0, 0, 0)
+OBSERVATION_SOLID_TINT = (255, 255, 255)
+OBSERVATION_ENEMY_TINT = (255, 0, 64)
+OBSERVATION_TINT_OPACITY = 96
+OBSERVATION_CELL_GAP_PIXELS = 1
+# The four state numbers, as one line of text: a label for each, in the Observation's order.
+OBSERVATION_STATE_LABELS = ("vx", "vy", "height", "ground")
+OBSERVATION_STATE_DECIMALS = 2
+OBSERVATION_STATE_TEXT_TOP_LEFT = (8, 228)
+# Of the snapshot's recent game events, the newest few are listed.
+DEBUG_GAME_EVENT_LINES = 4
+DEBUG_GAME_EVENTS_TOP_LEFT = (8, 36)
+DEBUG_TEXT_LINE_PIXELS = 9
+DEBUG_TEXT_COLOUR = (252, 252, 252)
+DEBUG_TEXT_BACKGROUND_COLOUR = (0, 0, 0)
+DEBUG_FONT_SIZE = 14                      # pygame's default font, as the HUD uses
+
 # --- HUD (TopStatusBarLine, StatusBarData, WriteBottomStatusLine) ----------------------------
 
 # The original draws its status bar on the NES's 8 x 8 px text grid. Positions

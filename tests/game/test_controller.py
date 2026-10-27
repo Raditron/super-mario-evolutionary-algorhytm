@@ -1,6 +1,8 @@
+import numpy as np
 import pytest
 
 from mario.constants.controller import CONTROLLER_BUTTONS
+from mario.controller.controller_bitmask import bitmasks_from_held_buttons, held_buttons_from_bitmasks
 from mario.controller.controller_state import LEFT, NO_DIRECTION, RIGHT, ControllerState
 
 
@@ -23,3 +25,13 @@ def test_left_and_right_held_together_count_as_neither():
 def test_a_value_outside_the_five_bits_is_rejected():
     with pytest.raises(ValueError):
         ControllerState(1 << len(CONTROLLER_BUTTONS))
+
+
+def test_rows_of_held_buttons_and_controller_bitmasks_turn_into_each_other():
+    # columns in Controller order: left, right, down, jump, run
+    held_buttons = np.array([[False, True, False, False, True],
+                             [False, False, False, True, False],
+                             [False, False, False, False, False]])
+    bitmasks = bitmasks_from_held_buttons(held_buttons)
+    assert bitmasks.dtype == np.uint8 and bitmasks.tolist() == [18, 8, 0]
+    assert held_buttons_from_bitmasks(np.array([18, 8, 0], dtype=np.uint8)).tolist() == held_buttons.tolist()

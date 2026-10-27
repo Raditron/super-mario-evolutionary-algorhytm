@@ -24,6 +24,10 @@ _Avoid_: Swarm, batch
 One Mario together with the genome that controls it.
 _Avoid_: Player, bot, individual
 
+**Chunk**:
+A run of consecutive agents of one generation that play their attempts side by side, tick for tick, under one brain.
+_Avoid_: Batch, slice, group
+
 **Attempt**:
 One single life in the level, from spawn until death, a stall, the level timer running out, or touching the flagpole; when a human plays, each life is its own attempt.
 _Avoid_: Episode, game, try
@@ -35,6 +39,10 @@ _Avoid_: Stuck, idle timeout
 **Genome**:
 The inheritable description of an agent's brain (the weights of its neural network) that is mutated and recombined between generations.
 _Avoid_: DNA, chromosome, brain
+
+**Brain**:
+What turns Observations into Controller presses, built from the genomes of a chunk and deciding for all of its agents at once, every tick.
+_Avoid_: Network, model, policy, controller
 
 **Observation**:
 What an agent perceives on one tick: the grid of tiles and enemies around Mario plus Mario's own movement state; the agent's brain turns it into Controller presses.

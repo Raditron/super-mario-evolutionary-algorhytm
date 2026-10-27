@@ -104,6 +104,11 @@ class Mario(TileBody):
         return self.y >> SUBPIXEL_BITS
 
     @property
+    def whole_speed_x(self) -> int:
+        """The part of his x speed that moves him (Player_X_Speed); the fraction only carries into it."""
+        return self.velocity_x - (self.velocity_x & X_SUBSPEED_MASK)
+
+    @property
     def has_fallen_in_pit(self) -> bool:
         """True once he has fallen below the screen."""
         return self.sprite_top_has_reached(PIT_DEATH_SPRITE_Y_PIXELS)
@@ -132,7 +137,7 @@ class Mario(TileBody):
                 self._impose_friction()
             self._move_horizontally(level)
             self._move_vertically(level)
-        whole_speed_x = self._whole_speed_x()
+        whole_speed_x = self.whole_speed_x
         if whole_speed_x != 0:
             self.moving_direction = RIGHT if whole_speed_x > 0 else LEFT
         if self.is_on_ground and not self.is_standing_on_solid_tile(level):
@@ -208,20 +213,20 @@ class Mario(TileBody):
             self._speed_up_rightwards()
         elif self.held_direction == LEFT:
             self._speed_up_leftwards()
-        elif self._whole_speed_x() > 0:
+        elif self.whole_speed_x > 0:
             self._speed_up_leftwards()
-        elif self._whole_speed_x() < 0:
+        elif self.whole_speed_x < 0:
             self._speed_up_rightwards()
-        self.x_speed_absolute = abs(self._whole_speed_x())
+        self.x_speed_absolute = abs(self.whole_speed_x)
 
     def _speed_up_rightwards(self) -> None:
         self.velocity_x += self.acceleration
-        if self._whole_speed_x() >= self.speed_cap:
+        if self.whole_speed_x >= self.speed_cap:
             self.velocity_x = self.speed_cap + (self.velocity_x & X_SUBSPEED_MASK)
 
     def _speed_up_leftwards(self) -> None:
         self.velocity_x -= self.acceleration
-        if self._whole_speed_x() < -self.speed_cap:
+        if self.whole_speed_x < -self.speed_cap:
             self.velocity_x = -self.speed_cap + (self.velocity_x & X_SUBSPEED_MASK)
 
     def _choose_gravity(self, controller: ControllerState) -> None:
@@ -236,7 +241,7 @@ class Mario(TileBody):
         self.gravity = self.falling_gravity
 
     def _move_horizontally(self, level: StaticLevel) -> None:
-        if self.move_horizontally(level, self._whole_speed_x()):
+        if self.move_horizontally(level, self.whole_speed_x):
             self.velocity_x &= X_SUBSPEED_MASK
 
     def _move_vertically(self, level: StaticLevel) -> None:
@@ -248,6 +253,3 @@ class Mario(TileBody):
             self.movement_state = MovementState.ON_GROUND
         elif contact is VerticalContact.HIT_CEILING:
             self.velocity_y = HEAD_BUMP_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
-
-    def _whole_speed_x(self) -> int:
-        return self.velocity_x - (self.velocity_x & X_SUBSPEED_MASK)
