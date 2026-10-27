@@ -9,7 +9,7 @@ from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
 from mario.simulation.enemy import Enemy
 from mario.simulation.mario import Mario
-from mario.simulation.mushroom import Mushroom
+from mario.simulation.item import Item
 from mario.simulation.observation_builder import ObservationBuilder
 
 # The game's vocabulary a snapshot carries, handed on so that the view needs
@@ -82,7 +82,7 @@ class ItemSnapshot:
     is_emerging: bool
 
     @classmethod
-    def of(cls, item: Mushroom) -> "ItemSnapshot":
+    def of(cls, item: Item) -> "ItemSnapshot":
         hitbox = item.hitbox()
         return cls(item.kind, hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
                    item.is_emerging)

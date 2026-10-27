@@ -4,11 +4,11 @@ Speeds keep the original's split into a whole part, which moves Mario, and a
 fraction, which only carries into the whole part. Every rule below names the
 disassembly routine it comes from (docs/research/smb-physics-constants.md).
 
-Big Mario moves exactly as small Mario does; only his box differs: taller, or
-small Mario's while he crouches. Changing size stops him, and the whole game,
-for a while (SizeChange); after shrinking he can't be hurt for a while. Growing
-or standing up can put his box inside a solid tile, which his head and side
-probes then get him out of, as in the original.
+Big (and fire) Mario moves exactly as small Mario does; only his box differs:
+taller, or small Mario's while he crouches. Changing size (SizeChange), or
+catching fire, stops him and the whole game for a while; after shrinking he
+can't be hurt for a while. Growing or standing up can put his box inside a solid
+tile, which his head and side probes then get him out of, as in the original.
 """
 
 from enum import Enum, StrEnum, auto
@@ -69,6 +69,7 @@ from mario.constants.physics import (
     X_SUBSPEED_MASK,
     Y_SUBSPEED_MASK,
 )
+from mario.constants.size_change import CATCH_FIRE_TICKS
 from mario.controller.controller_state import LEFT, NO_DIRECTION, RIGHT, ControllerState
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.gravity import add_gravity
@@ -87,6 +88,7 @@ class PowerState(StrEnum):
     """The original's PlayerStatus."""
     SMALL = "small"
     BIG = "big"
+    FIERY = "fiery"
 
 
 # Each body's box, as (how far below the sprite's top it starts, its height) in pixels.
@@ -142,6 +144,7 @@ class Mario(TileBody):
         self.is_dead = False                         # an enemy's touch killed him
         self._size_change: SizeChange | None = None
         self._power_state_after_size_change = PowerState.SMALL
+        self._catching_fire_ticks_left = 0
         self._invulnerable_ticks_left = 0            # InjuryTimer
 
     @property
@@ -168,12 +171,21 @@ class Mario(TileBody):
 
     @property
     def is_big(self) -> bool:
-        return self.power_state is PowerState.BIG
+        """Big or fiery: his body is big Mario's."""
+        return self.power_state is not PowerState.SMALL
+
+    @property
+    def is_fiery(self) -> bool:
+        return self.power_state is PowerState.FIERY
 
     @property
     def is_changing_size(self) -> bool:
-        """While he grows or shrinks, the whole game stands still."""
         return self._size_change is not None
+
+    @property
+    def is_changing_power_state(self) -> bool:
+        """While he grows, shrinks or catches fire, the whole game stands still."""
+        return self.is_changing_size or self._catching_fire_ticks_left > 0
 
     @property
     def is_invulnerable(self) -> bool:
@@ -233,11 +245,27 @@ class Mario(TileBody):
         The speed's fraction is kept."""
         self.velocity_y = BRICK_BREAK_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
 
+    def power_up(self) -> None:
+        """He collected a Super Mushroom or a fire flower (Shroom_Flower_PUp, which
+        doesn't look at which): small, he grows; big, he catches fire; fiery,
+        nothing changes."""
+        if not self.is_big:
+            self.grow()
+        elif not self.is_fiery:
+            self._catch_fire()
+
     def grow(self) -> None:
-        """He collected a Super Mushroom while small. SetPRout puts him in the
-        on-ground state wherever he is; he falls from there once play resumes."""
+        """Small, he collected a Super Mushroom or a fire flower. SetPRout puts him
+        in the on-ground state wherever he is; he falls from there once play resumes."""
         self.movement_state = MovementState.ON_GROUND
         self._change_size(SizeChange.growing(), PowerState.BIG)
+
+    def _catch_fire(self) -> None:
+        """UpToFiery: fiery at once, and frozen for a while in the on-ground state,
+        as for growing (SetPRout)."""
+        self.power_state = PowerState.FIERY
+        self.movement_state = MovementState.ON_GROUND
+        self._catching_fire_ticks_left = CATCH_FIRE_TICKS
 
     def get_hurt(self) -> None:
         """An enemy hurt him (ForceInjury): small, he dies; big, he shrinks and
@@ -250,17 +278,24 @@ class Mario(TileBody):
         self._change_size(SizeChange.shrinking(), PowerState.SMALL)
         self._invulnerable_ticks_left = INJURY_INVULNERABLE_TICKS
 
-    def continue_size_change(self, controller: ControllerState) -> None:
-        """One tick of growing or shrinking, in which nothing else moves. The jump
-        button is still read, so a press must still be fresh when play resumes.
-        His power state changes with his size, at the flip (PlayerSize)."""
+    def continue_power_state_change(self, controller: ControllerState) -> None:
+        """One tick of growing, shrinking or catching fire, in which nothing else
+        moves. The jump button is still read, so a press must still be fresh when
+        play resumes."""
+        if self._size_change is not None:
+            self._continue_size_change()
+        else:
+            self._catching_fire_ticks_left -= 1
+        self.jump_held_last_tick = controller.jump
+
+    def _continue_size_change(self) -> None:
+        """His power state changes with his size, at the flip (PlayerSize)."""
         self._size_change.step()
         self._take_body(self._size_change.shown_body)
         if self._size_change.has_flipped:
             self.power_state = self._power_state_after_size_change
         if self._size_change.is_over:
             self._size_change = None
-        self.jump_held_last_tick = controller.jump
 
     def _change_size(self, size_change: SizeChange, power_state_after: PowerState) -> None:
         self._size_change = size_change

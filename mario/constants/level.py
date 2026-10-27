@@ -111,14 +111,14 @@ GOOMBA_HITBOX_WIDTH_PIXELS = 16
 GOOMBA_HITBOX_HEIGHT_PIXELS = 16
 GOOMBA_HITBOX_OFFSET_Y_PIXELS = 8
 
-# --- Mushroom size and removal (SetupPowerUp, EnemyToBGCollisionDet, OffscreenBoundsCheck) ----
+# --- Item size and removal (SetupPowerUp, EnemyToBGCollisionDet, OffscreenBoundsCheck) ----
 
-# The original's power-up is an enemy object (slot 5) and collides with tiles
-# through the same probes, so its box is a Goomba's: 16 x 16 at sprite offset (0, 8).
+# The original's power-up (every item) is an enemy object (slot 5) and collides with
+# tiles through the same probes, so its box is a Goomba's: 16 x 16 at sprite offset (0, 8).
 # It appears with that box exactly over the block that released it.
-MUSHROOM_HITBOX_WIDTH_PIXELS = 16
-MUSHROOM_HITBOX_HEIGHT_PIXELS = 16
-MUSHROOM_HITBOX_OFFSET_Y_PIXELS = 8
+ITEM_HITBOX_WIDTH_PIXELS = 16
+ITEM_HITBOX_HEIGHT_PIXELS = 16
+ITEM_HITBOX_OFFSET_Y_PIXELS = 8
 # The same bounds remove it as an enemy, on both sides: once its x is more than
 # ENEMY_REMOVAL_RANGE_PIXELS left of the screen's left edge, or that far right of
 # the screen's right edge (ScreenRight_X_Pos, the screen's last pixel column).

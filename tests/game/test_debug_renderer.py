@@ -8,8 +8,8 @@ from mario.constants.level import (
     GOOMBA_HITBOX_HEIGHT_PIXELS,
     GOOMBA_HITBOX_WIDTH_PIXELS,
     LEVEL_TIMER_START_UNITS,
-    MUSHROOM_HITBOX_HEIGHT_PIXELS,
-    MUSHROOM_HITBOX_WIDTH_PIXELS,
+    ITEM_HITBOX_HEIGHT_PIXELS,
+    ITEM_HITBOX_WIDTH_PIXELS,
     SCREEN_HEIGHT_PIXELS,
     SCREEN_WIDTH_PIXELS,
     SMALL_MARIO_HITBOX_HEIGHT_PIXELS,
@@ -29,6 +29,8 @@ from mario.constants.view import (
     DEBUG_GAME_EVENT_LINES,
     DEBUG_GAME_EVENTS_TOP_LEFT,
     DEBUG_TEXT_LINE_PIXELS,
+    FIRE_FLOWER_COLOUR,
+    FIRE_MARIO_COLOUR,
     GOOMBA_COLOUR,
     MARIO_COLOUR,
     OBSERVATION_ENEMY_TINT,
@@ -49,6 +51,7 @@ from mario.snapshots.world_snapshot import (
     ItemSnapshot,
     MarioSnapshot,
     ObservationSnapshot,
+    PowerState,
     VisibleTiles,
     WorldSnapshot,
 )
@@ -77,11 +80,12 @@ def fonts():
 def snapshot_with(enemies: tuple[EnemySnapshot, ...] = (), observation: ObservationSnapshot | None = None,
                   recent_events: tuple[GameEvent, ...] = (), items: tuple[ItemSnapshot, ...] = (),
                   tiles: VisibleTiles = VisibleTiles(0, ()), tick: int = 0,
-                  mario_is_invulnerable: bool = False) -> WorldSnapshot:
+                  mario_is_invulnerable: bool = False,
+                  mario_power_state: PowerState = PowerState.SMALL) -> WorldSnapshot:
     """A screen with no tiles, Mario at its left, and what is given."""
     return WorldSnapshot(tick=tick, screen_left_x_pixels=SCREEN_LEFT_X, tiles=tiles,
                          mario=MarioSnapshot(SCREEN_LEFT_X, MARIO_Y_PIXELS, SMALL_MARIO_HITBOX_WIDTH_PIXELS,
-                                             SMALL_MARIO_HITBOX_HEIGHT_PIXELS,
+                                             SMALL_MARIO_HITBOX_HEIGHT_PIXELS, mario_power_state,
                                              is_invulnerable=mario_is_invulnerable),
                          enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
                          items=items, observation=observation, recent_events=recent_events)
@@ -148,13 +152,14 @@ def test_a_squashed_goomba_is_drawn_flattened_onto_its_feet():
 
 
 def mushroom_snapshot(kind: ItemKind, is_emerging: bool = False) -> ItemSnapshot:
-    return ItemSnapshot(kind, GOOMBA_X, GOOMBA_Y, MUSHROOM_HITBOX_WIDTH_PIXELS, MUSHROOM_HITBOX_HEIGHT_PIXELS,
+    return ItemSnapshot(kind, GOOMBA_X, GOOMBA_Y, ITEM_HITBOX_WIDTH_PIXELS, ITEM_HITBOX_HEIGHT_PIXELS,
                         is_emerging)
 
 
 @pytest.mark.parametrize("kind, colour", [(ItemKind.SUPER_MUSHROOM, SUPER_MUSHROOM_COLOUR),
-                                          (ItemKind.ONE_UP_MUSHROOM, ONE_UP_MUSHROOM_COLOUR)])
-def test_a_mushroom_is_drawn_as_its_hitbox_in_its_kinds_colour(kind, colour):
+                                          (ItemKind.ONE_UP_MUSHROOM, ONE_UP_MUSHROOM_COLOUR),
+                                          (ItemKind.FIRE_FLOWER, FIRE_FLOWER_COLOUR)])
+def test_an_item_is_drawn_as_its_hitbox_in_its_kinds_colour(kind, colour):
     screen = drawn(snapshot_with(items=(mushroom_snapshot(kind),)))
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == colour
     assert colour_at(screen, GOOMBA_RIGHT_X, GOOMBA_BOTTOM_Y) == colour
@@ -167,12 +172,19 @@ def test_a_mushroom_rising_out_of_its_block_is_drawn_behind_it():
     rows = tuple(tuple(TileKind.USED_BLOCK if (column, row) == (block_column, block_row) else TileKind.EMPTY
                        for column in range(block_column + 1)) for row in range(block_row + 1))
     half_risen = ItemSnapshot(ItemKind.SUPER_MUSHROOM, block_column * TILE_SIZE_PIXELS,
-                              block_row * TILE_SIZE_PIXELS - HALF_TILE_PIXELS, MUSHROOM_HITBOX_WIDTH_PIXELS,
-                              MUSHROOM_HITBOX_HEIGHT_PIXELS, is_emerging=True)
+                              block_row * TILE_SIZE_PIXELS - HALF_TILE_PIXELS, ITEM_HITBOX_WIDTH_PIXELS,
+                              ITEM_HITBOX_HEIGHT_PIXELS, is_emerging=True)
     screen = drawn(snapshot_with(items=(half_risen,), tiles=VisibleTiles(0, rows)))
     block_x, block_y = block_column * TILE_SIZE_PIXELS, block_row * TILE_SIZE_PIXELS
     assert colour_at(screen, block_x, block_y - 1) == SUPER_MUSHROOM_COLOUR
     assert colour_at(screen, block_x, block_y) == USED_BLOCK_COLOUR
+
+
+@pytest.mark.parametrize("power_state, colour", [(PowerState.BIG, MARIO_COLOUR),
+                                                 (PowerState.FIERY, FIRE_MARIO_COLOUR)])
+def test_mario_is_drawn_in_his_power_states_colour(power_state, colour):
+    screen = drawn(snapshot_with(mario_power_state=power_state))
+    assert colour_at(screen, SCREEN_LEFT_X, MARIO_Y_PIXELS) == colour
 
 
 def test_invulnerable_mario_blinks_drawn_only_on_even_ticks():

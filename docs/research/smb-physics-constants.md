@@ -323,12 +323,29 @@ These facts were sourced from [D] while building the mushroom, big Mario, brick 
 - **The 17th step:** the original's last rise puts the mushroom 1 px above the block, and landing snaps it back. The replica rises 16 px and sets off at the same moment.
 - **Shrinking:** the original runs the player routine with movement off from `$F0` to `$C8`. The replica freezes Mario for all 55 ticks, which looks the same.
 - **The freeze stops everything**, the level timer and bouncing blocks included. The ticks still count, and so does the stall rule.
-- **Big Mario and a mushroom:** in the original he would become fiery. Until the fire flower (#20), the power-up block gives big Mario a mushroom too, and collecting it scores 1000 points and changes nothing else.
+- **Big Mario and a mushroom:** as in the original, he becomes fiery (built in #20, see below).
 - **Intermediate grow frame:** nothing collides while it shows, so it is only drawn, as a 12 × 21 box from sprite y + 11, midway between the small and big boxes.
 - **Inside a solid tile:** the replica's box edges stop Mario at walls, so its probes find nothing in normal play. They act only once his box is inside a solid tile, and while it is, his box's edges don't stop him sideways, so that, as in the original, the probes alone get him out. The side probes are at his box's left and right edges, at sprite y + 8 and + 24 (small or crouching: + 24).
 - **Bumped mushroom:** as for a bumped enemy (#18), "away from Mario" compares its x with the left edge of Mario's hitbox, and the `$00` write that stops a second object from seeing the same bump is not copied.
 - **Power state:** the original changes `PlayerStatus` at the touch and `PlayerSize` at the flip. The replica has one power state, which changes at the flip with his box, so the snapshot never says big with small Mario's box (or small with big Mario's).
 - **Not reproduced:** an enemy that hurts Mario while walking away from him turns around (`ChkEnemyFaceRight`); the per-enemy collision bit, which stops one continuous touch from hurting twice; the brick chunks (drawing only).
+
+## Added during the build (#20)
+
+These facts were sourced from [D] while building the fire flower and fireballs. Line numbers refer to the same file.
+
+### The fire flower and fire Mario
+
+| Fact | Value | Source |
+|---|---|---|
+| Fire flower out of its block | It rises out of its block as the mushroom does (`GrowThePowerUp`). After that, `PowerUpObjHandler` runs neither movement nor a background check for power-up type 1: it stays where it is, and a bump can't reach it. | [D] `PowerUpObjHandler` l. 7159-7179 |
+| Collecting it | 1000 points (floatey number `$06`), as for the mushroom. `Shroom_Flower_PUp` doesn't look at which of the two Mario touched: small, he becomes super (and grows, as for a mushroom); super, he becomes fiery; fiery, nothing changes but the points. So big Mario touching a Super Mushroom becomes fiery too. | [D] `HandlePowerUpCollision` l. 11237-11252, `Shroom_Flower_PUp` l. 11254-11265 |
+| Catching fire | `PlayerStatus` = 2 (fiery) at the touch, then `UpToFiery` → `SetPRout`: routine `$0C` (`PlayerFireFlower`), `Player_State` = 0 (on the ground), `TimerControl` = `$FF`. Play resumes at `$C0` (`DonePlayerTask`): **63 frames**. His size doesn't change. | [D] `Shroom_Flower_PUp`/`UpToFiery` l. 11254-11280, `SetPRout` l. 11416-11422, `PlayerFireFlower`/`ResetPalFireFlower` l. 5779-5797, `DonePlayerTask` l. 5772-5777 |
+| Fire Mario hurt | `ForceInjury` stores 0 in `PlayerStatus` whatever it was (A still holds `InjuryTimer`, which is 0), so fire Mario becomes small, exactly as big Mario does. | [D] `InjurePlayer`/`ForceInjury` l. 11401-11415 |
+
+**Replica choices**:
+- **Power state at catching fire:** the replica's power state changes at the touch, as `PlayerStatus` does; there is no box change to wait for.
+- **The freeze stops everything**, as for growing, fireballs included. The original runs `ProcFireball_Bubble` during `TimerControl`, so it lets fire Mario throw a fireball during the 63 frames; the replica doesn't.
 
 ## Not covered or uncertain
 

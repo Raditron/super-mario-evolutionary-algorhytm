@@ -229,14 +229,6 @@ def test_while_mario_grows_the_game_stands_still_and_his_box_follows_the_grow_an
     assert mario_box(attempt)[0] > boxes[0][0]
 
 
-def test_a_mushroom_collected_while_big_scores_but_changes_nothing_until_the_fire_flower_is_built():
-    attempt = big_mario_attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}))
-    collect_the_item(attempt, GameEventKind.COLLECTED_MUSHROOM)
-    assert attempt.events[-1] == GameEvent(attempt.ticks_elapsed, GameEventKind.SCORED_POINTS, ITEM_POINTS)
-    assert not attempt.mario.is_changing_size
-    assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
-
-
 def test_the_hidden_block_releases_a_1_up_mushroom_that_moves_like_the_super_mushroom():
     attempt = Attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): HIDDEN_ONE_UP_BLOCK}))
     jump_until_the_head_hits(attempt)

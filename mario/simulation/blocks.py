@@ -2,9 +2,10 @@
 PlayerHeadCollision, BumpBlock and BrickShatter; docs/research/smb-physics-constants.md,
 "Added during the build (#18)" and "(#19)", and docs/research/world-1-1-layout.md).
 
-Big Mario breaks a plain brick, which leaves an empty tile; everything else,
-and every block small Mario hits, is bumped. A power-up ? block releases a
-Super Mushroom, and the hidden block a 1-UP mushroom (BumpBlock, SetupPowerUp).
+Big (or fire) Mario breaks a plain brick, which leaves an empty tile; everything
+else, and every block small Mario hits, is bumped. A power-up ? block releases a
+Super Mushroom for small Mario and a fire flower for big Mario, and the hidden
+block a 1-UP mushroom (BumpBlock, SetupPowerUp).
 An enemy standing on a block while it bounces, or on a brick as it breaks, is
 defeated (HandleEToBGCollision); an item there hops away from Mario. The multi-coin brick's timer is one for the
 whole level, as in the original (BrickCoinTimerFlag); 1-1 has one such brick.
@@ -21,8 +22,8 @@ from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.bouncing_block import BouncingBlock
 from mario.simulation.enemy import Enemy
 from mario.simulation.item_kind import ItemKind
+from mario.simulation.item import Item
 from mario.simulation.items import Items
-from mario.simulation.mushroom import Mushroom
 from mario.simulation.scoreboard import Scoreboard
 from mario.simulation.walking_body import WalkingBody
 
@@ -45,13 +46,14 @@ class Blocks:
         self.bouncing: list[BouncingBlock] = []
         self._broken_this_tick: list[tuple[int, int]] = []
 
-    def hit_from_below(self, column: int, row: int, tick: int, breaks_bricks: bool) -> HeadHit:
-        """Mario's head hit this tile from below; breaks_bricks when he is big."""
+    def hit_from_below(self, column: int, row: int, tick: int, mario_is_big: bool) -> HeadHit:
+        """Mario's head hit this tile from below. Big (or fire) Mario breaks plain
+        bricks, and gets a fire flower from a power-up block."""
         kind = self._tiles.tile_kind(column, row)
         if kind not in BLOCK_TILE_KINDS or self._bounce_lockout_ticks_left > 0:
             return HeadHit.NOTHING
         self._bounce_lockout_ticks_left = BLOCK_BOUNCE_LOCKOUT_TICKS
-        if kind is TileKind.BRICK and breaks_bricks:
+        if kind is TileKind.BRICK and mario_is_big:
             self._break_brick(column, row, tick)
             return HeadHit.BROKE_BRICK
         self.bouncing.append(BouncingBlock(column, row))
@@ -62,8 +64,7 @@ class Blocks:
         elif kind is TileKind.POWER_UP_QUESTION_BLOCK:
             self._events.append(GameEvent(tick, GameEventKind.HIT_QUESTION_BLOCK))
             self._tiles.change_block(column, row, TileKind.USED_BLOCK)
-            # Big Mario gets a fire flower in the original; until it is built, a mushroom.
-            self._items.release(ItemKind.SUPER_MUSHROOM, column, row)
+            self._items.release(ItemKind.FIRE_FLOWER if mario_is_big else ItemKind.SUPER_MUSHROOM, column, row)
         elif kind is TileKind.STARMAN_BRICK:
             self._tiles.change_block(column, row, TileKind.USED_BLOCK)
         elif kind is TileKind.MULTI_COIN_BRICK:
@@ -82,7 +83,7 @@ class Blocks:
                 self._events.append(GameEvent(tick, GameEventKind.DEFEATED_ENEMY, DefeatMethod.BUMPED))
                 self._scoreboard.score_points(BUMPED_ENEMY_POINTS, tick)
 
-    def knock_items_on_bumped_blocks(self, items: list[Mushroom], mario_x: int) -> None:
+    def knock_items_on_bumped_blocks(self, items: list[Item], mario_x: int) -> None:
         """An item standing on a bouncing block, or on a brick broken this tick,
         hops away from Mario. One still rising out of its block stands on nothing."""
         for item in items:

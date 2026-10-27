@@ -8,6 +8,8 @@ from mario.constants.view import (
     BRICK_COLOUR,
     CASTLE_STOPPER_COLOUR,
     DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS,
+    FIRE_FLOWER_COLOUR,
+    FIRE_MARIO_COLOUR,
     FLAGPOLE_COLOUR,
     GOOMBA_COLOUR,
     GROUND_COLOUR,
@@ -24,7 +26,7 @@ from mario.constants.view import (
 )
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
-from mario.snapshots.world_snapshot import EnemySnapshot, ItemKind, ItemSnapshot, WorldSnapshot
+from mario.snapshots.world_snapshot import EnemySnapshot, ItemKind, ItemSnapshot, PowerState, WorldSnapshot
 from mario.view.debug_text import DebugText
 from mario.view.game_event_feed import GameEventFeed
 from mario.view.observation_overlay import ObservationOverlay
@@ -53,6 +55,14 @@ ENEMY_COLOURS = {
 ITEM_COLOURS = {
     ItemKind.SUPER_MUSHROOM: SUPER_MUSHROOM_COLOUR,
     ItemKind.ONE_UP_MUSHROOM: ONE_UP_MUSHROOM_COLOUR,
+    ItemKind.FIRE_FLOWER: FIRE_FLOWER_COLOUR,
+}
+
+
+MARIO_COLOURS = {
+    PowerState.SMALL: MARIO_COLOUR,
+    PowerState.BIG: MARIO_COLOUR,
+    PowerState.FIERY: FIRE_MARIO_COLOUR,
 }
 
 
@@ -78,7 +88,7 @@ class DebugRenderer:
             self._draw_enemy(enemy, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
         if not mario.is_invulnerable or snapshot.tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0:
-            _fill_level_box(screen, MARIO_COLOUR, snapshot.screen_left_x_pixels,
+            _fill_level_box(screen, MARIO_COLOURS[mario.power_state], snapshot.screen_left_x_pixels,
                             mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels)
         if snapshot.observation is not None:
             self._observation_overlay.draw(snapshot.observation, snapshot.screen_left_x_pixels, screen)

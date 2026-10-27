@@ -27,13 +27,15 @@ HIDDEN_BLOCK_COLOUR = (188, 188, 252)
 PIPE_COLOUR = (0, 168, 0)
 FLAGPOLE_COLOUR = (240, 240, 240)
 CASTLE_STOPPER_COLOUR = (60, 60, 60)
-MARIO_COLOUR = (216, 40, 0)
+MARIO_COLOUR = (216, 40, 0)                  # small or big
+FIRE_MARIO_COLOUR = (252, 252, 252)
 GOOMBA_COLOUR = (136, 76, 0)
 # A defeated enemy (so far only a squashed Goomba) is drawn flattened to this
 # height, standing on its feet.
 DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS = 8
 SUPER_MUSHROOM_COLOUR = (252, 116, 180)
 ONE_UP_MUSHROOM_COLOUR = (0, 200, 120)
+FIRE_FLOWER_COLOUR = (252, 160, 68)
 # While he can't be hurt, Mario is drawn only on ticks that are a multiple of this
 # (PlayerGfxHandler skips him on odd frames while InjuryTimer runs).
 INVULNERABLE_MARIO_DRAWN_EVERY_TICKS = 2
