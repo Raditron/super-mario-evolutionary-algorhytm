@@ -1,8 +1,8 @@
 """A human's game of World 1-1, life after life (play mode only; training never sees it).
 
 Each life is its own Attempt in a freshly loaded level, with no stall rule.
-The game starts with 3 lives and gains one for every 100 coins. Score and coins
-carry across lives. A life lost once the screen's left edge has reached the
+The game starts with 3 lives and gains one for every 100 coins and every 1-UP
+collected. Score, coins and 1-UPs carry across lives. A life lost once the screen's left edge has reached the
 checkpoint restarts there (PlayerLoseLife); losing the last life starts a new game.
 """
 
@@ -22,7 +22,8 @@ class PlaySession:
 
     @property
     def lives(self) -> int:
-        return STARTING_LIVES + self._total_coins() // COINS_PER_EXTRA_LIFE - self._lives_lost
+        return (STARTING_LIVES + self._total_coins() // COINS_PER_EXTRA_LIFE + self._total_one_ups()
+                - self._lives_lost)
 
     @property
     def score(self) -> int:
@@ -47,6 +48,7 @@ class PlaySession:
         self._lives_lost = 0
         self._score_before_this_life = 0
         self._coins_before_this_life = 0
+        self._one_ups_before_this_life = 0
         self.attempt = Attempt(self._level)
 
     def _lose_life(self) -> None:
@@ -57,7 +59,11 @@ class PlaySession:
         reached_checkpoint = self.attempt.scroll.left_x_pixels >= CHECKPOINT_LEFT_X_PIXELS
         self._score_before_this_life = self.score
         self._coins_before_this_life = self._total_coins()
+        self._one_ups_before_this_life = self._total_one_ups()
         self.attempt = Attempt(self._level, from_checkpoint=reached_checkpoint)
 
     def _total_coins(self) -> int:
         return self._coins_before_this_life + self.attempt.scoreboard.coins
+
+    def _total_one_ups(self) -> int:
+        return self._one_ups_before_this_life + self.attempt.scoreboard.one_ups

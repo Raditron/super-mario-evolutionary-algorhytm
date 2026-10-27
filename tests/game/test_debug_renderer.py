@@ -8,6 +8,8 @@ from mario.constants.level import (
     GOOMBA_HITBOX_HEIGHT_PIXELS,
     GOOMBA_HITBOX_WIDTH_PIXELS,
     LEVEL_TIMER_START_UNITS,
+    MUSHROOM_HITBOX_HEIGHT_PIXELS,
+    MUSHROOM_HITBOX_WIDTH_PIXELS,
     SCREEN_HEIGHT_PIXELS,
     SCREEN_WIDTH_PIXELS,
     SMALL_MARIO_HITBOX_HEIGHT_PIXELS,
@@ -28,16 +30,23 @@ from mario.constants.view import (
     DEBUG_GAME_EVENTS_TOP_LEFT,
     DEBUG_TEXT_LINE_PIXELS,
     GOOMBA_COLOUR,
+    MARIO_COLOUR,
     OBSERVATION_ENEMY_TINT,
     OBSERVATION_SOLID_TINT,
     OBSERVATION_STATE_TEXT_TOP_LEFT,
+    ONE_UP_MUSHROOM_COLOUR,
     SKY_COLOUR,
+    SUPER_MUSHROOM_COLOUR,
+    USED_BLOCK_COLOUR,
 )
 from mario.level.static_level import EnemyKind
+from mario.level.tile_kind import TileKind
 from mario.simulation.attempt_result import DefeatMethod, GameEvent, GameEventKind
+from mario.simulation.item_kind import ItemKind
 from mario.snapshots.world_snapshot import (
     EnemySnapshot,
     HudSnapshot,
+    ItemSnapshot,
     MarioSnapshot,
     ObservationSnapshot,
     VisibleTiles,
@@ -66,13 +75,16 @@ def fonts():
 
 
 def snapshot_with(enemies: tuple[EnemySnapshot, ...] = (), observation: ObservationSnapshot | None = None,
-                  recent_events: tuple[GameEvent, ...] = ()) -> WorldSnapshot:
+                  recent_events: tuple[GameEvent, ...] = (), items: tuple[ItemSnapshot, ...] = (),
+                  tiles: VisibleTiles = VisibleTiles(0, ()), tick: int = 0,
+                  mario_is_invulnerable: bool = False) -> WorldSnapshot:
     """A screen with no tiles, Mario at its left, and what is given."""
-    return WorldSnapshot(tick=0, screen_left_x_pixels=SCREEN_LEFT_X, tiles=VisibleTiles(0, ()),
+    return WorldSnapshot(tick=tick, screen_left_x_pixels=SCREEN_LEFT_X, tiles=tiles,
                          mario=MarioSnapshot(SCREEN_LEFT_X, MARIO_Y_PIXELS, SMALL_MARIO_HITBOX_WIDTH_PIXELS,
-                                             SMALL_MARIO_HITBOX_HEIGHT_PIXELS),
+                                             SMALL_MARIO_HITBOX_HEIGHT_PIXELS,
+                                             is_invulnerable=mario_is_invulnerable),
                          enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
-                         observation=observation, recent_events=recent_events)
+                         items=items, observation=observation, recent_events=recent_events)
 
 
 def drawn(snapshot: WorldSnapshot) -> pygame.Surface:
@@ -133,6 +145,41 @@ def test_a_squashed_goomba_is_drawn_flattened_onto_its_feet():
     screen = drawn_with(goomba_snapshot(is_defeated=True))
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == SKY_COLOUR
     assert colour_at(screen, GOOMBA_X, GOOMBA_BOTTOM_Y) == GOOMBA_COLOUR
+
+
+def mushroom_snapshot(kind: ItemKind, is_emerging: bool = False) -> ItemSnapshot:
+    return ItemSnapshot(kind, GOOMBA_X, GOOMBA_Y, MUSHROOM_HITBOX_WIDTH_PIXELS, MUSHROOM_HITBOX_HEIGHT_PIXELS,
+                        is_emerging)
+
+
+@pytest.mark.parametrize("kind, colour", [(ItemKind.SUPER_MUSHROOM, SUPER_MUSHROOM_COLOUR),
+                                          (ItemKind.ONE_UP_MUSHROOM, ONE_UP_MUSHROOM_COLOUR)])
+def test_a_mushroom_is_drawn_as_its_hitbox_in_its_kinds_colour(kind, colour):
+    screen = drawn(snapshot_with(items=(mushroom_snapshot(kind),)))
+    assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == colour
+    assert colour_at(screen, GOOMBA_RIGHT_X, GOOMBA_BOTTOM_Y) == colour
+    assert colour_at(screen, GOOMBA_RIGHT_X + 1, GOOMBA_Y) == SKY_COLOUR
+
+
+def test_a_mushroom_rising_out_of_its_block_is_drawn_behind_it():
+    """Half risen: its top half shows above the block, its bottom half is hidden in it."""
+    block_column, block_row = GOOMBA_X // TILE_SIZE_PIXELS, GOOMBA_Y // TILE_SIZE_PIXELS
+    rows = tuple(tuple(TileKind.USED_BLOCK if (column, row) == (block_column, block_row) else TileKind.EMPTY
+                       for column in range(block_column + 1)) for row in range(block_row + 1))
+    half_risen = ItemSnapshot(ItemKind.SUPER_MUSHROOM, block_column * TILE_SIZE_PIXELS,
+                              block_row * TILE_SIZE_PIXELS - HALF_TILE_PIXELS, MUSHROOM_HITBOX_WIDTH_PIXELS,
+                              MUSHROOM_HITBOX_HEIGHT_PIXELS, is_emerging=True)
+    screen = drawn(snapshot_with(items=(half_risen,), tiles=VisibleTiles(0, rows)))
+    block_x, block_y = block_column * TILE_SIZE_PIXELS, block_row * TILE_SIZE_PIXELS
+    assert colour_at(screen, block_x, block_y - 1) == SUPER_MUSHROOM_COLOUR
+    assert colour_at(screen, block_x, block_y) == USED_BLOCK_COLOUR
+
+
+def test_invulnerable_mario_blinks_drawn_only_on_even_ticks():
+    mario_x = SCREEN_LEFT_X
+    assert colour_at(drawn(snapshot_with(tick=0, mario_is_invulnerable=True)), mario_x, MARIO_Y_PIXELS) == MARIO_COLOUR
+    assert colour_at(drawn(snapshot_with(tick=1, mario_is_invulnerable=True)), mario_x, MARIO_Y_PIXELS) == SKY_COLOUR
+    assert colour_at(drawn(snapshot_with(tick=1)), mario_x, MARIO_Y_PIXELS) == MARIO_COLOUR
 
 
 def test_the_observation_window_is_drawn_translucent_over_the_level_each_cell_tinted_by_its_value():

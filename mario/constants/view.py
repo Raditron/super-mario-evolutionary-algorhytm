@@ -32,6 +32,11 @@ GOOMBA_COLOUR = (136, 76, 0)
 # A defeated enemy (so far only a squashed Goomba) is drawn flattened to this
 # height, standing on its feet.
 DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS = 8
+SUPER_MUSHROOM_COLOUR = (252, 116, 180)
+ONE_UP_MUSHROOM_COLOUR = (0, 200, 120)
+# While he can't be hurt, Mario is drawn only on ticks that are a multiple of this
+# (PlayerGfxHandler skips him on odd frames while InjuryTimer runs).
+INVULNERABLE_MARIO_DRAWN_EVERY_TICKS = 2
 
 # --- Debug view: the followed agent's Observation and recent game events (#25) ---------------
 

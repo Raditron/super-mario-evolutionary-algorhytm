@@ -5,6 +5,7 @@ import copy
 from mario.constants.level import LEVEL_HEIGHT_TILES
 from mario.controller.controller_state import ControllerState
 from mario.level.static_level import EnemyKind, EnemySpawn, StaticLevel
+from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.mario import Mario
 
@@ -51,6 +52,16 @@ def without_enemies(level: StaticLevel) -> StaticLevel:
     level_without_enemies = copy.copy(level)
     level_without_enemies.enemy_spawns = ()
     return level_without_enemies
+
+
+def big_mario_attempt(level: StaticLevel, **attempt_options) -> Attempt:
+    """An Attempt whose Mario grew at the start, as a Super Mushroom makes him, and
+    has finished growing (tests/game/test_power_ups.py collects a real one)."""
+    attempt = Attempt(level, **attempt_options)
+    attempt.mario.grow()
+    while attempt.mario.is_changing_size:
+        attempt.step(HOLD_NOTHING)
+    return attempt
 
 
 def step_mario(mario: Mario, level: StaticLevel, buttons: int, ticks: int = 1) -> None:

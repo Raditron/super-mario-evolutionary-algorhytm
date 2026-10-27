@@ -66,6 +66,14 @@ _Avoid_: Input log, recording, replay file
 A fact the game reports about an attempt, such as distance travelled, falling into a pit, or hitting the hidden block; fitness is computed from game events.
 _Avoid_: Signal, trigger
 
+**Item**:
+A thing a block releases for Mario to collect: the Super Mushroom, the fire flower, the Starman or the 1-UP mushroom. An attempt holds at most one at a time.
+_Avoid_: Power-up (except in the original's names, such as the power-up ? block), pickup, collectible
+
+**Power state**:
+What Mario has become through the items he collected: small, big or fiery. Big or fiery, an enemy's touch makes him small instead of ending the attempt.
+_Avoid_: Status, form
+
 **Bonus room**:
 The underground coin room entered through the warp pipe, whose exit pipe puts Mario back in the level much further along.
 _Avoid_: Secret room, warp zone, underground level

@@ -7,10 +7,16 @@ from mario.constants.snapshots import RECENT_GAME_EVENT_TICKS
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
-from mario.simulation.attempt_result import GameEvent
 from mario.simulation.enemy import Enemy
 from mario.simulation.mario import Mario
+from mario.simulation.mushroom import Mushroom
 from mario.simulation.observation_builder import ObservationBuilder
+
+# The game's vocabulary a snapshot carries, handed on so that the view needs
+# nothing from the simulation (spec section 3).
+from mario.simulation.attempt_result import GameEvent as GameEvent
+from mario.simulation.item_kind import ItemKind as ItemKind
+from mario.simulation.mario import PowerState as PowerState
 
 # A screen scrolled part-way into a tile shows one column more than it is wide.
 VISIBLE_COLUMNS = SCREEN_WIDTH_PIXELS // TILE_SIZE_PIXELS + 1
@@ -32,16 +38,20 @@ class BouncingBlockSnapshot:
 
 @dataclass(frozen=True)
 class MarioSnapshot:
-    """Mario's hitbox, in level pixels."""
+    """Mario's hitbox, in level pixels (while he grows or shrinks, the box of the
+    animation frame showing), his power state, and whether he can't be hurt."""
     x_pixels: int
     y_pixels: int
     width_pixels: int
     height_pixels: int
+    power_state: PowerState = PowerState.SMALL
+    is_invulnerable: bool = False
 
     @classmethod
     def of(cls, mario: Mario) -> "MarioSnapshot":
         hitbox = mario.hitbox()
-        return cls(hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels)
+        return cls(hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
+                   mario.power_state, mario.is_invulnerable)
 
 
 @dataclass(frozen=True)
@@ -59,6 +69,23 @@ class EnemySnapshot:
         hitbox = enemy.hitbox()
         return cls(enemy.kind, hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
                    enemy.is_defeated)
+
+
+@dataclass(frozen=True)
+class ItemSnapshot:
+    """One item's hitbox, in level pixels, and whether it is still rising out of its block."""
+    kind: ItemKind
+    x_pixels: int
+    y_pixels: int
+    width_pixels: int
+    height_pixels: int
+    is_emerging: bool
+
+    @classmethod
+    def of(cls, item: Mushroom) -> "ItemSnapshot":
+        hitbox = item.hitbox()
+        return cls(item.kind, hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
+                   item.is_emerging)
 
 
 @dataclass(frozen=True)
@@ -96,6 +123,7 @@ class WorldSnapshot:
     enemies: tuple[EnemySnapshot, ...]
     hud: HudSnapshot
     bouncing_blocks: tuple[BouncingBlockSnapshot, ...] = ()
+    items: tuple[ItemSnapshot, ...] = ()
     observation: ObservationSnapshot | None = None
     recent_events: tuple[GameEvent, ...] = ()        # oldest first
 
@@ -120,6 +148,7 @@ class WorldSnapshot:
             hud=hud if hud is not None else HudSnapshot.of(attempt),
             bouncing_blocks=tuple(BouncingBlockSnapshot(block.column, block.row, block.offset_y_pixels)
                                   for block in attempt.blocks.bouncing),
+            items=tuple(ItemSnapshot.of(item) for item in attempt.items.active),
             observation=(ObservationSnapshot.of(attempt, observation_builder)
                          if observation_builder is not None else None),
             recent_events=_recent_events(attempt),

@@ -44,6 +44,25 @@ SMALL_MARIO_HITBOX_OFFSET_X_PIXELS = 2
 SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS = 18
 SMALL_MARIO_HITBOX_WIDTH_PIXELS = 12
 SMALL_MARIO_HITBOX_HEIGHT_PIXELS = 14
+# Big Mario's probes are the same but for his head, at sprite y + 4
+# (BlockBufferAdderData offset $00): a 12 x 28 box at sprite offset (2, 4). Big
+# Mario crouching uses small Mario's probes (offset $0E), so his box is small Mario's.
+BIG_MARIO_HITBOX_OFFSET_Y_PIXELS = 4
+BIG_MARIO_HITBOX_HEIGHT_PIXELS = 28
+# The intermediate frame of the grow animation is a 24 px tall sprite (its top row
+# of tiles is blank, PlayerGraphicsTable). Nothing collides while it shows, so it
+# is only drawn: as a box midway between the small and big ones.
+INTERMEDIATE_MARIO_HITBOX_OFFSET_Y_PIXELS = 11
+INTERMEDIATE_MARIO_HITBOX_HEIGHT_PIXELS = 21
+# His box's edges keep him out of solid tiles, but growing or standing up can put
+# it inside one. Then the original's own probes act (PlayerBGCollision): his head
+# probe, over his centre at his box's top, hits a tile it is at least this far
+# into (HeadChk: low nybble >= 4), and his side probes, at his box's left and
+# right edges, at these sprite y's, push him out (BlockBuffer_Y_Adder: big
+# Mario's at + 8 and + 24, small or crouching Mario's both at + 24).
+HEAD_PROBE_MIN_DEPTH_PIXELS = 4
+BIG_MARIO_SIDE_PROBE_SPRITE_Y_PIXELS = (8, 24)
+SMALL_MARIO_SIDE_PROBE_SPRITE_Y_PIXELS = (24,)
 
 # Mario has fallen into a pit once his sprite's top is this far down (Player_Y_HighPos = 2).
 PIT_DEATH_SPRITE_Y_PIXELS = 256
@@ -91,3 +110,16 @@ ENEMY_SPAWN_DROP_PIXELS = 8
 GOOMBA_HITBOX_WIDTH_PIXELS = 16
 GOOMBA_HITBOX_HEIGHT_PIXELS = 16
 GOOMBA_HITBOX_OFFSET_Y_PIXELS = 8
+
+# --- Mushroom size and removal (SetupPowerUp, EnemyToBGCollisionDet, OffscreenBoundsCheck) ----
+
+# The original's power-up is an enemy object (slot 5) and collides with tiles
+# through the same probes, so its box is a Goomba's: 16 x 16 at sprite offset (0, 8).
+# It appears with that box exactly over the block that released it.
+MUSHROOM_HITBOX_WIDTH_PIXELS = 16
+MUSHROOM_HITBOX_HEIGHT_PIXELS = 16
+MUSHROOM_HITBOX_OFFSET_Y_PIXELS = 8
+# The same bounds remove it as an enemy, on both sides: once its x is more than
+# ENEMY_REMOVAL_RANGE_PIXELS left of the screen's left edge, or that far right of
+# the screen's right edge (ScreenRight_X_Pos, the screen's last pixel column).
+SCREEN_RIGHT_EDGE_OFFSET_PIXELS = SCREEN_WIDTH_PIXELS - 1
