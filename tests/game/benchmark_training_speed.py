@@ -30,6 +30,7 @@ from mario.constants.controller import CONTROLLER_BUTTONS
 from mario.constants.observation import OBSERVATION_LENGTH
 from mario.constants.physics import SUBPIXEL_BITS
 from mario.constants.training import TRAINING_WORKER_COUNT
+from mario.controller.controller_bitmask import held_buttons_from_bitmasks
 from mario.level.static_level import StaticLevel
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import AttemptResult
@@ -101,8 +102,7 @@ class PilotReplayBrain:
 
 class PilotReplayAlgorithm(NeuroevolutionAlgorithm):
     def __init__(self, pilot_log: list[int]):
-        self._pilot_decisions = np.array([[bool(buttons >> bit & 1) for bit in range(len(CONTROLLER_BUTTONS))]
-                                          for buttons in pilot_log])
+        self._pilot_decisions = held_buttons_from_bitmasks(np.array(pilot_log, dtype=np.uint8))
 
     def initial_genomes(self, population_size: int, rng: np.random.Generator) -> list[np.ndarray]:
         return [rng.standard_normal(PLACEHOLDER_WEIGHT_COUNT) for _ in range(population_size)]
