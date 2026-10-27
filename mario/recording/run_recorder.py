@@ -1,11 +1,14 @@
 """Writes a run's folder (spec section 10): made when the run starts, added to once per finished generation.
 
-Nothing of a generation is written until it has finished, so a run stopped
-mid-generation leaves only complete generations behind.
+Nothing of a generation is written until it has finished, and Ctrl+C waits
+while one is being written, so a stopped run leaves only complete generations.
 """
 
 import csv
 import shutil
+import signal
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -34,7 +37,7 @@ class RunRecorder:
         return cls(run_folder)
 
     @property
-    def run_folder(self) -> Path:
+    def run_folder_path(self) -> Path:
         return self._run_folder.path
 
     def record_generation(self, generation: int, attempt_results: list[AttemptResult],
@@ -43,17 +46,34 @@ class RunRecorder:
         """Record one finished generation; every list lines up by agent index.
 
         In this order: its rows of results.csv, its row of generation_times.csv,
-        then its generation folder, with every Controller log and the best genome."""
-        _append_rows(self._run_folder.results_path, [
-            (generation, agent, float(fitness), attempt_result.end_reason.value, attempt_result.furthest_x,
-             attempt_result.ticks_elapsed, attempt_result.final_score, attempt_result.coins_collected)
-            for agent, (attempt_result, fitness) in enumerate(zip(attempt_results, fitnesses, strict=True))])
-        _append_rows(self._run_folder.generation_times_path, [(generation, seconds)])
-        self._run_folder.generation_path(generation).mkdir(parents=True)
-        np.savez_compressed(self._run_folder.controller_logs_path(generation), **{
-            CONTROLLER_LOG_KEY_FORMAT.format(agent=agent): controller_log
-            for agent, controller_log in enumerate(controller_logs)})
-        np.save(self._run_folder.best_genome_path(generation), genomes[_best_agent(fitnesses)])
+        then its generation folder, with every Controller log and the best genome.
+        Ctrl+C pressed meanwhile stops the run once the generation is complete."""
+        with _ctrl_c_held_back():
+            _append_rows(self._run_folder.results_path, [
+                (generation, agent, float(fitness), attempt_result.end_reason.value, attempt_result.furthest_x,
+                 attempt_result.ticks_elapsed, attempt_result.final_score, attempt_result.coins_collected)
+                for agent, (attempt_result, fitness) in enumerate(zip(attempt_results, fitnesses, strict=True))])
+            _append_rows(self._run_folder.generation_times_path, [(generation, seconds)])
+            self._run_folder.generation_path(generation).mkdir(parents=True)
+            np.savez_compressed(self._run_folder.controller_logs_path(generation), **{
+                CONTROLLER_LOG_KEY_FORMAT.format(agent=agent): controller_log
+                for agent, controller_log in enumerate(controller_logs)})
+            np.save(self._run_folder.best_genome_path(generation), genomes[_best_agent(fitnesses)])
+
+
+@contextmanager
+def _ctrl_c_held_back() -> Iterator[None]:
+    """Ctrl+C (SIGINT) pressed inside this block is handled as usual once the block ends, not part-way through.
+
+    Signal handlers can be set only in the main thread, which is where training records."""
+    ctrl_c_presses = []
+    usual_handler = signal.signal(signal.SIGINT, lambda signal_number, frame: ctrl_c_presses.append(frame))
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, usual_handler)
+    if ctrl_c_presses and callable(usual_handler):
+        usual_handler(signal.SIGINT, ctrl_c_presses[0])
 
 
 def _best_agent(fitnesses: np.ndarray) -> int:

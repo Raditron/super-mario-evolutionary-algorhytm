@@ -4,6 +4,7 @@ The run folder's files are the interface here: replay and stats read nothing els
 """
 
 import csv
+import signal
 from datetime import datetime
 from pathlib import Path
 
@@ -66,7 +67,7 @@ def record_a_run(tmp_path: Path) -> tuple[Path, list[GenerationReport]]:
     with AgentWorkerPool(algorithm_factory, WORKER_COUNT) as worker_pool:
         Trainer(algorithm_factory.create(), worker_pool, run_settings,
                 [GenerationRecorder(recorder), collector]).run()
-    return recorder.run_folder, collector.reports
+    return recorder.run_folder_path, collector.reports
 
 
 @pytest.fixture(scope="module")
@@ -159,7 +160,7 @@ def test_stopping_a_run_mid_generation_leaves_only_its_complete_generations(tmp_
         with AgentWorkerPool(AlgorithmFactory(create_random_buttons_algorithm, {}), WORKER_COUNT) as worker_pool:
             Trainer(StoppedDuringSecondGeneration(), worker_pool, run_settings,
                     [GenerationRecorder(recorder)]).run()
-    run_folder = recorder.run_folder
+    run_folder = recorder.run_folder_path
     assert files_under(run_folder) == {
         "config.toml", "results.csv", "generation_times.csv",
         "generations/0001/controller_logs.npz", "generations/0001/best_genome.npy",
@@ -168,6 +169,43 @@ def test_stopping_a_run_mid_generation_leaves_only_its_complete_generations(tmp_
     assert [(row[0], row[1]) for row in result_rows] == [("1", str(agent)) for agent in range(POPULATION_SIZE)]
     _, *generation_time_rows = read_rows(run_folder / "generation_times.csv")
     assert [row[0] for row in generation_time_rows] == ["1"]
+
+
+class CtrlCPressedWhenTheBestGenomeIsPicked(list):
+    """Genomes that press Ctrl+C (send SIGINT to this process) the moment the recorder picks the
+    best one: after its CSV rows and its generation folder are under way, before the genome is saved."""
+
+    def __getitem__(self, index):
+        signal.raise_signal(signal.SIGINT)
+        return super().__getitem__(index)
+
+
+def test_ctrl_c_pressed_while_a_generation_is_being_recorded_stops_the_run_once_it_is_complete(tmp_path):
+    recorder = start_recorder(tmp_path)
+    population = 3
+    attempt_result = AttemptResult(EndReason.STALLED, furthest_x=40, ticks_elapsed=2, final_score=0,
+                                   coins_collected=0, events=())
+    genomes = CtrlCPressedWhenTheBestGenomeIsPicked(np.full(2, agent) for agent in range(population))
+    with pytest.raises(KeyboardInterrupt):
+        recorder.record_generation(1, [attempt_result] * population, [np.zeros(2, dtype=np.uint8)] * population,
+                                   np.array([1.0, 2.0, 0.5]), genomes, seconds=0.25)
+    run_folder = tmp_path / "runs" / RUN_FOLDER_NAME
+    assert files_under(run_folder) == {
+        "config.toml", "results.csv", "generation_times.csv",
+        "generations/0001/controller_logs.npz", "generations/0001/best_genome.npy",
+    }
+    assert np.load(run_folder / "generations" / "0001" / "best_genome.npy").tolist() == [1, 1]
+    _, *result_rows = read_rows(run_folder / "results.csv")
+    assert [row[:2] for row in result_rows] == [["1", "0"], ["1", "1"], ["1", "2"]]
+
+
+def test_ctrl_c_behaves_as_before_once_a_generation_has_been_recorded(tmp_path):
+    recorder = start_recorder(tmp_path)
+    attempt_result = AttemptResult(EndReason.STALLED, furthest_x=40, ticks_elapsed=2, final_score=0,
+                                   coins_collected=0, events=())
+    recorder.record_generation(1, [attempt_result], [np.zeros(2, dtype=np.uint8)], np.array([1.0]),
+                               [np.zeros(2)], seconds=0.25)
+    assert signal.getsignal(signal.SIGINT) is signal.default_int_handler
 
 
 @pytest.mark.parametrize("fitnesses, best_agent", [
@@ -183,5 +221,5 @@ def test_when_fitnesses_tie_the_best_genome_is_the_lowest_indexed_agents(tmp_pat
     recorder.record_generation(1, [attempt_result] * len(fitnesses),
                                [np.zeros(2, dtype=np.uint8)] * len(fitnesses),
                                np.array(fitnesses), genomes, seconds=0.25)
-    best_genome = np.load(recorder.run_folder / "generations" / "0001" / "best_genome.npy")
+    best_genome = np.load(recorder.run_folder_path / "generations" / "0001" / "best_genome.npy")
     assert best_genome.tolist() == [best_agent, best_agent + 0.5]
