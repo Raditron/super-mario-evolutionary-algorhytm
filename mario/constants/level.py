@@ -101,6 +101,12 @@ ENEMY_FELL_OUT_SPRITE_Y_PIXELS = 256
 # An enemy spawns this far above the tile it rests on and drops onto it: the
 # original sets its sprite y to 16 * row, and it lands at 16 * row + 8.
 ENEMY_SPAWN_DROP_PIXELS = 8
+# A fireball skips an enemy that is off the screen (EnemyOffscrBitsMasked, its
+# offscreen bits masked by GetEnemyBoundBox): one whose x is this far or further
+# left of the screen's left edge, or this far or further right of it, past its
+# right edge.
+ENEMY_OFF_SCREEN_LEFT_PIXELS = 8
+ENEMY_OFF_SCREEN_RIGHT_X_PIXELS = SCREEN_WIDTH_PIXELS
 
 # --- Goomba size (BlockBuffer_X_Adder / _Y_Adder for enemies) -------------------------------
 

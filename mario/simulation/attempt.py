@@ -7,7 +7,8 @@ Controller log always gives the same Attempt.
 It ends when Mario dies or the level timer runs out, and, if the mode turns
 the stall rule on (training does, play doesn't), when he stalls. While Mario
 grows, shrinks or catches fire, everything else stands still, the level timer
-too; the ticks still count, and so does the stall rule.
+too, but for his fireballs, which the original runs every frame; the ticks
+still count, and so does the stall rule.
 """
 
 from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS
@@ -65,6 +66,7 @@ class Attempt:
         self.ticks_elapsed += 1
         if self.mario.is_changing_power_state:
             self.mario.continue_power_state_change(ControllerState(buttons))
+            self.fireballs.step(self._playfield, self.enemies.active, self.ticks_elapsed)
         else:
             self._play_one_tick(ControllerState(buttons))
         if self._stall_rule is not None:
@@ -115,7 +117,6 @@ class Attempt:
                 self.scoreboard.score_points(points, self.ticks_elapsed)
         if outcome.mario_took_damage:
             self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.TOOK_DAMAGE))
-            self.fireballs.clear()
         self._died_to_enemy = outcome.mario_died
 
     def _collect_touched_item(self) -> None:

@@ -270,10 +270,14 @@ class Mario(TileBody):
 
     def get_hurt(self) -> None:
         """An enemy hurt him (ForceInjury): small, he dies; big, he shrinks and
-        can't be hurt for a while. SetKRout puts him in the jumping state."""
+        can't be hurt for a while. Fiery, his fire goes at once (PlayerStatus,
+        GetPlayerColors), his size only at the flip. SetKRout puts him in the
+        jumping state."""
         if not self.is_big:
             self.is_dead = True
             return
+        if self.is_fiery:
+            self.power_state = PowerState.BIG
         self._is_crouching = False
         self.movement_state = MovementState.JUMPING
         self._power_state_change = PowerStateChange.shrinking()
@@ -281,8 +285,8 @@ class Mario(TileBody):
 
     def continue_power_state_change(self, controller: ControllerState) -> None:
         """One tick of growing, shrinking or catching fire, in which nothing else
-        moves. The jump button is still read, so a press must still be fresh when
-        play resumes."""
+        moves and he shoots nothing. Where the change reads the Controller, the
+        buttons are remembered, so a press must still be fresh when play resumes."""
         change = self._power_state_change
         change.step()
         if change.shown_body is not None:
@@ -291,8 +295,9 @@ class Mario(TileBody):
             self.power_state = change.power_state_after
         if change.is_over:
             self._power_state_change = None
-        self._jump_held_last_tick = controller.jump
-        self._run_held_last_tick = controller.run
+        if change.reads_controller:
+            self._jump_held_last_tick = controller.jump
+            self._run_held_last_tick = controller.run
         self.wants_to_shoot_fireball = False
 
     def _check_for_fireball_shot(self, controller: ControllerState) -> None:

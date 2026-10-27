@@ -90,6 +90,11 @@ def mario_box(attempt: Attempt) -> tuple[int, int, int, int]:
     return mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels
 
 
+def feet_y(attempt: Attempt) -> int:
+    _, y, _, height = mario_box(attempt)
+    return y + height
+
+
 def collect_the_item(attempt: Attempt, collected: GameEventKind) -> None:
     """Bump the block over Mario, wait for the item to rise out of it, then walk
     right after it until he touches it."""
@@ -226,6 +231,20 @@ def test_while_mario_grows_the_game_stands_still_and_his_box_follows_the_grow_an
     assert attempt.level_timer.time_left == timer_before
     attempt.step(HOLD_RIGHT)
     assert mario_box(attempt)[0] > boxes[0][0]
+
+
+def test_jump_held_through_the_growing_but_not_at_the_touch_is_a_fresh_press_when_play_resumes():
+    """While he grows, the original doesn't run the player control routine, the
+    only reader of the Controller (PlayerCtrlRoutine), so a press is judged against
+    the buttons held as he touched the mushroom."""
+    attempt = Attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}))
+    collect_the_item(attempt, GameEventKind.COLLECTED_MUSHROOM)
+    for _ in range(GROW_TICKS):
+        attempt.step(HOLD_JUMP)
+    feet_before = feet_y(attempt)
+    attempt.step(HOLD_JUMP)
+    attempt.step(HOLD_JUMP)
+    assert feet_y(attempt) < feet_before
 
 
 def test_the_hidden_block_releases_a_1_up_mushroom_that_moves_like_the_super_mushroom():

@@ -147,12 +147,14 @@ def test_a_fire_flower_collected_by_small_mario_only_makes_him_big():
     assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
 
 
-def test_fire_mario_touched_by_a_goomba_becomes_small_and_survives():
-    """ForceInjury sets PlayerStatus to small whether he was big or fiery."""
+def test_fire_mario_touched_by_a_goomba_loses_his_fire_at_once_then_becomes_small_and_survives():
+    """ForceInjury sets PlayerStatus to small whether he was big or fiery, and his
+    colours at once (GetPlayerColors); his size flips later, as big Mario's does."""
     attempt = fire_mario_attempt(build_level(enemy_spawns=(goomba_spawn(GOOMBA_AT_THE_SCREEN_EDGE_X),)))
     while GameEventKind.TOOK_DAMAGE not in event_kinds(attempt) and not attempt.is_over:
         attempt.step(HOLD_NOTHING)
     assert attempt.events == [GameEvent(attempt.ticks_elapsed, GameEventKind.TOOK_DAMAGE)]
+    assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
     for _ in range(SHRINK_TICKS):
         attempt.step(HOLD_NOTHING)
     assert not attempt.is_over

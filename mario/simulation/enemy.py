@@ -7,7 +7,13 @@ away from Mario and falls through everything, out of the level.
 
 from abc import ABC, abstractmethod
 
-from mario.constants.level import ENEMY_FELL_OUT_SPRITE_Y_PIXELS, ENEMY_SPAWN_DROP_PIXELS, TILE_SIZE_PIXELS
+from mario.constants.level import (
+    ENEMY_FELL_OUT_SPRITE_Y_PIXELS,
+    ENEMY_OFF_SCREEN_LEFT_PIXELS,
+    ENEMY_OFF_SCREEN_RIGHT_X_PIXELS,
+    ENEMY_SPAWN_DROP_PIXELS,
+    TILE_SIZE_PIXELS,
+)
 from mario.constants.physics import (
     BUMP_DEFEAT_SPEED_Y,
     ENEMY_GRAVITY,
@@ -47,10 +53,16 @@ class Enemy(WalkingBody, ABC):
         """Whether touching it hurts Mario."""
         return not self.is_defeated
 
-    @property
-    def can_be_hit_by_fireball(self) -> bool:
-        """FireballEnemyCDLoop skips a defeated enemy."""
-        return not self.is_defeated
+    def can_be_hit_by_fireball(self, screen_left_x_pixels: int) -> bool:
+        """FireballEnemyCDLoop skips a defeated enemy and one off the screen. Not
+        the same as being harmful: the original's fireball also hits a Koopa's
+        shell, which Mario kicks rather than gets hurt by."""
+        return not self.is_defeated and not self._is_off_screen(screen_left_x_pixels)
+
+    def _is_off_screen(self, screen_left_x_pixels: int) -> bool:
+        """EnemyOffscrBitsMasked, horizontally; the enemy's x is its sprite's."""
+        screen_x_pixels = self.hitbox().x_pixels - screen_left_x_pixels
+        return screen_x_pixels <= -ENEMY_OFF_SCREEN_LEFT_PIXELS or screen_x_pixels >= ENEMY_OFF_SCREEN_RIGHT_X_PIXELS
 
     @property
     def is_gone(self) -> bool:

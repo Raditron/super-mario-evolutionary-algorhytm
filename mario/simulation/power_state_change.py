@@ -5,6 +5,10 @@ PlayerInjuryBlink, PlayerFireFlower).
 The whole game stands still while a change runs. Growing and shrinking change
 his size part-way in, and his power state with it (SizeChange); catching fire
 leaves his size alone.
+
+Only while he shrinks does the original run its player control routine
+(PlayerInjuryBlink, from $F0 on), the one reader of the Controller; growing and
+catching fire, his buttons stay as they were when he touched the item.
 """
 
 from enum import StrEnum
@@ -21,24 +25,26 @@ class PowerState(StrEnum):
 
 
 class PowerStateChange:
-    def __init__(self, ticks: int, power_state_after: PowerState, size_change: SizeChange | None = None):
+    def __init__(self, ticks: int, power_state_after: PowerState, reads_controller: bool,
+                 size_change: SizeChange | None = None):
         self._ticks = ticks
         self.power_state_after = power_state_after
+        self.reads_controller = reads_controller
         self._size_change = size_change
         self._ticks_elapsed = 0
 
     @classmethod
     def growing(cls) -> "PowerStateChange":
-        return cls(GROW_TICKS, PowerState.BIG, SizeChange.growing())
+        return cls(GROW_TICKS, PowerState.BIG, reads_controller=False, size_change=SizeChange.growing())
 
     @classmethod
     def shrinking(cls) -> "PowerStateChange":
-        return cls(SHRINK_TICKS, PowerState.SMALL, SizeChange.shrinking())
+        return cls(SHRINK_TICKS, PowerState.SMALL, reads_controller=True, size_change=SizeChange.shrinking())
 
     @classmethod
     def catching_fire(cls) -> "PowerStateChange":
         """He is fiery from the touch on (UpToFiery); only the freeze is left."""
-        return cls(CATCH_FIRE_TICKS, PowerState.FIERY)
+        return cls(CATCH_FIRE_TICKS, PowerState.FIERY, reads_controller=False)
 
     @property
     def is_over(self) -> bool:
