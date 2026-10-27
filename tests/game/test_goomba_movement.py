@@ -1,6 +1,7 @@
 """Goombas walk, turn around at walls and fall, with the same tile collision as Mario (#17)."""
 
-from mario.level.static_level import EnemyKind, EnemySpawn
+from mario.level.static_level import EnemyKind, EnemySpawn, StaticLevel
+from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.goomba import Goomba
 from tests.game.helpers import GROUND_TOP_ROW, build_level
 
@@ -16,11 +17,12 @@ def goomba_at(column: int, resting_row: int = GROUND_TOP_ROW - 1) -> Goomba:
     return Goomba(EnemySpawn(EnemyKind.GOOMBA, column * 16, resting_row, column * 16))
 
 
-def step(goomba: Goomba, level, ticks: int) -> list[tuple[int, int]]:
+def step(goomba: Goomba, level: StaticLevel, ticks: int) -> list[tuple[int, int]]:
     """Step the Goomba; return its hitbox position after every tick."""
+    tiles = AttemptTiles(level)
     positions = []
     for _ in range(ticks):
-        goomba.step(level)
+        goomba.step(tiles)
         positions.append((goomba.hitbox().x_pixels, goomba.hitbox().y_pixels))
     return positions
 

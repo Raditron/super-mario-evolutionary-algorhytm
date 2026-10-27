@@ -270,6 +270,27 @@ These facts were sourced from [D] while building the Goombas. Line numbers refer
 - **Stomp rule:** as in the original, moving down at 1 px/f or more (`STOMP_MIN_FALL_SPEED`), wherever the feet are. The spec (§4) also asked for "feet above the enemy's centre". With the every-other-tick check, Mario falls up to about 9 px between checks, more than half of a 16 px Goomba, so that clause skipped the stomp. In a sweep of walking and running jumps onto a ground Goomba, 224 of 386 fall-ons killed Mario with the clause, and none without it.
 - **Squash time:** always the longest, 2 × 21 = 42 ticks, so it stays deterministic.
 
+## Added during the build (#18)
+
+These facts were sourced from [D] while building the blocks. Line numbers refer to the same file.
+
+| Fact | Value | Source |
+|---|---|---|
+| Which block the head hits | One head probe, at sprite (8, 18) for small Mario: the block over his centre. The block object is placed at `(Player_X + 8) & $F0`. | [D] `HeadChk` l. 11946-11965, `InitBlock_XY_Pos` l. 7290-7303 |
+| Head hits a block it can bump | `BumpBlock` sets the Y speed byte to 0; the fraction is kept. A hard or used block sets it to 1 instead (`NYSpd`). | [D] `BumpBlock` l. 7307-7314, `SolidOrClimb`/`NYSpd` l. 11967-11973 |
+| Bump lockout | `BlockBounceTimer` = `$10` frames after a bump. While it runs, a head hit bumps nothing and sets the Y speed byte to 1. | [D] `PlayerHeadCollision` l. 7263-7264, `HeadChk` l. 11962-11963 |
+| Bouncing block | Starts at Y speed −2 (`$FE`), gravity `$50`, max fall speed 8 (`MaxSpdBlockData`). It ends when the low nybble of its y is below 5 again, which is back in place: about 8 px up and down in 13 frames. While it bounces, its tile is the blank metatile `$23`. | [D] `BumpBlock` l. 7315-7316, `BouncingBlockHandler` l. 7481-7494, `ImposeGravityBlock` l. 7660-7666, `MaxSpdBlockData` l. 7653-7654, `PlayerHeadCollision` l. 7260-7262 |
+| What a hit does | Small Mario: a plain brick only bumps. A coin `?` block gives a coin (`CoinBlock` → `GiveOneCoin`: 1 coin, 200 points) and becomes the used block `$C4`, as do the power-up `?` block, the Starman brick and the hidden 1-UP block (their items come from `SetupPowerUp`). | [D] `PlayerHeadCollision` l. 7219-7258, `BumpBlock` l. 7317-7335, `CoinBlock`/`JCoinC` l. 6963-6998, `GiveOneCoin`/`CoinPoints` l. 7084-7102 |
+| Hidden 1-UP block | Not solid for Mario's feet and sides (`ChkInvisibleMTiles`), nor for enemies (`ChkForNonSolids`); only the head probe finds it. | [D] `ContChk` l. 12005-12006, `CheckSideMTiles` l. 12063-12065, `ChkInvisibleMTiles` l. 12238-12242, `ChkForNonSolids` l. 12712-12722 |
+| Enemy on a bouncing block | An enemy whose foot probe finds `$23` under it: a Goomba is defeated (`KillEnemyAboveBlock` → `ShellOrBlockDefeat`), 100 points. Both routines set the same floatey number, so it is 100 once, not twice. A Koopa is only stunned. The tile is then set to blank `$00` so it doesn't trigger again. | [D] `HandleEToBGCollision` l. 12436-12453, `ShellOrBlockDefeat` l. 11172-11199, `SetupFloateyNumber` l. 11533-11540 |
+| Defeated by a bump | Raised 2 px, X speed ±1 px/f (`$10`/`$F0`) away from Mario, Y speed −4 (`$FC`, overriding the stun's −3). It then falls with enemy gravity `$3D` up to 3 px/f, through all tiles. | [D] `ChkToStunEnemies` l. 12455-12492, `KillEnemyAboveBlock` l. 12686-12690, `MoveDefeatedEnemy` l. 9356-9358, `MoveD_EnemyVertically` l. 7599-7607 |
+
+**Replica choices**:
+- **Hidden block from below:** it stops a box that enters its row from below, and only then. Mario can't be inside it from the side and then reveal it by rising.
+- **Bounce end:** the block is back when its offset is no longer above its place. With the bounce's 8 px rise, that is the original's "low nybble below 5" test.
+- **One enemy per bump:** the original's `$00` write is not copied. Every enemy standing on a bouncing block is defeated. In 1-1, two Goombas are never over the same block: the pair stands 24 px apart.
+- **Who is left of whom:** the direction away from Mario compares the enemy's x with the left edge of Mario's hitbox, not his sprite x, which is 2 px further left.
+
 ## Not covered or uncertain
 
 - **Swimming** (rows 5–6 of the jump tables), **springboards** (Y −12 if A held, −7 otherwise [S]), **vines** and **whirlpools**. None of these appear in 1-1.

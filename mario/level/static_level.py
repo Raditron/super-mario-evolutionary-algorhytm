@@ -71,8 +71,9 @@ class StaticLevel:
         self.height_tiles = len(layer_1_rows)
         self._tile_rows = tuple(tuple(TILE_KIND_BY_CHARACTER[character] for character in row)
                                 for row in layer_1_rows)
-        # bytearrays: the fastest per-tile lookup from plain Python, for the hot path
-        self._solid_rows = tuple(bytearray(kind in SOLID_TILE_KINDS for kind in row)
+        # bytearrays: the fastest per-tile lookup from plain Python, for the hot path.
+        # Each Attempt copies them (AttemptTiles); nothing writes to these.
+        self.solid_rows = tuple(bytearray(kind in SOLID_TILE_KINDS for kind in row)
                                  for row in self._tile_rows)
         self.blocks = tuple(Block(column, row, kind)
                             for row, kinds in enumerate(self._tile_rows)
@@ -107,7 +108,7 @@ class StaticLevel:
             return False
         if column < 0 or column >= self.width_tiles:
             return True
-        return self._solid_rows[row][column] == 1
+        return self.solid_rows[row][column] == 1
 
 
 def _enemy_spawns_from_entry(entry: dict) -> tuple[EnemySpawn, ...]:

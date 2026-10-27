@@ -15,10 +15,12 @@ from mario.constants.level import (
     SMALL_MARIO_HITBOX_OFFSET_X_PIXELS,
     SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS,
     SMALL_MARIO_HITBOX_WIDTH_PIXELS,
+    SUBPIXEL_TO_TILE_SHIFT,
 )
 from mario.constants.physics import (
     AIR_RUN_CAP_SPEED,
     AREA_ENTRY_FALLING_GRAVITY,
+    BLOCK_BUMP_SPEED,
     FAST_DECELERATION,
     FAST_DECELERATION_SPEED,
     FAST_JUMP_FALLING_GRAVITY,
@@ -51,7 +53,7 @@ from mario.constants.physics import (
     Y_SUBSPEED_MASK,
 )
 from mario.controller.controller_state import LEFT, NO_DIRECTION, RIGHT, ControllerState
-from mario.level.static_level import StaticLevel
+from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.gravity import add_gravity
 from mario.simulation.tile_body import TileBody, VerticalContact
 
@@ -94,6 +96,9 @@ class Mario(TileBody):
         self.jump_held_last_tick = False
         # the left/right the movement used, after crouch-stopping (Left_Right_Buttons)
         self.held_direction = NO_DIRECTION
+        # (column, row) of the tile his head hit from below this tick: the one over
+        # his centre, where the original's single head probe is (sprite x + 8)
+        self.head_hit_tile: tuple[int, int] | None = None
 
     @property
     def pixel_x(self) -> int:
@@ -117,7 +122,8 @@ class Mario(TileBody):
     def is_on_ground(self) -> bool:
         return self.movement_state is MovementState.ON_GROUND
 
-    def step(self, controller: ControllerState, level: StaticLevel) -> None:
+    def step(self, controller: ControllerState, tiles: AttemptTiles) -> None:
+        self.head_hit_tile = None
         if self.running_timer > 0:
             self.running_timer -= 1
         self.held_direction = controller.direction
@@ -130,17 +136,17 @@ class Mario(TileBody):
             if self.held_direction != NO_DIRECTION:
                 self.facing_direction = self.held_direction
             self._impose_friction()
-            self._move_horizontally(level)
+            self._move_horizontally(tiles)
         else:
             self._choose_gravity(controller)
             if self.held_direction != NO_DIRECTION:
                 self._impose_friction()
-            self._move_horizontally(level)
-            self._move_vertically(level)
+            self._move_horizontally(tiles)
+            self._move_vertically(tiles)
         whole_speed_x = self.whole_speed_x
         if whole_speed_x != 0:
             self.moving_direction = RIGHT if whole_speed_x > 0 else LEFT
-        if self.is_on_ground and not self.is_standing_on_solid_tile(level):
+        if self.is_on_ground and not self.is_standing_on_solid_tile(tiles):
             self.movement_state = MovementState.FALLING
         self.jump_held_last_tick = controller.jump
 
@@ -154,6 +160,11 @@ class Mario(TileBody):
         """After a stomp (EnemyStomped): rise again at the bounce speed. The speed's
         fraction and the gravity are kept."""
         self.velocity_y = STOMP_BOUNCE_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
+
+    def bump_block(self) -> None:
+        """His head bumped the block it hit (BumpBlock): his rise stops dead. The
+        speed's fraction is kept."""
+        self.velocity_y = BLOCK_BUMP_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
 
     # --- PlayerPhysicsSub ---------------------------------------------------------------
 
@@ -240,16 +251,17 @@ class Mario(TileBody):
             return
         self.gravity = self.falling_gravity
 
-    def _move_horizontally(self, level: StaticLevel) -> None:
-        if self.move_horizontally(level, self.whole_speed_x):
+    def _move_horizontally(self, tiles: AttemptTiles) -> None:
+        if self.move_horizontally(tiles, self.whole_speed_x):
             self.velocity_x &= X_SUBSPEED_MASK
 
-    def _move_vertically(self, level: StaticLevel) -> None:
+    def _move_vertically(self, tiles: AttemptTiles) -> None:
         """ImposeGravity, then the original's landing and head-bump responses."""
-        contact = self.move_vertically(level, self.velocity_y)
+        contact = self.move_vertically(tiles, self.velocity_y)
         self.velocity_y = add_gravity(self.velocity_y, self.gravity, MARIO_TERMINAL_FALL_SPEED)
         if contact is VerticalContact.LANDED:
             self.velocity_y = 0
             self.movement_state = MovementState.ON_GROUND
         elif contact is VerticalContact.HIT_CEILING:
             self.velocity_y = HEAD_BUMP_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
+            self.head_hit_tile = (self.centre_column, (self.y >> SUBPIXEL_TO_TILE_SHIFT) - 1)

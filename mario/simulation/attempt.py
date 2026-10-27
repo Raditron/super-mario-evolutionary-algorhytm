@@ -12,6 +12,8 @@ from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS
 from mario.controller.controller_state import ControllerState
 from mario.level.static_level import StaticLevel
 from mario.simulation.attempt_result import AttemptResult, DefeatMethod, EndReason, GameEvent, GameEventKind
+from mario.simulation.attempt_tiles import AttemptTiles
+from mario.simulation.blocks import Blocks
 from mario.simulation.enemy_collision_check import EnemyCollisionCheck, EnemyCollisionOutcome
 from mario.simulation.enemy_roster import EnemyRoster
 from mario.simulation.level_timer import LevelTimer
@@ -27,6 +29,7 @@ class Attempt:
         with the screen's left edge at the checkpoint (play mode only)."""
         screen_left_x_pixels = CHECKPOINT_LEFT_X_PIXELS if from_checkpoint else 0
         self.level = level
+        self.tiles = AttemptTiles(level)
         self.mario = Mario(screen_left_x_pixels)
         self.scroll = Scroll(self.mario.pixel_x, screen_left_x_pixels)
         self.enemies = EnemyRoster(level.enemy_spawns)
@@ -37,6 +40,7 @@ class Attempt:
         self.furthest_x = self.mario.pixel_x
         self.events: list[GameEvent] = []
         self.scoreboard = Scoreboard(self.events)
+        self.blocks = Blocks(self.tiles, self.scoreboard, self.events)
         self._stall_rule = StallRule(self.mario.pixel_x) if ends_on_stall else None
         self.end_reason: EndReason | None = None
 
@@ -49,12 +53,17 @@ class Attempt:
             raise RuntimeError("the attempt is over")
         self.ticks_elapsed += 1
         pixel_x_before = self.mario.pixel_x
-        self.mario.step(ControllerState(buttons), self.level)
+        self.mario.step(ControllerState(buttons), self.tiles)
+        if (self.mario.head_hit_tile is not None
+                and self.blocks.hit_from_below(*self.mario.head_hit_tile, self.ticks_elapsed)):
+            self.mario.bump_block()
         self.scroll.follow(self.mario, self.mario.pixel_x - pixel_x_before)
-        self.enemies.step(self.level, self.scroll.left_x_pixels)
+        self.enemies.step(self.tiles, self.scroll.left_x_pixels)
+        self.blocks.defeat_enemies_on_bouncing_blocks(self.enemies.active, self.mario.x, self.ticks_elapsed)
         self._record_enemy_collisions(
             self._enemy_collision_check.step(self.ticks_elapsed, self.mario, self.enemies.active))
         self.furthest_x = max(self.furthest_x, self.mario.pixel_x)
+        self.blocks.step()
         self.level_timer.count_down()
         if self._stall_rule is not None:
             self._stall_rule.observe(self.mario.pixel_x)

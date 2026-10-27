@@ -13,6 +13,7 @@ class TileKind(StrEnum):
     STARMAN_BRICK = "starman_brick"
     MULTI_COIN_BRICK = "multi_coin_brick"
     HIDDEN_ONE_UP_BLOCK = "hidden_one_up_block"
+    USED_BLOCK = "used_block"
     PIPE = "pipe"
     FLAGPOLE = "flagpole"
     CASTLE_STOPPER = "castle_stopper"
@@ -38,8 +39,8 @@ TILE_KIND_BY_CHARACTER = {
     "W": TileKind.CASTLE_STOPPER,
 }
 
-# The hidden 1-UP block becomes solid only once it is hit from below, which a
-# later slice adds; the flagpole is touched, not stood on.
+# The hidden 1-UP block is solid only to a head coming from below; the flagpole
+# is touched, not stood on.
 SOLID_TILE_KINDS = frozenset({
     TileKind.GROUND,
     TileKind.HARD_BLOCK,
@@ -48,8 +49,14 @@ SOLID_TILE_KINDS = frozenset({
     TileKind.POWER_UP_QUESTION_BLOCK,
     TileKind.STARMAN_BRICK,
     TileKind.MULTI_COIN_BRICK,
+    TileKind.USED_BLOCK,
     TileKind.PIPE,
     TileKind.CASTLE_STOPPER,
+})
+
+# Tiles solid only to a head coming up from below, until hit.
+SOLID_FROM_BELOW_ONLY_TILE_KINDS = frozenset({
+    TileKind.HIDDEN_ONE_UP_BLOCK,
 })
 
 # Solid tiles nothing on screen shows: the castle stopper stands behind the castle

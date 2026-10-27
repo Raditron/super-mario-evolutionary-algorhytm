@@ -33,6 +33,7 @@ class GameEventKind(StrEnum):
 class DefeatMethod(StrEnum):
     """How an enemy was defeated: the detail of a defeated_enemy game event."""
     STOMP = "stomp"
+    BUMPED = "bumped"
 
 
 @dataclass(frozen=True)

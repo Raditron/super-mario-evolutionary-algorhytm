@@ -6,7 +6,8 @@ from mario.constants.level import (
     GOOMBA_HITBOX_WIDTH_PIXELS,
 )
 from mario.constants.physics import GOOMBA_WALK_SPEED, STOMPED_GOOMBA_TICKS
-from mario.level.static_level import EnemyKind, EnemySpawn, StaticLevel
+from mario.level.static_level import EnemyKind, EnemySpawn
+from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.enemy import Enemy
 
 
@@ -20,6 +21,10 @@ class Goomba(Enemy):
 
     @property
     def is_defeated(self) -> bool:
+        return self._is_squashed or super().is_defeated
+
+    @property
+    def _is_squashed(self) -> bool:
         return self._squashed_ticks_left is not None
 
     @property
@@ -29,8 +34,8 @@ class Goomba(Enemy):
     def stomp(self) -> None:
         self._squashed_ticks_left = STOMPED_GOOMBA_TICKS
 
-    def step(self, level: StaticLevel) -> None:
-        if self.is_defeated:
+    def step(self, tiles: AttemptTiles) -> None:
+        if self._is_squashed:
             self._squashed_ticks_left -= 1
             return
-        super().step(level)
+        super().step(tiles)

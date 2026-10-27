@@ -6,7 +6,8 @@ activated enemies start moving on the next tick.
 """
 
 from mario.constants.level import ENEMY_REMOVAL_RANGE_PIXELS
-from mario.level.static_level import EnemySpawn, StaticLevel
+from mario.level.static_level import EnemySpawn
+from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.enemy import Enemy
 from mario.simulation.enemy_spawner import EnemySpawner
 
@@ -16,9 +17,9 @@ class EnemyRoster:
         self.active: list[Enemy] = []
         self._spawner = EnemySpawner(spawns)
 
-    def step(self, level: StaticLevel, screen_left_x_pixels: int) -> None:
+    def step(self, tiles: AttemptTiles, screen_left_x_pixels: int) -> None:
         for enemy in self.active:
-            enemy.step(level)
+            enemy.step(tiles)
         self.active = [enemy for enemy in self.active if not self._is_out_of_play(enemy, screen_left_x_pixels)]
         self.active += self._spawner.activate_due(screen_left_x_pixels)
 
