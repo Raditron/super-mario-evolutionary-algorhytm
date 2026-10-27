@@ -17,6 +17,7 @@ from mario.constants.view import (
     PIPE_COLOUR,
     QUESTION_BLOCK_COLOUR,
     SKY_COLOUR,
+    USED_BLOCK_COLOUR,
 )
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
@@ -34,6 +35,7 @@ TILE_COLOURS = {
     TileKind.STARMAN_BRICK: BRICK_COLOUR,
     TileKind.MULTI_COIN_BRICK: BRICK_COLOUR,
     TileKind.HIDDEN_ONE_UP_BLOCK: HIDDEN_BLOCK_COLOUR,
+    TileKind.USED_BLOCK: USED_BLOCK_COLOUR,
     TileKind.PIPE: PIPE_COLOUR,
     TileKind.FLAGPOLE: FLAGPOLE_COLOUR,
     TileKind.CASTLE_STOPPER: CASTLE_STOPPER_COLOUR,
@@ -67,14 +69,17 @@ class DebugRenderer:
 
     @staticmethod
     def _draw_tiles(snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
+        """Every tile in its place, a bouncing block raised above it."""
         tiles = snapshot.tiles
+        bounce_offsets = {(block.column, block.row): block.offset_y_pixels for block in snapshot.bouncing_blocks}
         for row, kinds in enumerate(tiles.rows):
             for column_offset, kind in enumerate(kinds):
                 colour = TILE_COLOURS.get(kind)
                 if colour is None:
                     continue
+                column = tiles.first_column + column_offset
                 _fill_level_box(screen, colour, snapshot.screen_left_x_pixels,
-                                (tiles.first_column + column_offset) * TILE_SIZE_PIXELS, row * TILE_SIZE_PIXELS,
+                                column * TILE_SIZE_PIXELS, row * TILE_SIZE_PIXELS + bounce_offsets.get((column, row), 0),
                                 TILE_SIZE_PIXELS, TILE_SIZE_PIXELS)
 
     @staticmethod

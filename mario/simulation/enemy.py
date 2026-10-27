@@ -2,14 +2,23 @@
 
 An enemy spawns at its fixed spawn position, starts walking left, turns around
 at walls, and falls off ledges with enemy gravity, still walking. It uses the
-same axis-separated tile collision as Mario.
+same axis-separated tile collision as Mario. One defeated by a bumped block
+jumps up away from Mario and falls through everything, out of the level.
 """
 
 from abc import ABC, abstractmethod
 
 from mario.constants.level import ENEMY_FELL_OUT_SPRITE_Y_PIXELS, ENEMY_SPAWN_DROP_PIXELS, TILE_SIZE_PIXELS
-from mario.constants.physics import ENEMY_GRAVITY, ENEMY_TERMINAL_FALL_SPEED, SUBPIXELS_PER_PIXEL
-from mario.level.static_level import EnemyKind, EnemySpawn, StaticLevel
+from mario.constants.physics import (
+    BUMP_DEFEAT_SPEED_Y,
+    BUMPED_ENEMY_LIFT_PIXELS,
+    BUMPED_ENEMY_SPEED_X,
+    ENEMY_GRAVITY,
+    ENEMY_TERMINAL_FALL_SPEED,
+    SUBPIXELS_PER_PIXEL,
+)
+from mario.level.static_level import EnemyKind, EnemySpawn
+from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.gravity import add_gravity
 from mario.simulation.tile_body import TileBody, VerticalContact
 
@@ -29,10 +38,11 @@ class Enemy(TileBody, ABC):
         self.velocity_x = -walk_speed
         self.velocity_y = 0
         self.is_falling = True
+        self._is_knocked_off = False
 
     @property
     def is_defeated(self) -> bool:
-        return False
+        return self._is_knocked_off
 
     @property
     def is_harmful(self) -> bool:
@@ -48,22 +58,38 @@ class Enemy(TileBody, ABC):
     def stomp(self) -> None:
         """Mario landed on it."""
 
+    def defeat_by_bump(self, mario_x: int) -> None:
+        """The block under it was bumped (KillEnemyAboveBlock, ChkToStunEnemies)."""
+        self._is_knocked_off = True
+        self.y -= BUMPED_ENEMY_LIFT_PIXELS * SUBPIXELS_PER_PIXEL
+        self.velocity_y = BUMP_DEFEAT_SPEED_Y
+        self.velocity_x = BUMPED_ENEMY_SPEED_X if self.x >= mario_x else -BUMPED_ENEMY_SPEED_X
+
     @property
     def has_fallen_out(self) -> bool:
         """True once it has fallen below the screen into a pit."""
         return self.sprite_top_has_reached(ENEMY_FELL_OUT_SPRITE_Y_PIXELS)
 
-    def step(self, level: StaticLevel) -> None:
-        if self.move_horizontally(level, self.velocity_x):
+    def step(self, tiles: AttemptTiles) -> None:
+        if self._is_knocked_off:
+            self._fall_through_everything()
+            return
+        if self.move_horizontally(tiles, self.velocity_x):
             self.velocity_x = -self.velocity_x
         if self.is_falling:
-            self._fall(level)
-        elif not self.is_standing_on_solid_tile(level):
+            self._fall(tiles)
+        elif not self.is_standing_on_solid_tile(tiles):
             self.is_falling = True
 
-    def _fall(self, level: StaticLevel) -> None:
-        contact = self.move_vertically(level, self.velocity_y)
+    def _fall(self, tiles: AttemptTiles) -> None:
+        contact = self.move_vertically(tiles, self.velocity_y)
         self.velocity_y = add_gravity(self.velocity_y, ENEMY_GRAVITY, ENEMY_TERMINAL_FALL_SPEED)
         if contact is VerticalContact.LANDED:
             self.velocity_y = 0
             self.is_falling = False
+
+    def _fall_through_everything(self) -> None:
+        """MoveDefeatedEnemy: no tile stops it."""
+        self.x += self.velocity_x
+        self.y += self.velocity_y
+        self.velocity_y = add_gravity(self.velocity_y, ENEMY_GRAVITY, ENEMY_TERMINAL_FALL_SPEED)

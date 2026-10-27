@@ -87,6 +87,8 @@ World 1-1 is **224 × 15 tiles** of **16 × 16 px** (3584 × 240 px, 14 "pages" 
 
 Totals: 13 ? blocks (10 coin, 3 power-up), 1 Starman brick, 1 multi-coin brick, 1 hidden 1-UP block, and 28 plain bricks.
 
+**The multi-coin brick's timer** (added in #18): its first hit sets `BrickCoinTimer` to `$0B` interval ticks of 21 frames, so 211–231 frames depending on the interval clock. Every hit gives a coin and leaves the brick in place while the timer runs. The first hit after it has run out gives one more coin and turns the brick into a used block. The timer and its flag (`BrickCoinTimerFlag`) are one for the whole level. The replica always takes the longest, 231 ticks, as for the squashed Goomba. Source: [doppelganger's disassembly](https://gist.github.com/1wErt3r/4048722), `PlayerHeadCollision` l. 7240-7258 (`StartBTmr`/`ContBTmr`), `DecTimers` l. 789-799.
+
 The hidden 1-UP is only drawn when `Hidden1UpFlag` is set. A new game always sets it (`inc Hidden1UpFlag` at game start). The flag is cleared once the block has been rendered, so after a death the block does not come back in the original. For a training sandbox, always spawning it is the simpler choice.
 
 ## Pipes

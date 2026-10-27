@@ -75,7 +75,8 @@ MARIO_TERMINAL_FALL_SPEED = 4 * NES_Y_SPEED_UNIT
 # The fall speed is clamped only when its fraction is at least half a pixel,
 # so a fall can overshoot the cap for a tick (≈ 4.5 px/f).
 FALL_CAP_FRACTION_THRESHOLD = 0x80 * NES_Y_SUBSPEED_UNIT
-HEAD_BUMP_SPEED = 1 * NES_Y_SPEED_UNIT                       # after hitting a block from below
+HEAD_BUMP_SPEED = 1 * NES_Y_SPEED_UNIT                       # after hitting a hard or used block from below
+BLOCK_BUMP_SPEED = 0 * NES_Y_SPEED_UNIT                      # after bumping a block (BumpBlock)
 
 DEATH_JUMP_SPEED = -4 * NES_Y_SPEED_UNIT
 DEATH_GRAVITY = 0x28 * NES_GRAVITY_UNIT
@@ -98,6 +99,10 @@ SHELL_REVIVAL_INTERVAL_TICKS = 0x10                          # interval ticks be
 INTERVAL_TIMER_TICKS = 21                                    # ticks per interval tick
 BUMPED_ENEMY_SPEED_X = 16 * NES_X_SPEED_UNIT                 # knocked from below a block
 BUMPED_ENEMY_SPEED_Y = -3 * NES_Y_SPEED_UNIT
+BUMPED_ENEMY_LIFT_PIXELS = 2                                 # ChkToStunEnemies raises it this much
+# An enemy defeated by a bumped block (a Goomba; a Koopa is only stunned) jumps
+# faster (KillEnemyAboveBlock), then falls through everything (MoveDefeatedEnemy).
+BUMP_DEFEAT_SPEED_Y = -4 * NES_Y_SPEED_UNIT
 MUSHROOM_SPEED = 16 * NES_X_SPEED_UNIT                       # 1.0 px/f, starts moving right
 POWER_UP_EMERGE_PIXELS = 16                                  # rises out of its block this far
 POWER_UP_EMERGE_TICKS_PER_PIXEL = 4
@@ -113,6 +118,23 @@ ENEMY_TERMINAL_FALL_SPEED = 3 * NES_Y_SPEED_UNIT
 # at area start, so this is 22-42 ticks there; the replica always takes the longest.
 STOMPED_GOOMBA_INTERVAL_TICKS = 2
 STOMPED_GOOMBA_TICKS = STOMPED_GOOMBA_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
+
+# --- Blocks (PlayerHeadCollision, BumpBlock) ------------------------------------------------
+
+# After a bump, Mario's head bumps no block for this long (BlockBounceTimer): it
+# stops him as a hard block would.
+BLOCK_BOUNCE_LOCKOUT_TICKS = 0x10
+# A bumped block jumps up and falls back into place (BumpBlock, ImposeGravityBlock):
+# about 8 px up and down in 13 ticks.
+BLOCK_BOUNCE_SPEED = -2 * NES_Y_SPEED_UNIT
+BLOCK_BOUNCE_GRAVITY = 0x50 * NES_GRAVITY_UNIT
+BLOCK_BOUNCE_TERMINAL_FALL_SPEED = 8 * NES_Y_SPEED_UNIT      # MaxSpdBlockData
+
+# The multi-coin brick gives a coin per hit until BrickCoinTimer, started at its
+# first hit, runs out; the hit after that gives one more coin and uses it up. Like
+# STOMPED_GOOMBA_TICKS, the replica always takes the longest the interval clock allows.
+MULTI_COIN_BRICK_INTERVAL_TICKS = 0x0B
+MULTI_COIN_BRICK_TICKS = MULTI_COIN_BRICK_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
 
 # --- The Mario-enemy check (PlayerEnemyCollision) ----------------------------------------
 

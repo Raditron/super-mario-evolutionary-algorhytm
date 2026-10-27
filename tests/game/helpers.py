@@ -5,6 +5,7 @@ import copy
 from mario.constants.level import LEVEL_HEIGHT_TILES
 from mario.controller.controller_state import ControllerState
 from mario.level.static_level import EnemyKind, EnemySpawn, StaticLevel
+from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.mario import Mario
 
 GROUND_TOP_ROW = 13
@@ -19,14 +20,18 @@ HOLD_JUMP = ControllerState.bitmask(jump=True)
 
 def build_level(pit_columns: range = range(0), hard_blocks: frozenset[tuple[int, int]] = frozenset(),
                 width_tiles: int = TEST_LEVEL_WIDTH_TILES,
-                enemy_spawns: tuple[EnemySpawn, ...] = ()) -> StaticLevel:
+                enemy_spawns: tuple[EnemySpawn, ...] = (),
+                blocks: dict[tuple[int, int], str] | None = None) -> StaticLevel:
     """Open sky over two rows of ground, with an optional pit, hard blocks at
-    (column, row) and enemies."""
+    (column, row), other tiles by their level-data character, and enemies."""
+    blocks = blocks or {}
     rows = []
     for row in range(LEVEL_HEIGHT_TILES):
         characters = []
         for column in range(width_tiles):
-            if (column, row) in hard_blocks:
+            if (column, row) in blocks:
+                characters.append(blocks[column, row])
+            elif (column, row) in hard_blocks:
                 characters.append("#")
             elif row >= GROUND_TOP_ROW and column not in pit_columns:
                 characters.append("X")
@@ -49,6 +54,8 @@ def without_enemies(level: StaticLevel) -> StaticLevel:
 
 
 def step_mario(mario: Mario, level: StaticLevel, buttons: int, ticks: int = 1) -> None:
+    """Step Mario alone in the level, with no blocks to change."""
     controller = ControllerState(buttons)
+    tiles = AttemptTiles(level)
     for _ in range(ticks):
-        mario.step(controller, level)
+        mario.step(controller, tiles)

@@ -1,9 +1,10 @@
 """Builds Observations: what an agent perceives on one tick (spec section 7).
 
-The grid's tiles never change during an Attempt, so the window for every
-column Mario's centre can be in is worked out once per level. Building an
-Observation is then one table lookup plus the enemies; a batch of them is one
-numpy gather for the whole batch, which keeps training's hot path fast.
+The level's tiles are shared by every Attempt, so the window for every column
+Mario's centre can be in is worked out once per level. Building an Observation
+is then one table lookup, plus the few blocks the Attempt has changed and its
+enemies; a batch of them is one numpy gather for the whole batch, which keeps
+training's hot path fast.
 """
 
 import numpy as np
@@ -23,7 +24,7 @@ from mario.constants.observation import (
     SOLID_CELL,
 )
 from mario.level.static_level import StaticLevel
-from mario.level.tile_kind import INVISIBLE_SOLID_TILE_KINDS
+from mario.level.tile_kind import INVISIBLE_SOLID_TILE_KINDS, SOLID_TILE_KINDS, TileKind
 from mario.simulation.attempt import Attempt
 from mario.simulation.enemy import Enemy
 from mario.simulation.mario import Mario
@@ -75,6 +76,7 @@ class ObservationBuilder:
         grids = self.grid_of(observations)
         grids[...] = self._grid_by_centre_column[centre_columns]
         for grid, attempt, centre_column in zip(grids, attempts, centre_columns):
+            _mark_changed_blocks(grid, attempt.tiles.changed_blocks, _first_column(centre_column))
             _mark_enemies(grid, attempt.enemies.active, _first_column(centre_column))
         np.divide([_state_quantities(attempt.mario) for attempt in attempts], self._state_divisors,
                   out=self.state_numbers_of(observations))
@@ -88,6 +90,16 @@ def _first_column(centre_column: int) -> int:
 def _state_quantities(mario: Mario) -> tuple[int, int, int, int]:
     """Mario's state in the game's integer units, each to be divided by its divisor."""
     return mario.whole_speed_x, mario.velocity_y, mario.feet_y - OBSERVATION_BAND_TOP_Y, int(mario.is_on_ground)
+
+
+def _mark_changed_blocks(grid: np.ndarray, changed_blocks: dict[tuple[int, int], TileKind],
+                         first_column: int) -> None:
+    """Each block the attempt has changed shows as it now is, such as the hidden block once hit."""
+    for (column, row), kind in changed_blocks.items():
+        column_in_window = column - first_column
+        row_in_window = row - OBSERVATION_TOP_ROW
+        if 0 <= column_in_window < OBSERVATION_COLUMNS and 0 <= row_in_window < OBSERVATION_ROWS:
+            grid[row_in_window, column_in_window] = SOLID_CELL if _shows_as_solid(kind) else EMPTY_CELL
 
 
 def _mark_enemies(grid: np.ndarray, enemies: list[Enemy], first_column: int) -> None:
@@ -110,11 +122,12 @@ def _grids_by_centre_column(level: StaticLevel) -> np.ndarray:
     grids = np.empty((level.width_tiles, OBSERVATION_ROWS, OBSERVATION_COLUMNS), dtype=np.float64)
     for centre_column in range(level.width_tiles):
         first_column = _first_column(centre_column)
-        grids[centre_column] = [[SOLID_CELL if _shows_as_solid(level, column, row) else EMPTY_CELL
+        grids[centre_column] = [[SOLID_CELL if _shows_as_solid(level.tile_kind(column, row)) else EMPTY_CELL
                                  for column in range(first_column, first_column + OBSERVATION_COLUMNS)]
                                 for row in range(OBSERVATION_TOP_ROW, OBSERVATION_BOTTOM_ROW + 1)]
     return grids
 
 
-def _shows_as_solid(level: StaticLevel, column: int, row: int) -> bool:
-    return level.is_solid(column, row) and level.tile_kind(column, row) not in INVISIBLE_SOLID_TILE_KINDS
+def _shows_as_solid(kind: TileKind) -> bool:
+    """Whether the physics treats the tile as solid and it can be seen."""
+    return kind in SOLID_TILE_KINDS and kind not in INVISIBLE_SOLID_TILE_KINDS

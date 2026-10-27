@@ -36,6 +36,7 @@ TICKS_TO_REACH_THE_LEFT_EDGE = 60
 COLUMNS_OUTSIDE = 2                           # how far outside the level a misplaced Mario is put
 TEST_LEVEL_WIDTH = 40
 HIDDEN_BLOCK_COLUMN, HIDDEN_BLOCK_ROW = 5, 9  # in the window above Mario's spawn
+SPAWN_CENTRE_COLUMN = 3                       # the column holding small Mario's centre at spawn
 CASTLE_STOPPER_COLUMN, CASTLE_STOPPER_ROW = 8, 12  # in the window, on the ground right of Mario's spawn
 TICKS_TO_REACH_FULL_RUN_SPEED = 200
 # Height runs from 0 with his feet at the band's top (row 2, y = 32) to 1 with them
@@ -144,6 +145,15 @@ def test_the_hidden_block_shows_as_empty_until_it_is_hit():
     level = StaticLevel(rows)
     grid = grid_of(ObservationBuilder(level).build(Attempt(level)))
     assert np.count_nonzero(grid[:GROUND_ROW - TOP_ROW]) == 0
+
+
+def test_the_hidden_block_shows_as_solid_once_mario_has_hit_it():
+    level = build_level(width_tiles=TEST_LEVEL_WIDTH, blocks={(SPAWN_CENTRE_COLUMN, HIDDEN_BLOCK_ROW): "U"})
+    attempt = Attempt(level)
+    while not attempt.events:
+        attempt.step(HOLD_JUMP)
+    observation, first_column = ObservationBuilder(level).build_with_first_column(attempt)
+    assert grid_of(observation)[HIDDEN_BLOCK_ROW - TOP_ROW, SPAWN_CENTRE_COLUMN - first_column] == 1
 
 
 def test_the_invisible_castle_stopper_shows_as_empty_like_the_camera_wall():

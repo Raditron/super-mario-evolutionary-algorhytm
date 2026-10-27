@@ -23,6 +23,14 @@ class VisibleTiles:
 
 
 @dataclass(frozen=True)
+class BouncingBlockSnapshot:
+    """A block bumped from below, raised this many pixels above its place."""
+    column: int
+    row: int
+    offset_y_pixels: int
+
+
+@dataclass(frozen=True)
 class MarioSnapshot:
     """Mario's hitbox, in level pixels."""
     x_pixels: int
@@ -87,6 +95,7 @@ class WorldSnapshot:
     mario: MarioSnapshot
     enemies: tuple[EnemySnapshot, ...]
     hud: HudSnapshot
+    bouncing_blocks: tuple[BouncingBlockSnapshot, ...] = ()
     observation: ObservationSnapshot | None = None
     recent_events: tuple[GameEvent, ...] = ()        # oldest first
 
@@ -98,10 +107,10 @@ class WorldSnapshot:
         Given a builder, it also holds Mario's Observation for the Debug view."""
         screen_left_x_pixels = attempt.scroll.left_x_pixels
         first_column = screen_left_x_pixels // TILE_SIZE_PIXELS
-        level = attempt.level
-        rows = tuple(tuple(level.tile_kind(column, row)
+        tiles = attempt.tiles
+        rows = tuple(tuple(tiles.tile_kind(column, row)
                            for column in range(first_column, first_column + VISIBLE_COLUMNS))
-                     for row in range(level.height_tiles))
+                     for row in range(tiles.height_tiles))
         return cls(
             tick=attempt.ticks_elapsed,
             screen_left_x_pixels=screen_left_x_pixels,
@@ -109,6 +118,8 @@ class WorldSnapshot:
             mario=MarioSnapshot.of(attempt.mario),
             enemies=tuple(EnemySnapshot.of(enemy) for enemy in attempt.enemies.active),
             hud=hud if hud is not None else HudSnapshot.of(attempt),
+            bouncing_blocks=tuple(BouncingBlockSnapshot(block.column, block.row, block.offset_y_pixels)
+                                  for block in attempt.blocks.bouncing),
             observation=(ObservationSnapshot.of(attempt, observation_builder)
                          if observation_builder is not None else None),
             recent_events=_recent_events(attempt),
