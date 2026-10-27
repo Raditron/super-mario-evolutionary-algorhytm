@@ -3,6 +3,8 @@
 import numpy as np
 import pytest
 
+from mario.controller.controller_log_source import ControllerLogSource
+from mario.simulation.attempt import Attempt
 from mario.training.agent_worker_pool import AgentWorkerPool
 from mario.training.run_config import RunSettings
 from mario.training.trainer import GenerationListener, GenerationReport, Trainer
@@ -43,3 +45,26 @@ def test_every_agent_of_every_generation_gets_an_attempt_result_and_a_controller
         for played_attempt in report.played_attempts:
             assert played_attempt.controller_log.dtype == np.uint8
             assert len(played_attempt.controller_log) == played_attempt.attempt_result.ticks_elapsed
+
+
+def test_replaying_a_returned_controller_log_here_reproduces_its_attempt_result_exactly(
+        run_on_all_workers, world_1_1):
+    for report in run_on_all_workers:
+        for played_attempt in report.played_attempts:
+            source = ControllerLogSource(played_attempt.controller_log)
+            replayed = Attempt(world_1_1, ends_on_stall=True)
+            while not replayed.is_over:
+                replayed.step(source.next_buttons())
+            assert replayed.result() == played_attempt.attempt_result
+
+
+def test_the_same_seed_gives_identical_results_on_one_worker_and_on_eight(run_on_all_workers):
+    run_on_one_worker = train(1)
+    for one_worker, all_workers in zip(run_on_one_worker, run_on_all_workers, strict=True):
+        # every agent presses its own buttons, so a mix-up between agents would show
+        assert len({played.controller_log.tobytes() for played in all_workers.played_attempts}) == POPULATION_SIZE
+        assert [played.attempt_result for played in one_worker.played_attempts] == [
+            played.attempt_result for played in all_workers.played_attempts]
+        assert [played.controller_log.tolist() for played in one_worker.played_attempts] == [
+            played.controller_log.tolist() for played in all_workers.played_attempts]
+        assert one_worker.fitnesses.tolist() == all_workers.fitnesses.tolist()
