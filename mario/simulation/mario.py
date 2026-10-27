@@ -3,11 +3,19 @@
 Speeds keep the original's split into a whole part, which moves Mario, and a
 fraction, which only carries into the whole part. Every rule below names the
 disassembly routine it comes from (docs/research/smb-physics-constants.md).
+
+Big Mario moves exactly as small Mario does; only his box differs: taller, or
+small Mario's while he crouches. Changing size stops him, and the whole game,
+for a while (SizeChange); after shrinking he can't be hurt for a while.
 """
 
-from enum import Enum, auto
+from enum import Enum, StrEnum, auto
 
 from mario.constants.level import (
+    BIG_MARIO_HITBOX_HEIGHT_PIXELS,
+    BIG_MARIO_HITBOX_OFFSET_Y_PIXELS,
+    INTERMEDIATE_MARIO_HITBOX_HEIGHT_PIXELS,
+    INTERMEDIATE_MARIO_HITBOX_OFFSET_Y_PIXELS,
     MARIO_START_SPRITE_X_PIXELS,
     MARIO_START_SPRITE_Y_PIXELS,
     PIT_DEATH_SPRITE_Y_PIXELS,
@@ -21,12 +29,14 @@ from mario.constants.physics import (
     AIR_RUN_CAP_SPEED,
     AREA_ENTRY_FALLING_GRAVITY,
     BLOCK_BUMP_SPEED,
+    BRICK_BREAK_SPEED,
     FAST_DECELERATION,
     FAST_DECELERATION_SPEED,
     FAST_JUMP_FALLING_GRAVITY,
     FAST_JUMP_RISING_GRAVITY,
     FAST_JUMP_SPEED,
     HEAD_BUMP_SPEED,
+    INJURY_INVULNERABLE_TICKS,
     JUMP_HALT_RISE_PIXELS,
     MARIO_TERMINAL_FALL_SPEED,
     MEDIUM_JUMP_FALLING_GRAVITY,
@@ -55,6 +65,7 @@ from mario.constants.physics import (
 from mario.controller.controller_state import LEFT, NO_DIRECTION, RIGHT, ControllerState
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.gravity import add_gravity
+from mario.simulation.size_change import MarioBody, SizeChange
 from mario.simulation.tile_body import TileBody, VerticalContact
 
 
@@ -65,13 +76,26 @@ class MovementState(Enum):
     FALLING = auto()
 
 
-class Mario(TileBody):
-    """Small Mario. His position is the top-left corner of his hitbox."""
+class PowerState(StrEnum):
+    """The original's PlayerStatus."""
+    SMALL = "small"
+    BIG = "big"
 
-    hitbox_offset_y_pixels = SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS
+
+# Each body's box, as (how far below the sprite's top it starts, its height) in pixels.
+BODY_BOXES_PIXELS = {
+    MarioBody.SMALL: (SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS, SMALL_MARIO_HITBOX_HEIGHT_PIXELS),
+    MarioBody.INTERMEDIATE: (INTERMEDIATE_MARIO_HITBOX_OFFSET_Y_PIXELS, INTERMEDIATE_MARIO_HITBOX_HEIGHT_PIXELS),
+    MarioBody.BIG: (BIG_MARIO_HITBOX_OFFSET_Y_PIXELS, BIG_MARIO_HITBOX_HEIGHT_PIXELS),
+}
+
+
+class Mario(TileBody):
+    """His position is the top-left corner of his hitbox."""
 
     def __init__(self, screen_left_x_pixels: int = 0):
-        """Mario starts at the original's start position on a screen whose left edge is given."""
+        """Small Mario starts at the original's start position on a screen whose left edge is given."""
+        self.hitbox_offset_y_pixels = SMALL_MARIO_HITBOX_OFFSET_Y_PIXELS
         super().__init__(
             (screen_left_x_pixels + MARIO_START_SPRITE_X_PIXELS + SMALL_MARIO_HITBOX_OFFSET_X_PIXELS)
             * SUBPIXELS_PER_PIXEL,
@@ -99,6 +123,11 @@ class Mario(TileBody):
         # (column, row) of the tile his head hit from below this tick: the one over
         # his centre, where the original's single head probe is (sprite x + 8)
         self.head_hit_tile: tuple[int, int] | None = None
+        self.power_state = PowerState.SMALL
+        self._body = MarioBody.SMALL
+        self.is_crouching = False                    # CrouchingFlag
+        self._size_change: SizeChange | None = None
+        self._invulnerable_ticks_left = 0            # InjuryTimer
 
     @property
     def pixel_x(self) -> int:
@@ -122,10 +151,27 @@ class Mario(TileBody):
     def is_on_ground(self) -> bool:
         return self.movement_state is MovementState.ON_GROUND
 
+    @property
+    def is_big(self) -> bool:
+        return self.power_state is PowerState.BIG
+
+    @property
+    def is_changing_size(self) -> bool:
+        """While he grows or shrinks, the whole game stands still."""
+        return self._size_change is not None
+
+    @property
+    def is_invulnerable(self) -> bool:
+        """Whether an enemy's touch can't hurt him: from being hurt until a while after he has shrunk."""
+        return self._invulnerable_ticks_left > 0
+
     def step(self, controller: ControllerState, tiles: AttemptTiles) -> None:
         self.head_hit_tile = None
         if self.running_timer > 0:
             self.running_timer -= 1
+        if self._invulnerable_ticks_left > 0:
+            self._invulnerable_ticks_left -= 1
+        self._update_crouching(controller)
         self.held_direction = controller.direction
         if controller.down and self.is_on_ground:
             self.held_direction = NO_DIRECTION
@@ -165,6 +211,55 @@ class Mario(TileBody):
         """His head bumped the block it hit (BumpBlock): his rise stops dead. The
         speed's fraction is kept."""
         self.velocity_y = BLOCK_BUMP_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
+
+    def break_brick(self) -> None:
+        """His head broke the brick it hit (BrickShatter): he keeps rising, slower.
+        The speed's fraction is kept."""
+        self.velocity_y = BRICK_BREAK_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
+
+    def grow(self) -> None:
+        """He collected a Super Mushroom while small. SetPRout puts him in the
+        on-ground state wherever he is; he falls from there once play resumes."""
+        self.power_state = PowerState.BIG
+        self.movement_state = MovementState.ON_GROUND
+        self._size_change = SizeChange.growing()
+
+    def take_damage(self) -> None:
+        """An enemy hurt him while big (ForceInjury): he shrinks and can't be hurt
+        for a while. SetKRout puts him in the jumping state."""
+        self.power_state = PowerState.SMALL
+        self.is_crouching = False
+        self.movement_state = MovementState.JUMPING
+        self._size_change = SizeChange.shrinking()
+        self._invulnerable_ticks_left = INJURY_INVULNERABLE_TICKS
+
+    def continue_size_change(self, controller: ControllerState) -> None:
+        """One tick of growing or shrinking, in which nothing else moves. The jump
+        button is still read, so a press must still be fresh when play resumes."""
+        self._size_change.step()
+        self._take_body(self._size_change.shown_body)
+        if self._size_change.is_over:
+            self._size_change = None
+        self.jump_held_last_tick = controller.jump
+
+    def _update_crouching(self, controller: ControllerState) -> None:
+        """PlayerMovementSubs: big Mario crouches while he holds down on the ground,
+        and keeps it in the air. Crouching, his box is small Mario's."""
+        if not self.is_big:
+            self.is_crouching = False
+        elif self.is_on_ground:
+            self.is_crouching = controller.down
+        body = MarioBody.BIG if self.is_big and not self.is_crouching else MarioBody.SMALL
+        if body is not self._body:
+            self._take_body(body)
+
+    def _take_body(self, body: MarioBody) -> None:
+        """Take that body's box, keeping his feet where they are."""
+        self._body = body
+        feet_y = self.feet_y
+        self.hitbox_offset_y_pixels, height_pixels = BODY_BOXES_PIXELS[body]
+        self.height = height_pixels * SUBPIXELS_PER_PIXEL
+        self.y = feet_y - self.height
 
     # --- PlayerPhysicsSub ---------------------------------------------------------------
 

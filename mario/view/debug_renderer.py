@@ -13,15 +13,19 @@ from mario.constants.view import (
     GROUND_COLOUR,
     HARD_BLOCK_COLOUR,
     HIDDEN_BLOCK_COLOUR,
+    INVULNERABLE_MARIO_DRAWN_EVERY_TICKS,
     MARIO_COLOUR,
+    ONE_UP_MUSHROOM_COLOUR,
     PIPE_COLOUR,
     QUESTION_BLOCK_COLOUR,
     SKY_COLOUR,
+    SUPER_MUSHROOM_COLOUR,
     USED_BLOCK_COLOUR,
 )
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
-from mario.snapshots.world_snapshot import EnemySnapshot, WorldSnapshot
+from mario.simulation.mushroom import ItemKind
+from mario.snapshots.world_snapshot import EnemySnapshot, ItemSnapshot, WorldSnapshot
 from mario.view.debug_text import DebugText
 from mario.view.game_event_feed import GameEventFeed
 from mario.view.observation_overlay import ObservationOverlay
@@ -47,6 +51,12 @@ ENEMY_COLOURS = {
 }
 
 
+ITEM_COLOURS = {
+    ItemKind.SUPER_MUSHROOM: SUPER_MUSHROOM_COLOUR,
+    ItemKind.ONE_UP_MUSHROOM: ONE_UP_MUSHROOM_COLOUR,
+}
+
+
 class DebugRenderer:
     """Needs pygame's fonts initialised (the Window does it)."""
 
@@ -56,13 +66,21 @@ class DebugRenderer:
         self._game_event_feed = GameEventFeed(debug_text)
 
     def draw(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
+        """Items still rising out of their block are drawn behind it, as in the original."""
         screen.fill(SKY_COLOUR)
+        for item in snapshot.items:
+            if item.is_emerging:
+                self._draw_item(item, snapshot.screen_left_x_pixels, screen)
         self._draw_tiles(snapshot, screen)
+        for item in snapshot.items:
+            if not item.is_emerging:
+                self._draw_item(item, snapshot.screen_left_x_pixels, screen)
         for enemy in snapshot.enemies:
             self._draw_enemy(enemy, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
-        _fill_level_box(screen, MARIO_COLOUR, snapshot.screen_left_x_pixels,
-                        mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels)
+        if not mario.is_invulnerable or snapshot.tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0:
+            _fill_level_box(screen, MARIO_COLOUR, snapshot.screen_left_x_pixels,
+                            mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels)
         if snapshot.observation is not None:
             self._observation_overlay.draw(snapshot.observation, snapshot.screen_left_x_pixels, screen)
         self._game_event_feed.draw(snapshot.recent_events, screen)
@@ -89,6 +107,11 @@ class DebugRenderer:
         drawn_top_y_pixels = enemy.y_pixels + enemy.height_pixels - drawn_height_pixels
         _fill_level_box(screen, ENEMY_COLOURS[enemy.kind], screen_left_x_pixels,
                         enemy.x_pixels, drawn_top_y_pixels, enemy.width_pixels, drawn_height_pixels)
+
+    @staticmethod
+    def _draw_item(item: ItemSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
+        _fill_level_box(screen, ITEM_COLOURS[item.kind], screen_left_x_pixels,
+                        item.x_pixels, item.y_pixels, item.width_pixels, item.height_pixels)
 
 
 def _fill_level_box(screen: pygame.Surface, colour: tuple[int, int, int], screen_left_x_pixels: int,

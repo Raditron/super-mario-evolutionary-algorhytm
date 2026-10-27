@@ -11,8 +11,10 @@ from mario.constants.training import STALL_LIMIT_TICKS
 from mario.constants.snapshots import RECENT_GAME_EVENT_TICKS
 from mario.modes.play_session import PlaySession
 from mario.simulation.attempt_result import EndReason, GameEvent, GameEventKind
-from tests.game.helpers import HOLD_NOTHING, HOLD_RIGHT_RUN, build_level, goomba_spawn
+from tests.game.helpers import HOLD_JUMP, HOLD_NOTHING, HOLD_RIGHT, HOLD_RIGHT_RUN, build_level, goomba_spawn
 
+HIDDEN_ONE_UP_BLOCK = "U"
+HIDDEN_BLOCK_OVER_THE_START = (3, 9)            # over small Mario's centre, in reach of a standing jump
 PIT_BEFORE_THE_CHECKPOINT = range(10, 14)
 PIT_PAST_THE_CHECKPOINT = range(100, 104)
 STOMP_POINTS = 100
@@ -102,6 +104,27 @@ def test_every_100_coins_give_a_life_and_the_coin_count_restarts():
     lose_a_life(session)
     session.attempt.scoreboard.collect_coin(session.attempt.ticks_elapsed)
     assert (session.lives, session.coins) == (STARTING_LIVES, 0)
+
+
+def collect_the_1_up_over_the_start(session: PlaySession) -> None:
+    """Hit the hidden block over Mario's head, wait for the 1-UP mushroom to rise
+    out of it, then walk right after it until he touches it."""
+    session.step(HOLD_JUMP)
+    while session.attempt.mario.velocity_y < 0:
+        session.step(HOLD_JUMP)
+    while session.attempt.items.active[0].is_emerging:
+        session.step(HOLD_NOTHING)
+    while GameEventKind.COLLECTED_ONE_UP not in [event.kind for event in session.attempt.events]:
+        session.step(HOLD_RIGHT)
+
+
+def test_the_1_up_mushroom_adds_a_life_that_lasts_past_a_death():
+    session = PlaySession(build_level(pit_columns=PIT_BEFORE_THE_CHECKPOINT,
+                                      blocks={HIDDEN_BLOCK_OVER_THE_START: HIDDEN_ONE_UP_BLOCK}))
+    collect_the_1_up_over_the_start(session)
+    assert (session.lives, session.score) == (STARTING_LIVES + 1, 0)
+    lose_a_life(session)
+    assert session.lives == STARTING_LIVES
 
 
 def test_play_has_no_stall_rule():
