@@ -13,12 +13,13 @@ import pytest
 from mario.controller.controller_log_source import ControllerLogSource
 from mario.recording.run_recorder import RunRecorder
 from mario.simulation.attempt import Attempt
+from mario.simulation.attempt_result import AttemptResult, EndReason
 from mario.training.agent_worker_pool import AgentWorkerPool
 from mario.training.algorithm_factory import AlgorithmFactory
 from mario.training.generation_recorder import GenerationRecorder
 from mario.training.run_config import RunSettings
 from mario.training.trainer import GenerationListener, GenerationReport, Trainer
-from tests.game.random_buttons_algorithm import create_random_buttons_algorithm
+from tests.game.random_buttons_algorithm import RandomButtonsAlgorithm, create_random_buttons_algorithm
 
 SEED = 27
 GENERATIONS = 2
@@ -136,3 +137,51 @@ def test_a_controller_log_read_back_from_the_npz_replays_to_its_attempt_result_i
                 result.coins_collected] == [end_reason, int(furthest_x), int(ticks_elapsed), int(final_score),
                                             int(coins_collected)]
         assert result.ticks_elapsed == len(controller_log)
+
+
+class StoppedDuringSecondGeneration(RandomButtonsAlgorithm):
+    """The random-buttons double, stopped (as Ctrl+C stops a run) while scoring generation 2."""
+
+    def __init__(self):
+        self._fitness_calls = 0
+
+    def fitness(self, attempt_result: AttemptResult) -> float:
+        self._fitness_calls += 1
+        if self._fitness_calls > POPULATION_SIZE + 1:
+            raise KeyboardInterrupt
+        return super().fitness(attempt_result)
+
+
+def test_stopping_a_run_mid_generation_leaves_only_its_complete_generations(tmp_path):
+    recorder = start_recorder(tmp_path)
+    run_settings = RunSettings(name=RUN_NAME, seed=SEED, generations=GENERATIONS, population_size=POPULATION_SIZE)
+    with pytest.raises(KeyboardInterrupt):
+        with AgentWorkerPool(AlgorithmFactory(create_random_buttons_algorithm, {}), WORKER_COUNT) as worker_pool:
+            Trainer(StoppedDuringSecondGeneration(), worker_pool, run_settings,
+                    [GenerationRecorder(recorder)]).run()
+    run_folder = recorder.run_folder
+    assert files_under(run_folder) == {
+        "config.toml", "results.csv", "generation_times.csv",
+        "generations/0001/controller_logs.npz", "generations/0001/best_genome.npy",
+    }
+    _, *result_rows = read_rows(run_folder / "results.csv")
+    assert [(row[0], row[1]) for row in result_rows] == [("1", str(agent)) for agent in range(POPULATION_SIZE)]
+    _, *generation_time_rows = read_rows(run_folder / "generation_times.csv")
+    assert [row[0] for row in generation_time_rows] == ["1"]
+
+
+@pytest.mark.parametrize("fitnesses, best_agent", [
+    ([1.0, 3.0, 3.0, 2.0], 1),
+    ([5.0, 1.0, 5.0, 5.0], 0),
+    ([-2.0, -1.0, 0.5, 0.5], 2),
+])
+def test_when_fitnesses_tie_the_best_genome_is_the_lowest_indexed_agents(tmp_path, fitnesses, best_agent):
+    recorder = start_recorder(tmp_path)
+    genomes = [np.array([agent, agent + 0.5]) for agent in range(len(fitnesses))]
+    attempt_result = AttemptResult(EndReason.STALLED, furthest_x=40, ticks_elapsed=2, final_score=0,
+                                   coins_collected=0, events=())
+    recorder.record_generation(1, [attempt_result] * len(fitnesses),
+                               [np.zeros(2, dtype=np.uint8)] * len(fitnesses),
+                               np.array(fitnesses), genomes, seconds=0.25)
+    best_genome = np.load(recorder.run_folder / "generations" / "0001" / "best_genome.npy")
+    assert best_genome.tolist() == [best_agent, best_agent + 0.5]
