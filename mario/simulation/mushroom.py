@@ -13,6 +13,9 @@ from mario.constants.level import (
     TILE_SIZE_SUBPIXELS,
 )
 from mario.constants.physics import (
+    BUMPED_ENEMY_LIFT_PIXELS,
+    BUMPED_ENEMY_SPEED_X,
+    BUMPED_ENEMY_SPEED_Y,
     ITEM_EMERGE_PIXELS,
     ITEM_EMERGE_TICKS_PER_PIXEL,
     ITEM_TOUCHABLE_RISE_PIXELS,
@@ -41,6 +44,15 @@ class Mushroom(WalkingBody):
     def is_touchable(self) -> bool:
         """Whether Mario can collect it: once it has risen far enough out of its block."""
         return self._risen_pixels >= ITEM_TOUCHABLE_RISE_PIXELS
+
+    def hop_away_from(self, mario_x: int) -> None:
+        """The block under it was bumped from below (ChkToStunEnemies, SetStun, which
+        treat it as any enemy object): it is lifted, jumps and walks away from Mario.
+        With nothing under it now, it starts to fall the tick after."""
+        self.y -= BUMPED_ENEMY_LIFT_PIXELS * SUBPIXELS_PER_PIXEL
+        self.velocity_y = BUMPED_ENEMY_SPEED_Y
+        self.velocity_x = BUMPED_ENEMY_SPEED_X if self.x >= mario_x else -BUMPED_ENEMY_SPEED_X
+        self.is_falling = False
 
     def step(self, tiles: AttemptTiles) -> None:
         if self.is_emerging:

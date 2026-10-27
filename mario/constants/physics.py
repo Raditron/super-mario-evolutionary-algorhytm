@@ -97,7 +97,9 @@ AIRBORNE_SHELL_SLOWDOWN = 24 * NES_X_SPEED_UNIT              # taken off a shell
 REVIVED_KOOPA_SPEED = 8 * NES_X_SPEED_UNIT
 SHELL_REVIVAL_INTERVAL_TICKS = 0x10                          # interval ticks before a Koopa wakes
 INTERVAL_TIMER_TICKS = 21                                    # ticks per interval tick
-BUMPED_ENEMY_SPEED_X = 16 * NES_X_SPEED_UNIT                 # knocked from below a block
+# An enemy or a mushroom (to the original, an enemy object too) knocked from
+# below a block jumps up and walks away from Mario (SetStun, EnemyBGCXSpdData).
+BUMPED_ENEMY_SPEED_X = 16 * NES_X_SPEED_UNIT
 BUMPED_ENEMY_SPEED_Y = -3 * NES_Y_SPEED_UNIT
 BUMPED_ENEMY_LIFT_PIXELS = 2                                 # ChkToStunEnemies raises it this much
 # An enemy defeated by a bumped block (a Goomba; a Koopa is only stunned) jumps

@@ -90,6 +90,7 @@ class Attempt:
         self._record_enemy_collisions(
             self._enemy_collision_check.step(self.ticks_elapsed, self.mario, self.enemies.active))
         self.items.step(self.tiles, self.scroll.left_x_pixels)
+        self.blocks.knock_items_on_bumped_blocks(self.items.active, self.mario.x)
         self._collect_touched_item()
         self.furthest_x = max(self.furthest_x, self.mario.pixel_x)
         self.blocks.step()
