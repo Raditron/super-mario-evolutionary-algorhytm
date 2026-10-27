@@ -15,3 +15,8 @@ CHUNKS_PER_WORKER = 2
 # these environment variables, so the workers don't fight over the cores.
 BLAS_THREADS_PER_WORKER = 1
 BLAS_THREAD_COUNT_VARIABLES = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
+
+# --- The line printed per generation ---------------------------------------------------------
+
+PRINTED_FITNESS_DECIMALS = 2
+PRINTED_SECONDS_DECIMALS = 2
