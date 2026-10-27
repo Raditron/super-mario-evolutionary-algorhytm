@@ -1,5 +1,17 @@
-"""Training (#5, #7)."""
+"""Training (#5, #7, #26)."""
 
 # A training attempt stalls after this many ticks without a new furthest-right
 # position in the area Mario is in.
 STALL_LIMIT_TICKS = 180
+
+# --- The worker pool (#4, spec section 9) --------------------------------------------------
+
+# Worker processes playing agents, created once per run.
+TRAINING_WORKER_COUNT = 8
+# Each generation's population is split into this many chunks per worker, so a
+# worker that finishes a chunk of short attempts early picks up another.
+CHUNKS_PER_WORKER = 2
+# Each worker's numpy runs its linear algebra on this many threads, set through
+# these environment variables, so the workers don't fight over the cores.
+BLAS_THREADS_PER_WORKER = 1
+BLAS_THREAD_COUNT_VARIABLES = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
