@@ -7,8 +7,9 @@ from mario.constants.training import STALL_LIMIT_TICKS
 from mario.controller.controller_bitmask import held_buttons_from_bitmasks
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import EndReason
+from mario.simulation.observation_builder import ObservationBuilder
 from mario.training.chunk_player import ChunkPlayer
-from tests.game.helpers import HOLD_JUMP, HOLD_NOTHING, HOLD_RIGHT_RUN, build_level
+from tests.game.helpers import HOLD_JUMP, HOLD_NOTHING, HOLD_RIGHT, HOLD_RIGHT_RUN, build_level
 
 OBSERVATION_LENGTH = 160          # spec section 7
 PIT_AHEAD_OF_THE_SPAWN = range(10, 14)
@@ -73,6 +74,31 @@ def test_an_agent_whose_attempt_has_ended_keeps_showing_its_last_observation(lev
     last_observation = brain.observation_batches[last_decision][0]
     assert all(np.array_equal(batch[0], last_observation)
                for batch in brain.observation_batches[last_decision:])
+
+
+def observations_played_alone(level, buttons: int, chunk_ticks: int) -> list[np.ndarray]:
+    """The Observation a lone training attempt holding these buttons shows before each tick,
+    with its last one repeated after it ends, up to the chunk's last tick."""
+    observation_builder = ObservationBuilder(level)
+    attempt = Attempt(level, ends_on_stall=True)
+    observations = []
+    while not attempt.is_over:
+        observations.append(observation_builder.build(attempt))
+        attempt.step(buttons)
+    return observations + [observations[-1]] * (chunk_ticks - len(observations))
+
+
+def test_agent_i_sees_its_own_observation_in_row_i_every_tick_even_after_another_agent_ends(level_with_a_pit):
+    buttons_per_agent = [HOLD_RIGHT_RUN, HOLD_NOTHING, HOLD_RIGHT]   # falls first, stalls last, falls later
+    brain = FixedButtonsBrain(buttons_per_agent)
+    played = ChunkPlayer(level_with_a_pit).play(brain, agent_count=len(buttons_per_agent))
+    ticks_per_agent = [played_attempt.attempt_result.ticks_elapsed for played_attempt in played]
+    assert len(set(ticks_per_agent)) == len(buttons_per_agent)
+    chunk_ticks = len(brain.observation_batches)
+    for agent, buttons in enumerate(buttons_per_agent):
+        rows_shown = [batch[agent] for batch in brain.observation_batches]
+        expected_rows = observations_played_alone(level_with_a_pit, buttons, chunk_ticks)
+        assert all(np.array_equal(shown, expected) for shown, expected in zip(rows_shown, expected_rows, strict=True)), agent
 
 
 def test_a_brain_that_answers_wrongly_stops_the_chunk(level_with_a_pit):
