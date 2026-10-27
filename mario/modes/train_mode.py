@@ -11,7 +11,6 @@ from datetime import datetime
 from pathlib import Path
 
 from mario.recording.run_recorder import RunRecorder
-
 from mario.training.agent_worker_pool import AgentWorkerPool, WorkerStartError
 from mario.training.algorithm_factory import AlgorithmFactory, CreateAlgorithm
 from mario.training.generation_printer import GenerationPrinter
@@ -23,6 +22,7 @@ from mario.training.trainer import Trainer
 NOT_READY_MESSAGE = ("The learning algorithm isn't ready: {problem}.\n"
                      "Training needs the neuroevolution package at the repo root, exposing "
                      "create_algorithm(settings) that returns a NeuroevolutionAlgorithm.")
+RUN_ALREADY_STARTED_MESSAGE = "A run named {run_name!r} already started this minute: {run_folder}"
 
 
 class TrainMode:
@@ -38,19 +38,22 @@ class TrainMode:
             raise SystemExit(f"Can't read the run's config: {problem}") from None
         algorithm_factory = AlgorithmFactory(_import_create_algorithm(), config.algorithm_settings)
         algorithm = _create_algorithm(algorithm_factory)
-        run_recorder = self._start_recording(config.run.name)
         try:
-            with AgentWorkerPool(algorithm_factory) as worker_pool:
-                Trainer(algorithm, worker_pool, config.run,
-                        [GenerationRecorder(run_recorder), GenerationPrinter()]).run()
+            worker_pool = AgentWorkerPool(algorithm_factory)
         except WorkerStartError as problem:  # it built here, but not in a worker
             raise SystemExit(_not_ready(f"neuroevolution's {problem}")) from None
+        with worker_pool:
+            run_recorder = self._start_recording(config.run.name)
+            Trainer(algorithm, worker_pool, config.run,
+                    [GenerationRecorder(run_recorder), GenerationPrinter()]).run()
 
     def _start_recording(self, run_name: str) -> RunRecorder:
+        """Make the run folder: only once the algorithm has built here and in every worker."""
         try:
             return RunRecorder.start(self._runs_root, run_name, self._config_path, datetime.now())
         except FileExistsError as problem:
-            raise SystemExit(f"A run named {run_name!r} already started this minute: {problem.filename}") from None
+            raise SystemExit(RUN_ALREADY_STARTED_MESSAGE.format(
+                run_name=run_name, run_folder=problem.filename)) from None
 
 
 def _import_create_algorithm() -> CreateAlgorithm:

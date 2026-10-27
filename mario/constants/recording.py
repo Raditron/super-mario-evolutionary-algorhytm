@@ -1,6 +1,6 @@
 """The run folder (#7, #27, spec section 10): its name, its files and their formats."""
 
-# Run folders are made inside this folder, in the folder train is run from (the repo root).
+# Run folders are made inside this folder, at the repo root (git-ignored).
 RUNS_FOLDER_NAME = "runs"
 # A run folder is named after when the run started and the run's name: YYYY-MM-DD_HH-MM_<run-name>.
 RUN_FOLDER_TIMESTAMP_FORMAT = "%Y-%m-%d_%H-%M"

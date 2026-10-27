@@ -6,13 +6,15 @@ from pathlib import Path
 from mario.constants.recording import RUNS_FOLDER_NAME
 from mario.constants.training import DEFAULT_CONFIG_FILE_NAME
 
+REPO_ROOT = Path(__file__).parent.parent
 # config.toml sits at the repo root, next to the mario package.
-DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / DEFAULT_CONFIG_FILE_NAME
-# Run folders are made in runs/ of the folder train is run from: the repo root, where py -m mario runs.
-RUNS_ROOT = Path(RUNS_FOLDER_NAME)
+DEFAULT_CONFIG_PATH = REPO_ROOT / DEFAULT_CONFIG_FILE_NAME
+# Run folders are made in runs/ at the repo root, whatever folder train is run from.
+RUNS_ROOT = REPO_ROOT / RUNS_FOLDER_NAME
 
 
-def main() -> None:
+def main(runs_root: Path = RUNS_ROOT) -> None:
+    """runs_root: where train makes its run folder; tests pass a folder of their own."""
     parser = argparse.ArgumentParser(prog="py -m mario", description="Mario World 1-1 neuroevolution")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("play", help="play World 1-1 with the keyboard")
@@ -25,7 +27,7 @@ def main() -> None:
         PlayMode.with_keyboard().run()
     elif arguments.command == "train":
         from mario.modes.train_mode import TrainMode
-        TrainMode(arguments.config, RUNS_ROOT).run()
+        TrainMode(arguments.config, runs_root).run()
 
 
 if __name__ == "__main__":
