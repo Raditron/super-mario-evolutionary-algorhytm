@@ -12,5 +12,7 @@ WATCHED_TICKS_PER_SECOND = TICKS_PER_SECOND
 # Each chunk writes its snapshot into its own slot of shared memory, this big:
 # room for a chunk of a few thousand agents.
 SNAPSHOT_SLOT_BYTES = 1 << 20
-# A slot starts with the length of the snapshot written into it, in this many bytes (0: none yet).
+# A slot starts with the length of the snapshot written into it, in this many bytes (0: none yet),
+# in this byte order.
 SNAPSHOT_LENGTH_BYTES = 8
+SNAPSHOT_LENGTH_BYTE_ORDER = "little"

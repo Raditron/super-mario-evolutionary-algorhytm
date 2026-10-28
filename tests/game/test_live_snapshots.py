@@ -22,7 +22,7 @@ def test_an_agent_snapshot_holds_position_facing_power_state_area_and_whether_he
         attempt.step(HOLD_RIGHT)
     attempt.step(HOLD_LEFT)
     agent = AgentSnapshot.of(7, attempt)
-    assert agent.agent == 7
+    assert agent.agent_index == 7
     assert agent.mario == MarioSnapshot.of(attempt.mario)
     assert agent.mario.power_state is PowerState.BIG
     assert not agent.faces_right
@@ -38,24 +38,24 @@ def test_an_agent_whose_attempt_has_ended_is_no_longer_in_it(world_1_1: StaticLe
     assert not agent.is_in_attempt and not agent.reached_flag
 
 
-def agent_at(agent: int, x_pixels: int, is_in_attempt: bool = True, reached_flag: bool = False) -> AgentSnapshot:
-    return AgentSnapshot(agent, MarioSnapshot(x_pixels, 0, 12, 14), True, Area.LEVEL, is_in_attempt, reached_flag)
+def agent_at(agent_index: int, x_pixels: int, is_in_attempt: bool = True, reached_flag: bool = False) -> AgentSnapshot:
+    return AgentSnapshot(agent_index, MarioSnapshot(x_pixels, 0, 12, 14), True, Area.LEVEL, is_in_attempt, reached_flag)
 
 
 def test_the_followed_agent_is_the_rightmost_still_in_his_attempt():
     agents = [agent_at(0, 100), agent_at(1, 300, is_in_attempt=False), agent_at(2, 200)]
-    assert followed_agent(agents, previously_followed=None).agent == 2
+    assert followed_agent(agents, previously_followed_index=None).agent_index == 2
 
 
 def test_on_a_tie_the_lowest_agent_index_is_followed():
     agents = [agent_at(4, 200), agent_at(2, 200), agent_at(3, 100)]
-    assert followed_agent(agents, previously_followed=None).agent == 2
+    assert followed_agent(agents, previously_followed_index=None).agent_index == 2
 
 
 def test_once_every_attempt_has_ended_the_last_followed_agent_stays_followed():
     agents = [agent_at(0, 300, is_in_attempt=False), agent_at(1, 100, is_in_attempt=False)]
-    assert followed_agent(agents, previously_followed=1).agent == 1
-    assert followed_agent(agents, previously_followed=None).agent == 0
+    assert followed_agent(agents, previously_followed_index=1).agent_index == 1
+    assert followed_agent(agents, previously_followed_index=None).agent_index == 0
 
 
 EMPTY_WORLD = WorldSnapshot.of(Attempt(StaticLevel(["." * 20] * 15)))
@@ -67,9 +67,9 @@ def world_of(agent: AgentSnapshot) -> WorldSnapshot:
 
 
 def chunk(agents: list[AgentSnapshot], generation: int = GENERATION,
-          previously_followed: int | None = None) -> ChunkSnapshot:
-    followed = followed_agent(agents, previously_followed)
-    return ChunkSnapshot(generation, tuple(agents), followed.agent, world_of(followed))
+          previously_followed_index: int | None = None) -> ChunkSnapshot:
+    followed = followed_agent(agents, previously_followed_index)
+    return ChunkSnapshot(generation, tuple(agents), followed.agent_index, world_of(followed))
 
 
 def test_the_camera_shows_the_overall_rightmost_living_agents_world_with_the_others_as_ghosts():
@@ -79,7 +79,7 @@ def test_the_camera_shows_the_overall_rightmost_living_agents_world_with_the_oth
     shown = camera.snapshot(GENERATION, POPULATION_SIZE, [first_chunk, second_chunk])
     assert shown.mario.x_pixels == 500
     # the others still in their attempt, the rightmost first; the ended one has vanished
-    assert [ghost.agent for ghost in shown.ghosts] == [3, 2, 0]
+    assert [ghost.agent_index for ghost in shown.ghosts] == [3, 2, 0]
 
 
 def test_the_camera_cuts_to_the_next_rightmost_when_the_followed_agents_attempt_ends():
@@ -94,8 +94,8 @@ def test_the_camera_cuts_to_the_next_rightmost_when_the_followed_agents_attempt_
 def test_once_everyone_has_ended_the_camera_stays_on_the_last_followed_agent():
     camera = FollowedAgentCamera()
     camera.snapshot(GENERATION, POPULATION_SIZE, [chunk([agent_at(0, 500)]), chunk([agent_at(1, 100)])])
-    ended = [chunk([agent_at(0, 500, is_in_attempt=False)], previously_followed=0),
-             chunk([agent_at(1, 100, is_in_attempt=False)], previously_followed=1)]
+    ended = [chunk([agent_at(0, 500, is_in_attempt=False)], previously_followed_index=0),
+             chunk([agent_at(1, 100, is_in_attempt=False)], previously_followed_index=1)]
     assert camera.snapshot(GENERATION, POPULATION_SIZE, ended).mario.x_pixels == 500
 
 
@@ -103,7 +103,8 @@ def test_at_most_the_ghost_draw_limit_of_other_agents_are_ghosts_the_rightmost_o
     agents = [agent_at(agent, agent * AGENT_SPACING_PIXELS) for agent in range(GHOST_DRAW_LIMIT + 20)]
     shown = FollowedAgentCamera().snapshot(GENERATION, len(agents), [chunk(agents)])
     followed = len(agents) - 1
-    assert [ghost.agent for ghost in shown.ghosts] == list(range(followed - 1, followed - 1 - GHOST_DRAW_LIMIT, -1))
+    assert [ghost.agent_index for ghost in shown.ghosts] == list(
+        range(followed - 1, followed - 1 - GHOST_DRAW_LIMIT, -1))
 
 
 def test_the_hud_line_counts_the_agents_still_in_their_attempt_and_those_that_reached_the_flag():
@@ -129,5 +130,5 @@ def test_the_camera_stays_on_a_chunks_last_followed_agent_when_the_one_it_follow
     camera = FollowedAgentCamera()
     camera.snapshot(GENERATION, POPULATION_SIZE, [chunk([agent_at(0, 500), agent_at(1, 100)])])
     ended = chunk([agent_at(0, 500, is_in_attempt=False), agent_at(1, 120, is_in_attempt=False)],
-                  previously_followed=1)
+                  previously_followed_index=1)
     assert camera.snapshot(GENERATION, POPULATION_SIZE, [ended]).mario.x_pixels == 120

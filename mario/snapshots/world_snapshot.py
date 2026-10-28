@@ -5,20 +5,20 @@ from enum import StrEnum
 
 from mario.constants.level import SCREEN_WIDTH_PIXELS, TILE_SIZE_PIXELS
 from mario.constants.snapshots import RECENT_GAME_EVENT_TICKS
-from mario.level.static_level import EnemyKind
 from mario.controller.controller_state import RIGHT
+from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
+from mario.simulation.attempt_result import EndReason
 from mario.simulation.enemy import Enemy
 from mario.simulation.fireball import Fireball
 from mario.simulation.flagpole import Flag
-from mario.simulation.mario import Mario
 from mario.simulation.item import Item
+from mario.simulation.mario import Mario
 from mario.simulation.observation_builder import ObservationBuilder
 
 # The game's vocabulary a snapshot carries, handed on so that the view needs
 # nothing from the simulation (spec section 3).
-from mario.simulation.attempt_result import EndReason
 from mario.simulation.attempt_result import GameEvent as GameEvent
 from mario.simulation.item_kind import ItemKind as ItemKind
 from mario.simulation.mario import PowerState as PowerState
@@ -165,8 +165,12 @@ class Area(StrEnum):
 class AgentSnapshot:
     """One agent of a watched generation on one tick: his Mario's hitbox and power
     state, which way he faces, where he is, and whether he is still in his attempt
-    or has reached the flag."""
-    agent: int                                        # his index within the generation
+    or has reached the flag.
+
+    Which way he faces is kept for the texture pass (spec section 12): until
+    Mario's sprites get a facing, neither view draws one, for the followed agent
+    or for a ghost, so a ghost is drawn just as the followed agent is."""
+    agent_index: int                                  # his index within the generation
     mario: MarioSnapshot
     faces_right: bool
     area: Area
@@ -174,8 +178,8 @@ class AgentSnapshot:
     reached_flag: bool
 
     @classmethod
-    def of(cls, agent: int, attempt: Attempt) -> "AgentSnapshot":
-        return cls(agent, MarioSnapshot.of(attempt.mario), attempt.mario.facing_direction == RIGHT, Area.LEVEL,
+    def of(cls, agent_index: int, attempt: Attempt) -> "AgentSnapshot":
+        return cls(agent_index, MarioSnapshot.of(attempt.mario), attempt.mario.facing_direction == RIGHT, Area.LEVEL,
                    not attempt.is_over, attempt.end_reason is EndReason.REACHED_FLAG)
 
     @property

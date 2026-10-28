@@ -44,9 +44,9 @@ def test_the_snapshot_a_chunk_writes_into_its_slot_is_read_back_whole(channel, w
     [first, published, last] = channel.read_all()
     assert first is None and last is None
     assert published.generation == GENERATION
-    assert [agent.agent for agent in published.agents] == [FIRST_AGENT, FIRST_AGENT + 1]
+    assert [agent.agent_index for agent in published.agents] == [FIRST_AGENT, FIRST_AGENT + 1]
     # the chunk's followed agent is its rightmost, with his whole world and Observation
-    assert published.followed_agent == FIRST_AGENT + 1
+    assert published.followed_agent_index == FIRST_AGENT + 1
     assert published.followed_world == WorldSnapshot.of(attempts[1], observation_builder=ObservationBuilder(world_1_1))
     assert published.followed_world.observation is not None
 

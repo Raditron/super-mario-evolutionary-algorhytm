@@ -29,7 +29,7 @@ class LiveChunkPublisher:
         self._generation = generation
         self._first_agent = first_agent
         self._observation_builder = observation_builder
-        self._followed_agent: int | None = None
+        self._followed_agent_index: int | None = None
         self._ticks_played = 0
         self._started_at = time.perf_counter()
 
@@ -38,11 +38,11 @@ class LiveChunkPublisher:
         self._ticks_played += 1
         self._wait_for_the_ticks_moment()
         agents = [AgentSnapshot.of(self._first_agent + offset, attempt) for offset, attempt in enumerate(attempts)]
-        followed = followed_agent(agents, self._followed_agent)
-        self._followed_agent = followed.agent
-        followed_world = WorldSnapshot.of(attempts[followed.agent - self._first_agent],
+        followed = followed_agent(agents, self._followed_agent_index)
+        self._followed_agent_index = followed.agent_index
+        followed_world = WorldSnapshot.of(attempts[followed.agent_index - self._first_agent],
                                           observation_builder=self._observation_builder)
-        self._channel_writer.write(self._slot, ChunkSnapshot(self._generation, tuple(agents), followed.agent,
+        self._channel_writer.write(self._slot, ChunkSnapshot(self._generation, tuple(agents), followed.agent_index,
                                                              followed_world))
 
     def _wait_for_the_ticks_moment(self) -> None:

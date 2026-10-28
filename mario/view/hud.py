@@ -11,6 +11,7 @@ import pygame
 
 from mario.constants.level import WORLD_NAME
 from mario.constants.view import (
+    GENERATION_LINE,
     GENERATION_LINE_FONT_SIZE,
     GENERATION_LINE_TOP_LEFT,
     HUD_CELL_PIXELS,
@@ -34,7 +35,6 @@ from mario.constants.view import (
 from mario.snapshots.world_snapshot import GenerationProgress, HudSnapshot
 
 Cell = tuple[int, int]
-GENERATION_LINE = "generation {generation} · alive {alive} / {population_size} · reached flag {reached_flag}"
 
 
 def generation_line(progress: GenerationProgress) -> str:

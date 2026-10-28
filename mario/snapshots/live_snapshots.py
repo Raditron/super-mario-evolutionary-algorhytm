@@ -16,17 +16,17 @@ from mario.snapshots.world_snapshot import AgentSnapshot, WorldSnapshot
 class ChunkSnapshot:
     generation: int
     agents: tuple[AgentSnapshot, ...]
-    followed_agent: int                               # his index within the generation
+    followed_agent_index: int                         # his index within the generation
     followed_world: WorldSnapshot                     # with his Observation, for the Debug view
 
 
-def followed_agent(agents: Sequence[AgentSnapshot], previously_followed: int | None) -> AgentSnapshot:
+def followed_agent(agents: Sequence[AgentSnapshot], previously_followed_index: int | None) -> AgentSnapshot:
     """The followed agent: the rightmost still in his attempt, the lowest index on a
     tie. Once every attempt has ended, the one followed before stays followed (with
     none before, the rightmost of all)."""
     living_agents = [agent for agent in agents if agent.is_in_attempt]
-    if not living_agents and previously_followed is not None:
-        return next(agent for agent in agents if agent.agent == previously_followed)
+    if not living_agents and previously_followed_index is not None:
+        return next(agent for agent in agents if agent.agent_index == previously_followed_index)
     return max(living_agents or agents, key=_rank)
 
 
@@ -36,4 +36,4 @@ def rightmost_first(agents: Sequence[AgentSnapshot]) -> list[AgentSnapshot]:
 
 
 def _rank(agent: AgentSnapshot) -> tuple[int, int]:
-    return agent.ranking_x_pixels, -agent.agent
+    return agent.ranking_x_pixels, -agent.agent_index

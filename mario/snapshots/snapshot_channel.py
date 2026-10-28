@@ -16,11 +16,9 @@ from dataclasses import dataclass
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing.synchronize import Lock
 
-from mario.constants.snapshots import SNAPSHOT_LENGTH_BYTES, SNAPSHOT_SLOT_BYTES
+from mario.constants.snapshots import SNAPSHOT_LENGTH_BYTE_ORDER, SNAPSHOT_LENGTH_BYTES, SNAPSHOT_SLOT_BYTES
 from mario.constants.training import WORKER_START_METHOD
 from mario.snapshots.live_snapshots import ChunkSnapshot
-
-LENGTH_BYTE_ORDER = "little"
 
 
 class SnapshotChannel:
@@ -63,16 +61,21 @@ class OpenSnapshotChannelWriter:
         if SNAPSHOT_LENGTH_BYTES + len(pickled) > SNAPSHOT_SLOT_BYTES:
             raise ValueError(f"a chunk snapshot of {len(pickled)} bytes doesn't fit a slot of "
                              f"{SNAPSHOT_SLOT_BYTES}: play smaller chunks or make SNAPSHOT_SLOT_BYTES bigger")
-        start = slot * SNAPSHOT_SLOT_BYTES
+        length_bytes, snapshot_start = _slot_layout(slot)
         with self._slot_locks[slot]:
-            self._memory.buf[start:start + SNAPSHOT_LENGTH_BYTES] = len(pickled).to_bytes(
-                SNAPSHOT_LENGTH_BYTES, LENGTH_BYTE_ORDER)
-            self._memory.buf[start + SNAPSHOT_LENGTH_BYTES:start + SNAPSHOT_LENGTH_BYTES + len(pickled)] = pickled
+            self._memory.buf[length_bytes] = len(pickled).to_bytes(SNAPSHOT_LENGTH_BYTES, SNAPSHOT_LENGTH_BYTE_ORDER)
+            self._memory.buf[snapshot_start:snapshot_start + len(pickled)] = pickled
 
 
 def _read_slot(memory: SharedMemory, slot: int, slot_lock: Lock) -> ChunkSnapshot | None:
-    start = slot * SNAPSHOT_SLOT_BYTES
+    length_bytes, snapshot_start = _slot_layout(slot)
     with slot_lock:
-        length = int.from_bytes(memory.buf[start:start + SNAPSHOT_LENGTH_BYTES], LENGTH_BYTE_ORDER)
-        pickled = bytes(memory.buf[start + SNAPSHOT_LENGTH_BYTES:start + SNAPSHOT_LENGTH_BYTES + length])
+        length = int.from_bytes(memory.buf[length_bytes], SNAPSHOT_LENGTH_BYTE_ORDER)
+        pickled = bytes(memory.buf[snapshot_start:snapshot_start + length])
     return pickle.loads(pickled) if length else None
+
+
+def _slot_layout(slot: int) -> tuple[slice, int]:
+    """Where in the memory the slot keeps its snapshot's length, and where the snapshot starts."""
+    slot_start = slot * SNAPSHOT_SLOT_BYTES
+    return slice(slot_start, slot_start + SNAPSHOT_LENGTH_BYTES), slot_start + SNAPSHOT_LENGTH_BYTES

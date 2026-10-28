@@ -85,8 +85,9 @@ class DebugRenderer:
     def _draw_ghost(ghost: AgentSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         mario = ghost.mario
         pygame.draw.rect(screen, MARIO_COLOURS[mario.power_state],
-                         pygame.Rect(mario.x_pixels - screen_left_x_pixels, mario.y_pixels,
-                                     mario.width_pixels, mario.height_pixels), GHOST_OUTLINE_WIDTH_PIXELS)
+                         _level_box_on_screen(screen_left_x_pixels, mario.x_pixels, mario.y_pixels,
+                                              mario.width_pixels, mario.height_pixels),
+                         GHOST_OUTLINE_WIDTH_PIXELS)
 
     @staticmethod
     def _draw_fireball(fireball: FireballSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
@@ -103,4 +104,11 @@ class DebugRenderer:
 def _fill_level_box(screen: pygame.Surface, colour: tuple[int, int, int], screen_left_x_pixels: int,
                     level_x_pixels: int, y_pixels: int, width_pixels: int, height_pixels: int) -> None:
     """Fill a box given in level pixels, shifted onto the screen."""
-    screen.fill(colour, pygame.Rect(level_x_pixels - screen_left_x_pixels, y_pixels, width_pixels, height_pixels))
+    screen.fill(colour, _level_box_on_screen(screen_left_x_pixels, level_x_pixels, y_pixels,
+                                             width_pixels, height_pixels))
+
+
+def _level_box_on_screen(screen_left_x_pixels: int, level_x_pixels: int, y_pixels: int,
+                         width_pixels: int, height_pixels: int) -> pygame.Rect:
+    """A box given in level pixels, shifted onto the screen."""
+    return pygame.Rect(level_x_pixels - screen_left_x_pixels, y_pixels, width_pixels, height_pixels)

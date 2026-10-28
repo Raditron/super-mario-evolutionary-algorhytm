@@ -18,7 +18,7 @@ from mario.snapshots.world_snapshot import GenerationProgress, WorldSnapshot
 
 class FollowedAgentCamera:
     def __init__(self):
-        self._followed_agent: int | None = None
+        self._followed_agent_index: int | None = None
 
     def snapshot(self, generation: int, population_size: int,
                  chunk_snapshots: Sequence[ChunkSnapshot | None]) -> WorldSnapshot | None:
@@ -32,14 +32,16 @@ class FollowedAgentCamera:
         agents = [agent for chunk in chunks for agent in chunk.agents]
         # Each chunk's own followed agent: only their worlds were published, and the
         # overall followed agent is always one of them.
-        followed_per_chunk = {chunk.followed_agent for chunk in chunks}
-        candidates = [agent for agent in agents if agent.agent in followed_per_chunk]
-        if self._followed_agent not in followed_per_chunk:  # another generation's, or no longer his chunk's
-            self._followed_agent = None
-        followed = followed_agent(candidates, self._followed_agent)
-        self._followed_agent = followed.agent
-        followed_world = next(chunk.followed_world for chunk in chunks if chunk.followed_agent == followed.agent)
-        ghosts = rightmost_first([agent for agent in agents if agent.is_in_attempt and agent.agent != followed.agent])
+        followed_per_chunk = {chunk.followed_agent_index for chunk in chunks}
+        candidates = [agent for agent in agents if agent.agent_index in followed_per_chunk]
+        if self._followed_agent_index not in followed_per_chunk:  # another generation's, or no longer his chunk's
+            self._followed_agent_index = None
+        followed = followed_agent(candidates, self._followed_agent_index)
+        self._followed_agent_index = followed.agent_index
+        followed_world = next(chunk.followed_world for chunk in chunks
+                              if chunk.followed_agent_index == followed.agent_index)
+        ghosts = rightmost_first([agent for agent in agents
+                                  if agent.is_in_attempt and agent.agent_index != followed.agent_index])
         ended_count = sum(not agent.is_in_attempt for agent in agents)
         reached_flag_count = sum(agent.reached_flag for agent in agents)
         return replace(followed_world, ghosts=tuple(ghosts[:GHOST_DRAW_LIMIT]),
