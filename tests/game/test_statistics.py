@@ -7,12 +7,15 @@ generation_times.csv, so the folders hold nothing else.
 
 import csv
 import re
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 
 import pytest
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 
+import mario
 from mario.__main__ import main
 from mario.constants.statistics import END_REASON_COLOURS, REACHED_FLAG_END_REASON
 from mario.modes.stats_mode import StatsMode
@@ -28,6 +31,14 @@ PNG_SIGNATURE = bytes([0x89]) + b"PNG"
 SIX_CHARTS = {"fitness.png", "distance.png", "end_reasons.png", "where_attempts_end.png", "coins_and_time.png",
               "seconds_per_generation.png"}
 FLAG_TIME_LINE_LABEL = "fastest flag time (s)"
+REPO_ROOT = Path(mario.__file__).parent.parent
+# Writes one run folder's statistics in a fresh interpreter, then says whether pyplot was ever loaded.
+HEADLESS_PROBE = """import sys
+from datetime import datetime
+from pathlib import Path
+from mario.modes.stats_mode import StatsMode
+StatsMode([Path(sys.argv[1])], Path(sys.argv[2]), datetime.now()).run()
+print('matplotlib.pyplot' in sys.modules)"""
 
 # Three generations of three agents. The flag is first reached in generation 2;
 # the best fitness is generation 3's agent 1; the fastest finish is generation
@@ -224,6 +235,24 @@ def test_py_m_mario_stats_with_two_run_folders_writes_their_comparison_into_the_
     main(runs_root)
     (comparison_folder,) = (runs_root / "comparisons").iterdir()
     assert (comparison_folder / "comparison.txt").is_file()
+
+
+def test_stats_writes_its_charts_without_ever_loading_pyplot(tmp_path):
+    """pyplot picks a GUI backend and keeps global figures; stats must run headless, as training does."""
+    run_folder = write_run_folder(tmp_path / "runs" / FINISHED_RUN_NAME, FINISHED_RUN_RESULTS,
+                                  FINISHED_RUN_GENERATION_TIMES)
+    probe = subprocess.run([sys.executable, "-c", HEADLESS_PROBE, str(run_folder), str(tmp_path / "runs")],
+                           capture_output=True, text=True, check=True, cwd=REPO_ROOT)
+    assert probe.stdout.strip().splitlines()[-1] == "False"
+    assert SIX_CHARTS <= {path.name for path in (run_folder / "statistics").iterdir()}
+
+
+def test_every_chart_is_drawn_on_the_agg_canvas(tmp_path):
+    runs_root = tmp_path / "runs"
+    run_statistics = [RunStatisticsReport(folder) for folder in two_run_folders(runs_root)]
+    figures = [*run_statistics[0].charts().values(),
+               ComparisonReport(run_statistics, runs_root / COMPARISON_FOLDER).chart()]
+    assert all(type(figure.canvas) is FigureCanvasAgg for figure in figures)
 
 
 def test_statistics_knows_every_end_reason_without_importing_the_simulation():
