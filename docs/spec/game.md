@@ -55,8 +55,13 @@ mario/
                   ObservationBuilder (no pygame)
   controller/     Controller bitmask, ControllerSource, ControllerLogSource,
                   BrainControllerSource (no pygame)
-  snapshots/      WorldSnapshot + the shared-memory channel
-  training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool, ChunkPlayer
+  snapshots/      WorldSnapshot (with AgentSnapshot, GenerationProgress), the
+                  followed-agent rule and ChunkSnapshot, the shared-memory
+                  SnapshotChannel, and LiveChunkPublisher: a watched worker's
+                  pacing and publishing (no pygame)
+  training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool, ChunkPlayer,
+                  PlayWatcher (what the pool hands the main process to while a
+                  watched generation plays) and ViewerClosed
   recording/      RunFolder, RunRecorder (training's GenerationRecorder feeds it),
                   RecordedRun: a run folder read back for replay; ResultsRow:
                   one row of results.csv, written and read back by RESULTS_COLUMNS;
@@ -64,9 +69,9 @@ mario/
   statistics/     charts and summary from run folders (only matplotlib importer)
   view/           Window, KeyboardControllerSource, SpriteRenderer, DebugRenderer,
                   HUD, Viewer (window + both views + HUD, with F1, shared by every
-                  mode that draws), followed-agent camera (only pygame importer)
-  modes/          PlayMode (+ PlaySession), TrainMode, ReplayMode (+ ReplaySession),
-                  StatsMode
+                  mode that draws), FollowedAgentCamera (only pygame importer)
+  modes/          PlayMode (+ PlaySession), TrainMode, WatchLive (watch-live's
+                  window, a PlayWatcher), ReplayMode (+ ReplaySession), StatsMode
 neuroevolution/   the user's package; exposes create_algorithm(settings)
 assets/sprites/   textures, added last (section 12)
 tests/game/       the game's pytest suite
@@ -280,7 +285,13 @@ runs/YYYY-MM-DD_HH-MM_<run-name>/
   - The window draws the latest snapshot.
   - Without `--watch`, nothing is written and training runs at full speed. The budget at real time is about 25–40 s per generation.
   - *Suggested shape:* each worker publishes full detail for its own rightmost living agent, and the window uses the overall rightmost.
-- **All-ghost replay** reuses the same worker + snapshot pipeline, with `ControllerLogSource` in place of the brain.
+  - **As built (#29):**
+    - Watched, the pool starts one process per chunk (`TRAINING_WORKER_COUNT` × `CHUNKS_PER_WORKER`), so every chunk plays at once and a generation lasts about as long as its longest attempt. The chunks are the very ones a headless run plays, so every brain gets the same rows and results are identical.
+    - Each chunk has its own slot in a `SnapshotChannel` (one lock per slot, `SNAPSHOT_SLOT_BYTES` each). After every tick, the chunk's `LiveChunkPublisher` waits for that tick's moment (`WATCHED_TICKS_PER_SECOND`, paced from the chunk's start), then writes a `ChunkSnapshot`: an `AgentSnapshot` per agent plus the `WorldSnapshot` of the chunk's own followed agent.
+    - While the workers play, `AgentWorkerPool.play` hands the main process to its `PlayWatcher`, `WatchLive`. That shows the `FollowedAgentCamera`'s `WorldSnapshot` in the shared `Viewer`, with the ghosts and the HUD line, at 60 fps. The window opens when the first generation starts to play.
+    - Closing the window (or `Esc`) raises `ViewerClosed`. The pool's workers are stopped and the generation being played is never recorded, so the run folder keeps only complete generations; `train` says so and exits normally.
+    - The followed-agent rule ranks agents by `AgentSnapshot.ranking_x_pixels`. That property is the one seam for the bonus room: until #23 adds it, `Area` has only `LEVEL`, and #23 makes an agent there rank as column 57.
+- **All-ghost replay** reuses the same worker + snapshot pipeline, with `ControllerLogSource` in place of the brain. `LiveChunkPublisher` reads only the chunk's Attempts, and `WatchLive` reads only snapshots, so neither cares where the buttons come from.
 - **Best-agent replay** and **play** are one Mario each and run in the main process (built in #28):
   - The best agent is read from `results.csv` (highest fitness, lowest index on a tie), and its Controller log from `controller_logs.npz`. A generation counts as recorded once its folder holds its Controller logs (the last thing written of it), so a run stopped early replays from its last complete generation.
   - The recorded attempts are training attempts, so the replay's Attempt has the **stall rule on**, as they had. It ends where the recorded attempt ended; one that reached the flag then plays out the end of the level through `step_end_of_level`, as play mode does.
