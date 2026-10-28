@@ -11,31 +11,42 @@ from mario.constants.level import (
     ENEMY_REMOVAL_RANGE_PIXELS,
     SCREEN_RIGHT_EDGE_OFFSET_PIXELS,
 )
-from mario.simulation.attempt_tiles import AttemptTiles
+from mario.simulation.fire_flower import FireFlower
 from mario.simulation.hitbox import Hitbox
+from mario.simulation.item import Item
 from mario.simulation.item_kind import ItemKind
-from mario.simulation.mushroom import Mushroom
+from mario.simulation.mushroom import Mushroom, OneUpMushroom, SuperMushroom
+from mario.simulation.playfield import Playfield
+
+ITEM_CLASS_BY_KIND: dict[ItemKind, type[Item]] = {
+    item_class.kind: item_class for item_class in (SuperMushroom, OneUpMushroom, FireFlower)
+}
 
 
 class Items:
     def __init__(self):
-        self._item: Mushroom | None = None
+        self._item: Item | None = None
 
     @property
-    def active(self) -> list[Mushroom]:
+    def active(self) -> list[Item]:
         return [] if self._item is None else [self._item]
 
-    def release(self, kind: ItemKind, block_column: int, block_row: int) -> None:
-        self._item = Mushroom(kind, block_column, block_row)
+    @property
+    def walking(self) -> list[Mushroom]:
+        """The active items that walk, and so can be knocked by a bumped block."""
+        return [item for item in self.active if isinstance(item, Mushroom)]
 
-    def step(self, tiles: AttemptTiles, screen_left_x_pixels: int) -> None:
+    def release(self, kind: ItemKind, block_column: int, block_row: int) -> None:
+        self._item = ITEM_CLASS_BY_KIND[kind](block_column, block_row)
+
+    def step(self, playfield: Playfield) -> None:
         if self._item is None:
             return
-        self._item.step(tiles)
-        if _is_out_of_play(self._item, screen_left_x_pixels):
+        self._item.step(playfield.tiles)
+        if _is_out_of_play(self._item, playfield.screen_left_x_pixels):
             self._item = None
 
-    def take_touched(self, mario_hitbox: Hitbox) -> Mushroom | None:
+    def take_touched(self, mario_hitbox: Hitbox) -> Item | None:
         """The item Mario is touching, which he collects: it leaves play."""
         item = self._item
         if item is None or not item.is_touchable or not item.hitbox().overlaps(mario_hitbox):
@@ -44,7 +55,7 @@ class Items:
         return item
 
 
-def _is_out_of_play(item: Mushroom, screen_left_x_pixels: int) -> bool:
+def _is_out_of_play(item: Item, screen_left_x_pixels: int) -> bool:
     x_pixels = item.hitbox().x_pixels
     return (x_pixels < screen_left_x_pixels - ENEMY_REMOVAL_RANGE_PIXELS
             or x_pixels >= screen_left_x_pixels + SCREEN_RIGHT_EDGE_OFFSET_PIXELS + ENEMY_REMOVAL_RANGE_PIXELS

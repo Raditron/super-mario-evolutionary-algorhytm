@@ -10,6 +10,9 @@ STOMP_CHAIN_POINTS = (100, 200, 400, 500, 800, 1000, 2000, 4000, 5000, 8000)
 
 # An enemy defeated by bumping the block under it (GiveOEPoints).
 BUMPED_ENEMY_POINTS = 100
+# A Goomba defeated by a fireball (ShellOrBlockDefeat, GoombaPoints: floatey number
+# $01). Most other enemies, a Koopa among them, give 200 (floatey number $02).
+GOOMBA_FIREBALL_POINTS = 100
 
 # An item collected (HandlePowerUpCollision: floatey number $06). The 1-UP
 # mushroom gives a life instead (floatey number $0B).

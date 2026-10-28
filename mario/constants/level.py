@@ -101,6 +101,12 @@ ENEMY_FELL_OUT_SPRITE_Y_PIXELS = 256
 # An enemy spawns this far above the tile it rests on and drops onto it: the
 # original sets its sprite y to 16 * row, and it lands at 16 * row + 8.
 ENEMY_SPAWN_DROP_PIXELS = 8
+# A fireball skips an enemy that is off the screen (EnemyOffscrBitsMasked, its
+# offscreen bits masked by GetEnemyBoundBox): one whose x is this far or further
+# left of the screen's left edge, or this far or further right of it, past its
+# right edge.
+ENEMY_OFF_SCREEN_LEFT_PIXELS = 8
+ENEMY_OFF_SCREEN_RIGHT_X_PIXELS = SCREEN_WIDTH_PIXELS
 
 # --- Goomba size (BlockBuffer_X_Adder / _Y_Adder for enemies) -------------------------------
 
@@ -111,14 +117,31 @@ GOOMBA_HITBOX_WIDTH_PIXELS = 16
 GOOMBA_HITBOX_HEIGHT_PIXELS = 16
 GOOMBA_HITBOX_OFFSET_Y_PIXELS = 8
 
-# --- Mushroom size and removal (SetupPowerUp, EnemyToBGCollisionDet, OffscreenBoundsCheck) ----
+# --- Fireball size, tile probe and removal (FireballObjCore, BlockBufferChk_FBall,
+# BoundBoxCtrlData, GetFireballOffscreenBits) -------------------------------------------------
 
-# The original's power-up is an enemy object (slot 5) and collides with tiles
-# through the same probes, so its box is a Goomba's: 16 x 16 at sprite offset (0, 8).
+# A fireball is an 8 x 8 box (bounding box control $07). It starts at Mario's
+# sprite x + 4 and his sprite y.
+FIREBALL_SIZE_PIXELS = 8
+FIREBALL_START_OFFSET_X_PIXELS = 4
+# Its one tile probe is just under its middle (block buffer adder $1A: (4, 8)). On
+# a bounce its y is snapped down to a multiple of this (and #$F8).
+FIREBALL_PROBE_X_PIXELS = 4
+FIREBALL_PROBE_Y_PIXELS = 8
+FIREBALL_BOUNCE_SNAP_PIXELS = 8
+# It is removed once its x is at or left of the screen's left edge, at or past
+# this far right of it, or once its y is at or below this (its offscreen bits).
+FIREBALL_REMOVAL_SCREEN_RIGHT_X_PIXELS = 248
+FIREBALL_FELL_OUT_Y_PIXELS = 240
+
+# --- Item size and removal (SetupPowerUp, EnemyToBGCollisionDet, OffscreenBoundsCheck) ----
+
+# The original's power-up (every item) is an enemy object (slot 5) and collides with
+# tiles through the same probes, so its box is a Goomba's: 16 x 16 at sprite offset (0, 8).
 # It appears with that box exactly over the block that released it.
-MUSHROOM_HITBOX_WIDTH_PIXELS = 16
-MUSHROOM_HITBOX_HEIGHT_PIXELS = 16
-MUSHROOM_HITBOX_OFFSET_Y_PIXELS = 8
+ITEM_HITBOX_WIDTH_PIXELS = 16
+ITEM_HITBOX_HEIGHT_PIXELS = 16
+ITEM_HITBOX_OFFSET_Y_PIXELS = 8
 # The same bounds remove it as an enemy, on both sides: once its x is more than
 # ENEMY_REMOVAL_RANGE_PIXELS left of the screen's left edge, or that far right of
 # the screen's right edge (ScreenRight_X_Pos, the screen's last pixel column).

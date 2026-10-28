@@ -1,19 +1,24 @@
 """What every walking enemy shares.
 
 An enemy spawns at its fixed spawn position and starts walking left; it walks
-as every WalkingBody does. One defeated by a bumped block jumps up away from
-Mario and falls through everything, out of the level.
+as every WalkingBody does. One defeated by a bumped block or a fireball jumps up
+away from Mario and falls through everything, out of the level.
 """
 
 from abc import ABC, abstractmethod
 
-from mario.constants.level import ENEMY_FELL_OUT_SPRITE_Y_PIXELS, ENEMY_SPAWN_DROP_PIXELS, TILE_SIZE_PIXELS
+from mario.constants.level import (
+    ENEMY_FELL_OUT_SPRITE_Y_PIXELS,
+    ENEMY_OFF_SCREEN_LEFT_PIXELS,
+    ENEMY_OFF_SCREEN_RIGHT_X_PIXELS,
+    ENEMY_SPAWN_DROP_PIXELS,
+    TILE_SIZE_PIXELS,
+)
 from mario.constants.physics import (
     BUMP_DEFEAT_SPEED_Y,
-    BUMPED_ENEMY_LIFT_PIXELS,
-    BUMPED_ENEMY_SPEED_X,
     ENEMY_GRAVITY,
     ENEMY_TERMINAL_FALL_SPEED,
+    FIREBALL_DEFEAT_SPEED_Y,
     SUBPIXELS_PER_PIXEL,
 )
 from mario.level.static_level import EnemyKind, EnemySpawn
@@ -26,6 +31,8 @@ class Enemy(WalkingBody, ABC):
     """An enemy's position is the top-left corner of its hitbox."""
 
     kind: EnemyKind
+    # What defeating it with a fireball scores (ShellOrBlockDefeat).
+    fireball_defeat_points: int
 
     def __init__(self, spawn: EnemySpawn, width_pixels: int, height_pixels: int, walk_speed: int):
         """The enemy starts at its spawn x, a little above the tile it rests on."""
@@ -46,6 +53,17 @@ class Enemy(WalkingBody, ABC):
         """Whether touching it hurts Mario."""
         return not self.is_defeated
 
+    def can_be_hit_by_fireball(self, screen_left_x_pixels: int) -> bool:
+        """FireballEnemyCDLoop skips a defeated enemy and one off the screen. Not
+        the same as being harmful: the original's fireball also hits a Koopa's
+        shell, which Mario kicks rather than gets hurt by."""
+        return not self.is_defeated and not self._is_off_screen(screen_left_x_pixels)
+
+    def _is_off_screen(self, screen_left_x_pixels: int) -> bool:
+        """EnemyOffscrBitsMasked, horizontally; the enemy's x is its sprite's."""
+        screen_x_pixels = self.hitbox().x_pixels - screen_left_x_pixels
+        return screen_x_pixels <= -ENEMY_OFF_SCREEN_LEFT_PIXELS or screen_x_pixels >= ENEMY_OFF_SCREEN_RIGHT_X_PIXELS
+
     @property
     def is_gone(self) -> bool:
         """Whether it has finished being defeated and leaves play."""
@@ -57,10 +75,16 @@ class Enemy(WalkingBody, ABC):
 
     def defeat_by_bump(self, mario_x: int) -> None:
         """The block under it was bumped (KillEnemyAboveBlock, ChkToStunEnemies)."""
+        self._knock_off(mario_x, BUMP_DEFEAT_SPEED_Y)
+
+    def defeat_by_fireball(self, mario_x: int) -> None:
+        """A fireball hit it (HandleEnemyFBallCol, ShellOrBlockDefeat, ChkToStunEnemies)."""
+        self._knock_off(mario_x, FIREBALL_DEFEAT_SPEED_Y)
+
+    def _knock_off(self, mario_x: int, velocity_y: int) -> None:
+        """Lifted, it jumps away from Mario, and from then on falls through everything."""
         self._is_knocked_off = True
-        self.y -= BUMPED_ENEMY_LIFT_PIXELS * SUBPIXELS_PER_PIXEL
-        self.velocity_y = BUMP_DEFEAT_SPEED_Y
-        self.velocity_x = BUMPED_ENEMY_SPEED_X if self.x >= mario_x else -BUMPED_ENEMY_SPEED_X
+        self.jump_away_from(mario_x, velocity_y)
 
     @property
     def has_fallen_out(self) -> bool:

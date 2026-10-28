@@ -11,7 +11,6 @@ from tests.game.helpers import (
     HOLD_JUMP,
     HOLD_NOTHING,
     HOLD_RIGHT,
-    big_mario_attempt,
     build_level,
     goomba_spawn,
 )
@@ -89,6 +88,11 @@ def event_kinds(attempt: Attempt) -> list[GameEventKind]:
 def mario_box(attempt: Attempt) -> tuple[int, int, int, int]:
     mario = WorldSnapshot.of(attempt).mario
     return mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels
+
+
+def feet_y(attempt: Attempt) -> int:
+    _, y, _, height = mario_box(attempt)
+    return y + height
 
 
 def collect_the_item(attempt: Attempt, collected: GameEventKind) -> None:
@@ -229,12 +233,18 @@ def test_while_mario_grows_the_game_stands_still_and_his_box_follows_the_grow_an
     assert mario_box(attempt)[0] > boxes[0][0]
 
 
-def test_a_mushroom_collected_while_big_scores_but_changes_nothing_until_the_fire_flower_is_built():
-    attempt = big_mario_attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}))
+def test_jump_held_through_the_growing_but_not_at_the_touch_is_a_fresh_press_when_play_resumes():
+    """While he grows, the original doesn't run the player control routine, the
+    only reader of the Controller (PlayerCtrlRoutine), so a press is judged against
+    the buttons held as he touched the mushroom."""
+    attempt = Attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): POWER_UP_QUESTION_BLOCK}))
     collect_the_item(attempt, GameEventKind.COLLECTED_MUSHROOM)
-    assert attempt.events[-1] == GameEvent(attempt.ticks_elapsed, GameEventKind.SCORED_POINTS, ITEM_POINTS)
-    assert not attempt.mario.is_changing_size
-    assert WorldSnapshot.of(attempt).mario.power_state is PowerState.BIG
+    for _ in range(GROW_TICKS):
+        attempt.step(HOLD_JUMP)
+    feet_before = feet_y(attempt)
+    attempt.step(HOLD_JUMP)
+    attempt.step(HOLD_JUMP)
+    assert feet_y(attempt) < feet_before
 
 
 def test_the_hidden_block_releases_a_1_up_mushroom_that_moves_like_the_super_mushroom():

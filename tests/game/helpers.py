@@ -59,7 +59,18 @@ def big_mario_attempt(level: StaticLevel, **attempt_options) -> Attempt:
     has finished growing (tests/game/test_power_ups.py collects a real one)."""
     attempt = Attempt(level, **attempt_options)
     attempt.mario.grow()
-    while attempt.mario.is_changing_size:
+    while attempt.mario.is_changing_power_state:
+        attempt.step(HOLD_NOTHING)
+    return attempt
+
+
+def fire_mario_attempt(level: StaticLevel, **attempt_options) -> Attempt:
+    """An Attempt whose Mario grew and then caught fire at the start, as a fire
+    flower makes him, and has finished catching fire (tests/game/test_fire_flower.py
+    collects a real one)."""
+    attempt = big_mario_attempt(level, **attempt_options)
+    attempt.mario.power_up()
+    while attempt.mario.is_changing_power_state:
         attempt.step(HOLD_NOTHING)
     return attempt
 

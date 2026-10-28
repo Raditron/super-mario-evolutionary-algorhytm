@@ -4,14 +4,14 @@ Speeds keep the original's split into a whole part, which moves Mario, and a
 fraction, which only carries into the whole part. Every rule below names the
 disassembly routine it comes from (docs/research/smb-physics-constants.md).
 
-Big Mario moves exactly as small Mario does; only his box differs: taller, or
-small Mario's while he crouches. Changing size stops him, and the whole game,
-for a while (SizeChange); after shrinking he can't be hurt for a while. Growing
-or standing up can put his box inside a solid tile, which his head and side
-probes then get him out of, as in the original.
+Big (and fire) Mario moves exactly as small Mario does; only his box differs:
+taller, or small Mario's while he crouches. Changing his power state (growing,
+shrinking or catching fire: PowerStateChange) stops him and the whole game for
+a while; after shrinking he can't be hurt for a while. Growing or standing up can put his box inside a solid
+tile, which his head and side probes then get him out of, as in the original.
 """
 
-from enum import Enum, StrEnum, auto
+from enum import Enum, auto
 
 from mario.constants.level import (
     BIG_MARIO_HITBOX_HEIGHT_PIXELS,
@@ -72,7 +72,8 @@ from mario.constants.physics import (
 from mario.controller.controller_state import LEFT, NO_DIRECTION, RIGHT, ControllerState
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.gravity import add_gravity
-from mario.simulation.size_change import MarioBody, SizeChange
+from mario.simulation.power_state_change import PowerState, PowerStateChange
+from mario.simulation.size_change import MarioBody
 from mario.simulation.tile_body import TileBody, VerticalContact
 
 
@@ -81,12 +82,6 @@ class MovementState(Enum):
     ON_GROUND = auto()
     JUMPING = auto()
     FALLING = auto()
-
-
-class PowerState(StrEnum):
-    """The original's PlayerStatus."""
-    SMALL = "small"
-    BIG = "big"
 
 
 # Each body's box, as (how far below the sprite's top it starts, its height) in pixels.
@@ -130,7 +125,7 @@ class Mario(TileBody):
         self.gravity = AREA_ENTRY_FALLING_GRAVITY
         self.falling_gravity = AREA_ENTRY_FALLING_GRAVITY
         self.jump_origin_y_pixels = 0
-        self.jump_held_last_tick = False
+        self._jump_held_last_tick = False
         # the left/right the movement used, after crouch-stopping (Left_Right_Buttons)
         self.held_direction = NO_DIRECTION
         # (column, row) of the tile his head hit from below this tick: the one over
@@ -140,9 +135,11 @@ class Mario(TileBody):
         self._body = MarioBody.SMALL
         self._is_crouching = False                   # CrouchingFlag
         self.is_dead = False                         # an enemy's touch killed him
-        self._size_change: SizeChange | None = None
-        self._power_state_after_size_change = PowerState.SMALL
+        self._power_state_change: PowerStateChange | None = None
         self._invulnerable_ticks_left = 0            # InjuryTimer
+        self._run_held_last_tick = False
+        # set each tick: fire Mario pressed run afresh while able to shoot (ProcFireball_Bubble)
+        self.wants_to_shoot_fireball = False
 
     @property
     def pixel_x(self) -> int:
@@ -151,6 +148,16 @@ class Mario(TileBody):
     @property
     def pixel_y(self) -> int:
         return self.y >> SUBPIXEL_BITS
+
+    @property
+    def sprite_x_pixels(self) -> int:
+        """The x of the original's 16 x 32 player sprite."""
+        return self.pixel_x - SMALL_MARIO_HITBOX_OFFSET_X_PIXELS
+
+    @property
+    def sprite_y_pixels(self) -> int:
+        """The y of the top of the original's 16 x 32 player sprite."""
+        return self.pixel_y - self.hitbox_offset_y_pixels
 
     @property
     def whole_speed_x(self) -> int:
@@ -168,12 +175,17 @@ class Mario(TileBody):
 
     @property
     def is_big(self) -> bool:
-        return self.power_state is PowerState.BIG
+        """Big or fiery: his body is big Mario's."""
+        return self.power_state is not PowerState.SMALL
 
     @property
-    def is_changing_size(self) -> bool:
-        """While he grows or shrinks, the whole game stands still."""
-        return self._size_change is not None
+    def is_fiery(self) -> bool:
+        return self.power_state is PowerState.FIERY
+
+    @property
+    def is_changing_power_state(self) -> bool:
+        """While he grows, shrinks or catches fire, the whole game stands still."""
+        return self._power_state_change is not None
 
     @property
     def is_invulnerable(self) -> bool:
@@ -210,7 +222,8 @@ class Mario(TileBody):
         self._get_out_of_solid_tiles(tiles)
         if self.is_on_ground and not self.is_standing_on_solid_tile(tiles):
             self.movement_state = MovementState.FALLING
-        self.jump_held_last_tick = controller.jump
+        self._jump_held_last_tick = controller.jump
+        self._check_for_fireball_shot(controller)
 
     def stop_at_screen_edge(self, pixel_x: int, keeps_speed: bool) -> None:
         """Hold Mario at a screen edge (the original's KeepOnscr)."""
@@ -233,38 +246,69 @@ class Mario(TileBody):
         The speed's fraction is kept."""
         self.velocity_y = BRICK_BREAK_SPEED + (self.velocity_y & Y_SUBSPEED_MASK)
 
+    def power_up(self) -> None:
+        """He collected a Super Mushroom or a fire flower (Shroom_Flower_PUp, which
+        doesn't look at which): small, he grows; big, he catches fire; fiery,
+        nothing changes."""
+        if not self.is_big:
+            self.grow()
+        elif not self.is_fiery:
+            self._catch_fire()
+
     def grow(self) -> None:
-        """He collected a Super Mushroom while small. SetPRout puts him in the
-        on-ground state wherever he is; he falls from there once play resumes."""
+        """Small, he collected a Super Mushroom or a fire flower. SetPRout puts him
+        in the on-ground state wherever he is; he falls from there once play resumes."""
         self.movement_state = MovementState.ON_GROUND
-        self._change_size(SizeChange.growing(), PowerState.BIG)
+        self._power_state_change = PowerStateChange.growing()
+
+    def _catch_fire(self) -> None:
+        """UpToFiery: fiery at once, and frozen for a while in the on-ground state,
+        as for growing (SetPRout)."""
+        self.power_state = PowerState.FIERY
+        self.movement_state = MovementState.ON_GROUND
+        self._power_state_change = PowerStateChange.catching_fire()
 
     def get_hurt(self) -> None:
         """An enemy hurt him (ForceInjury): small, he dies; big, he shrinks and
-        can't be hurt for a while. SetKRout puts him in the jumping state."""
+        can't be hurt for a while. Fiery, his fire goes at once (PlayerStatus,
+        GetPlayerColors), his size only at the flip. SetKRout puts him in the
+        jumping state."""
         if not self.is_big:
             self.is_dead = True
             return
+        if self.is_fiery:
+            self.power_state = PowerState.BIG
         self._is_crouching = False
         self.movement_state = MovementState.JUMPING
-        self._change_size(SizeChange.shrinking(), PowerState.SMALL)
+        self._power_state_change = PowerStateChange.shrinking()
         self._invulnerable_ticks_left = INJURY_INVULNERABLE_TICKS
 
-    def continue_size_change(self, controller: ControllerState) -> None:
-        """One tick of growing or shrinking, in which nothing else moves. The jump
-        button is still read, so a press must still be fresh when play resumes.
-        His power state changes with his size, at the flip (PlayerSize)."""
-        self._size_change.step()
-        self._take_body(self._size_change.shown_body)
-        if self._size_change.has_flipped:
-            self.power_state = self._power_state_after_size_change
-        if self._size_change.is_over:
-            self._size_change = None
-        self.jump_held_last_tick = controller.jump
+    def continue_power_state_change(self, controller: ControllerState) -> None:
+        """One tick of growing, shrinking or catching fire, in which nothing else
+        moves and he shoots nothing. Where the change reads the Controller, the
+        buttons are remembered, so a press must still be fresh when play resumes."""
+        change = self._power_state_change
+        change.step()
+        if change.shown_body is not None:
+            self._take_body(change.shown_body)
+        if change.has_reached_power_state_after:
+            self.power_state = change.power_state_after
+        if change.is_over:
+            self._power_state_change = None
+        if change.reads_controller:
+            self._jump_held_last_tick = controller.jump
+            self._run_held_last_tick = controller.run
+        self.wants_to_shoot_fireball = False
 
-    def _change_size(self, size_change: SizeChange, power_state_after: PowerState) -> None:
-        self._size_change = size_change
-        self._power_state_after_size_change = power_state_after
+    def _check_for_fireball_shot(self, controller: ControllerState) -> None:
+        """ProcFireball_Bubble, after he has moved: fiery, he shoots on a fresh run
+        press, unless he is crouching or his sprite's top is above the screen
+        (Player_Y_HighPos is not 1). Whether a fireball slot is free is for his
+        fireballs to say."""
+        run_pressed_afresh = controller.run and not self._run_held_last_tick
+        self.wants_to_shoot_fireball = (self.is_fiery and run_pressed_afresh and not self._is_crouching
+                                        and self.sprite_y_pixels >= 0)
+        self._run_held_last_tick = controller.run
 
     def _update_crouching(self, controller: ControllerState) -> None:
         """PlayerMovementSubs: big Mario crouches while he holds down on the ground,
@@ -289,7 +333,7 @@ class Mario(TileBody):
 
     def _start_jump_on_fresh_press(self, controller: ControllerState) -> None:
         """ProcJumping: the takeoff speed picks the jump's speed and gravities."""
-        if not controller.jump or self.jump_held_last_tick or not self.is_on_ground:
+        if not controller.jump or self._jump_held_last_tick or not self.is_on_ground:
             return
         if self.x_speed_absolute < SLOW_JUMP_SPEED_LIMIT:
             jump_speed, self.gravity, self.falling_gravity = (
@@ -364,7 +408,7 @@ class Mario(TileBody):
         if self.movement_state is MovementState.FALLING or self.velocity_y >= 0:
             self.gravity = self.falling_gravity
             return
-        if controller.jump and self.jump_held_last_tick:
+        if controller.jump and self._jump_held_last_tick:
             return
         if self.jump_origin_y_pixels - self.pixel_y < JUMP_HALT_RISE_PIXELS:
             return

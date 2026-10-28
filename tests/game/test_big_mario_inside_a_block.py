@@ -41,7 +41,7 @@ TICK_LIMIT = 400
 def grow_now(attempt: Attempt) -> None:
     """Grow as a Super Mushroom makes him, wherever he is, and wait out the freeze."""
     attempt.mario.grow()
-    while attempt.mario.is_changing_size:
+    while attempt.mario.is_changing_power_state:
         attempt.step(HOLD_NOTHING)
 
 

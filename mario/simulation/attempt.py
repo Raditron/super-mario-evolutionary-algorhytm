@@ -6,8 +6,9 @@ Controller log always gives the same Attempt.
 
 It ends when Mario dies or the level timer runs out, and, if the mode turns
 the stall rule on (training does, play doesn't), when he stalls. While Mario
-grows or shrinks, everything else stands still, the level timer too; the
-ticks still count, and so does the stall rule.
+grows, shrinks or catches fire, everything else stands still, the level timer
+too, but for his fireballs, which the original runs every frame; the ticks
+still count, and so does the stall rule.
 """
 
 from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS
@@ -19,11 +20,13 @@ from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.blocks import Blocks, HeadHit
 from mario.simulation.enemy_collision_check import EnemyCollisionCheck, EnemyCollisionOutcome, is_enemy_check_tick
 from mario.simulation.enemy_roster import EnemyRoster
+from mario.simulation.fireballs import Fireballs
 from mario.simulation.items import Items
 from mario.simulation.level_timer import LevelTimer
 from mario.simulation.mario import Mario
+from mario.simulation.playfield import Playfield
 from mario.simulation.item_kind import ItemKind
-from mario.simulation.mushroom import Mushroom
+from mario.simulation.item import Item
 from mario.simulation.scoreboard import Scoreboard
 from mario.simulation.scroll import Scroll
 from mario.simulation.stall_rule import StallRule
@@ -38,6 +41,7 @@ class Attempt:
         self.tiles = AttemptTiles(level)
         self.mario = Mario(screen_left_x_pixels)
         self.scroll = Scroll(self.mario.pixel_x, screen_left_x_pixels)
+        self._playfield = Playfield(self.tiles, self.scroll)
         self.enemies = EnemyRoster(level.enemy_spawns)
         self.items = Items()
         self._enemy_collision_check = EnemyCollisionCheck()
@@ -48,6 +52,7 @@ class Attempt:
         self.events: list[GameEvent] = []
         self.scoreboard = Scoreboard(self.events)
         self.blocks = Blocks(self.tiles, self.scoreboard, self.items, self.events)
+        self.fireballs = Fireballs(self.mario, self.scoreboard, self.events)
         self._stall_rule = StallRule(self.mario.pixel_x) if ends_on_stall else None
         self.end_reason: EndReason | None = None
 
@@ -59,8 +64,9 @@ class Attempt:
         if self.is_over:
             raise RuntimeError("the attempt is over")
         self.ticks_elapsed += 1
-        if self.mario.is_changing_size:
-            self.mario.continue_size_change(ControllerState(buttons))
+        if self.mario.is_changing_power_state:
+            self.mario.continue_power_state_change(ControllerState(buttons))
+            self.fireballs.step(self._playfield, self.enemies.active, self.ticks_elapsed)
         else:
             self._play_one_tick(ControllerState(buttons))
         if self._stall_rule is not None:
@@ -85,19 +91,20 @@ class Attempt:
         if self.mario.head_hit_tile is not None:
             self._hit_block_from_below(*self.mario.head_hit_tile)
         self.scroll.follow(self.mario, self.mario.pixel_x - pixel_x_before)
-        self.enemies.step(self.tiles, self.scroll.left_x_pixels)
+        self.fireballs.step(self._playfield, self.enemies.active, self.ticks_elapsed)
+        self.enemies.step(self._playfield)
         self.blocks.defeat_enemies_on_bumped_blocks(self.enemies.active, self.mario.x, self.ticks_elapsed)
         self._record_enemy_collisions(
             self._enemy_collision_check.step(self.ticks_elapsed, self.mario, self.enemies.active))
-        self.items.step(self.tiles, self.scroll.left_x_pixels)
-        self.blocks.knock_items_on_bumped_blocks(self.items.active, self.mario.x)
+        self.items.step(self._playfield)
+        self.blocks.knock_items_on_bumped_blocks(self.items.walking, self.mario.x)
         self._collect_touched_item()
         self.furthest_x = max(self.furthest_x, self.mario.pixel_x)
         self.blocks.step()
         self.level_timer.count_down()
 
     def _hit_block_from_below(self, column: int, row: int) -> None:
-        head_hit = self.blocks.hit_from_below(column, row, self.ticks_elapsed, breaks_bricks=self.mario.is_big)
+        head_hit = self.blocks.hit_from_below(column, row, self.ticks_elapsed, mario_is_big=self.mario.is_big)
         if head_hit is HeadHit.BUMPED_BLOCK:
             self.mario.bump_block()
         elif head_hit is HeadHit.BROKE_BRICK:
@@ -116,22 +123,21 @@ class Attempt:
         """The item is an enemy object to the original, checked against Mario
         after the enemies and on the same ticks, and only while nothing has hurt
         him (PlayerEnemyCollision)."""
-        if not is_enemy_check_tick(self.ticks_elapsed) or self._died_to_enemy or self.mario.is_changing_size:
+        if not is_enemy_check_tick(self.ticks_elapsed) or self._died_to_enemy or self.mario.is_changing_power_state:
             return
         item = self.items.take_touched(self.mario.hitbox())
         if item is not None:
             self._collect(item)
 
-    def _collect(self, item: Mushroom) -> None:
-        """HandlePowerUpCollision. A Super Mushroom makes small Mario big; big, he
-        would get fire power, which comes with the fire flower."""
+    def _collect(self, item: Item) -> None:
+        """HandlePowerUpCollision: the 1-UP gives a life; a Super Mushroom or a fire
+        flower scores and powers Mario up."""
         if item.kind is ItemKind.ONE_UP_MUSHROOM:
             self.scoreboard.collect_one_up(self.ticks_elapsed)
             return
-        self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.COLLECTED_MUSHROOM))
+        self.events.append(GameEvent(self.ticks_elapsed, item.collected_event_kind))
         self.scoreboard.score_points(ITEM_POINTS, self.ticks_elapsed)
-        if not self.mario.is_big:
-            self.mario.grow()
+        self.mario.power_up()
 
     def _reason_to_end(self) -> EndReason | None:
         if self._died_to_enemy:

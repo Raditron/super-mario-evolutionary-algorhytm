@@ -1,74 +1,42 @@
-"""A mushroom, the Super Mushroom or the 1-UP mushroom: an item (the original's power-up object).
+"""The mushrooms, the Super Mushroom and the 1-UP mushroom: items that walk.
 
-It appears inside the block that released it and rises out of it, 1 px every
-4 ticks (GrowThePowerUp). Once out, it sets off right at 1 px/f and walks as an
-enemy does: it turns at walls and falls off ledges (MoveNormalEnemy). Its
-position is the top-left corner of its hitbox.
+Once out of its block, a mushroom sets off right at 1 px/f and walks as an
+enemy does: it turns at walls and falls off ledges (MoveNormalEnemy).
 """
 
-from mario.constants.level import (
-    MUSHROOM_HITBOX_HEIGHT_PIXELS,
-    MUSHROOM_HITBOX_OFFSET_Y_PIXELS,
-    MUSHROOM_HITBOX_WIDTH_PIXELS,
-    TILE_SIZE_SUBPIXELS,
-)
-from mario.constants.physics import (
-    BUMPED_ENEMY_LIFT_PIXELS,
-    BUMPED_ENEMY_SPEED_X,
-    BUMPED_ENEMY_SPEED_Y,
-    ITEM_EMERGE_PIXELS,
-    ITEM_EMERGE_TICKS_PER_PIXEL,
-    ITEM_TOUCHABLE_RISE_PIXELS,
-    MUSHROOM_SPEED,
-    SUBPIXELS_PER_PIXEL,
-)
+from mario.constants.physics import BUMPED_ENEMY_SPEED_Y, MUSHROOM_SPEED
+from mario.simulation.attempt_result import GameEventKind
 from mario.simulation.attempt_tiles import AttemptTiles
+from mario.simulation.item import Item
 from mario.simulation.item_kind import ItemKind
 from mario.simulation.walking_body import WalkingBody
 
 
-class Mushroom(WalkingBody):
-    hitbox_offset_y_pixels = MUSHROOM_HITBOX_OFFSET_Y_PIXELS
-
-    def __init__(self, kind: ItemKind, block_column: int, block_row: int):
-        super().__init__(block_column * TILE_SIZE_SUBPIXELS, block_row * TILE_SIZE_SUBPIXELS,
-                         MUSHROOM_HITBOX_WIDTH_PIXELS * SUBPIXELS_PER_PIXEL,
-                         MUSHROOM_HITBOX_HEIGHT_PIXELS * SUBPIXELS_PER_PIXEL,
-                         velocity_x=0)
-        self.kind = kind
-        self.is_emerging = True
-        self._emerge_ticks = 0
-        self._risen_pixels = 0
-
-    @property
-    def is_touchable(self) -> bool:
-        """Whether Mario can collect it: once it has risen far enough out of its block."""
-        return self._risen_pixels >= ITEM_TOUCHABLE_RISE_PIXELS
+class Mushroom(Item, WalkingBody):
+    def step(self, tiles: AttemptTiles) -> None:
+        if not self.is_emerging:
+            self.walk(tiles)
+            return
+        super().step(tiles)
+        if not self.is_emerging:
+            self._set_off()
 
     def hop_away_from(self, mario_x: int) -> None:
-        """The block under it was bumped from below (ChkToStunEnemies, SetStun, which
-        treat it as any enemy object): it is lifted, jumps and walks away from Mario.
-        With nothing under it now, it starts to fall the tick after."""
-        self.y -= BUMPED_ENEMY_LIFT_PIXELS * SUBPIXELS_PER_PIXEL
-        self.velocity_y = BUMPED_ENEMY_SPEED_Y
-        self.velocity_x = BUMPED_ENEMY_SPEED_X if self.x >= mario_x else -BUMPED_ENEMY_SPEED_X
+        """The block under it was bumped from below: it jumps away from Mario as an
+        enemy object does. With nothing under it now, it starts to fall the tick after."""
+        self.jump_away_from(mario_x, BUMPED_ENEMY_SPEED_Y)
         self.is_falling = False
 
-    def step(self, tiles: AttemptTiles) -> None:
-        if self.is_emerging:
-            self._emerge()
-        else:
-            self.walk(tiles)
-
-    def _emerge(self) -> None:
-        """Rise one pixel every few ticks; one step after the last pixel, set off right."""
-        self._emerge_ticks += 1
-        if self._emerge_ticks % ITEM_EMERGE_TICKS_PER_PIXEL != 0:
-            return
-        if self._risen_pixels < ITEM_EMERGE_PIXELS:
-            self.y -= SUBPIXELS_PER_PIXEL
-            self._risen_pixels += 1
-            return
-        self.is_emerging = False
+    def _set_off(self) -> None:
         self.is_falling = False
         self.velocity_x = MUSHROOM_SPEED
+
+
+class SuperMushroom(Mushroom):
+    kind = ItemKind.SUPER_MUSHROOM
+    collected_event_kind = GameEventKind.COLLECTED_MUSHROOM
+
+
+class OneUpMushroom(Mushroom):
+    kind = ItemKind.ONE_UP_MUSHROOM
+    collected_event_kind = GameEventKind.COLLECTED_ONE_UP
