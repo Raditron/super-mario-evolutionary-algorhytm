@@ -22,22 +22,22 @@ from mario.constants.statistics import (
     SERIES_COLOURS,
 )
 from mario.statistics.chart_style import add_legend, name_panel, new_chart, plot_series, save_chart
-from mario.statistics.run_statistics_report import RunStatisticsReport
+from mario.statistics.run_statistics import RunStatistics
 
 
-class ComparisonReport:
-    def __init__(self, run_reports: list[RunStatisticsReport], comparison_folder_path: Path):
-        """run_reports: at most MAX_COMPARED_RUNS, so each gets a colour of its own."""
-        self._run_reports = run_reports
+class Comparison:
+    def __init__(self, statistics_of_runs: list[RunStatistics], comparison_folder_path: Path):
+        """statistics_of_runs: at most MAX_COMPARED_RUNS, so each gets a colour of its own."""
+        self._statistics_of_runs = statistics_of_runs
         self.comparison_folder_path = comparison_folder_path
 
     def chart(self) -> Figure:
         figure, (panel,) = new_chart(CHART_SIZE_INCHES)
-        for run_report, colour in zip(self._run_reports, SERIES_COLOURS):
-            run_name = run_report.run_folder_path.name
-            plot_series(panel, run_report.series.generations, run_report.series.best_fitness, colour,
+        for run_statistics, colour in zip(self._statistics_of_runs, SERIES_COLOURS):
+            run_name = run_statistics.run_folder_path.name
+            plot_series(panel, run_statistics.series.generations, run_statistics.series.best_fitness, colour,
                         RUN_SERIES_LABEL_FORMAT.format(run=run_name, series=BEST_LABEL))
-            plot_series(panel, run_report.series.generations, run_report.series.mean_fitness, colour,
+            plot_series(panel, run_statistics.series.generations, run_statistics.series.mean_fitness, colour,
                         RUN_SERIES_LABEL_FORMAT.format(run=run_name, series=MEAN_LABEL), linestyle=MEAN_LINE_STYLE)
         name_panel(panel, FITNESS_COMPARISON_CHART_TITLE, FITNESS_AXIS_LABEL)
         add_legend(panel)
@@ -45,8 +45,9 @@ class ComparisonReport:
 
     def summaries_side_by_side(self) -> str:
         """A table: a header row naming each run, then one row per summary fact, in summary.txt's order."""
-        header = [COMPARISON_RUN_HEADER, *(run_report.run_folder_path.name for run_report in self._run_reports)]
-        entries_by_run = [run_report.summary.entries() for run_report in self._run_reports]
+        header = [COMPARISON_RUN_HEADER,
+                  *(run_statistics.run_folder_path.name for run_statistics in self._statistics_of_runs)]
+        entries_by_run = [run_statistics.summary.entries() for run_statistics in self._statistics_of_runs]
         fact_rows = [[label, *(entries[fact][1] for entries in entries_by_run)]
                      for fact, (label, _) in enumerate(entries_by_run[0])]
         table = [header, *fact_rows]

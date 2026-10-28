@@ -91,8 +91,9 @@ def test_only_statistics_imports_matplotlib():
     assert all(source_file.is_relative_to(THE_ONLY_CHARTING_PACKAGE) for source_file in importers), importers
 
 
-def test_statistics_never_imports_the_simulation():
-    """It reads only run-folder files (spec section 3), through recording's readers."""
+def test_statistics_never_imports_the_simulation_directly():
+    """It reads run-folder files through recording's readers (spec section 3); only
+    ResultsRow, whose end_reason is an EndReason, brings the simulation in."""
     for source_file in python_files("statistics"):
         assert not imports_any_of(source_file, THE_SIMULATION), source_file
 

@@ -20,8 +20,8 @@ from mario.__main__ import main
 from mario.constants.statistics import END_REASON_COLOURS, REACHED_FLAG_END_REASON
 from mario.modes.stats_mode import StatsMode
 from mario.simulation.attempt_result import EndReason
-from mario.statistics.comparison_report import ComparisonReport
-from mario.statistics.run_statistics_report import RunStatisticsReport
+from mario.statistics.comparison import Comparison
+from mario.statistics.run_statistics import RunStatistics
 
 RESULTS_HEADER = ("generation", "agent", "fitness", "end_reason", "furthest_x", "ticks_elapsed",
                   "final_score", "coins_collected")
@@ -130,14 +130,14 @@ def test_a_rerun_overwrites_the_earlier_statistics(tmp_path):
 def test_the_flag_time_line_is_drawn_only_for_a_run_with_finishers(tmp_path):
     finished_run = write_run_folder(tmp_path / "finished", FINISHED_RUN_RESULTS, FINISHED_RUN_GENERATION_TIMES)
     unfinished_run = write_run_folder(tmp_path / "unfinished", NO_FINISHER_RESULTS, NO_FINISHER_GENERATION_TIMES)
-    assert FLAG_TIME_LINE_LABEL in line_labels(RunStatisticsReport(finished_run).charts()["coins_and_time.png"])
-    assert FLAG_TIME_LINE_LABEL not in line_labels(RunStatisticsReport(unfinished_run).charts()["coins_and_time.png"])
+    assert FLAG_TIME_LINE_LABEL in line_labels(RunStatistics(finished_run).charts()["coins_and_time.png"])
+    assert FLAG_TIME_LINE_LABEL not in line_labels(RunStatistics(unfinished_run).charts()["coins_and_time.png"])
 
 
 def test_the_distance_chart_marks_the_warp_pipe_and_the_flagpole_of_the_level(tmp_path):
     """World 1-1's warp pipe is at column 57 and its flagpole at column 198 (docs/research/world-1-1-layout.md)."""
     run_folder = write_run_folder(tmp_path / "finished", FINISHED_RUN_RESULTS, FINISHED_RUN_GENERATION_TIMES)
-    (panel,) = RunStatisticsReport(run_folder).charts()["distance.png"].axes
+    (panel,) = RunStatistics(run_folder).charts()["distance.png"].axes
     assert {text.get_text() for text in panel.texts} == {"warp pipe (column 57)", "flag (column 198)"}
 
 
@@ -185,7 +185,7 @@ def test_the_comparison_puts_the_summaries_side_by_side_first_flag_generation_fi
 
 def test_the_comparison_chart_draws_every_runs_best_and_mean_fitness_labelled_by_run(tmp_path):
     runs_root = tmp_path / "runs"
-    comparison = ComparisonReport([RunStatisticsReport(folder) for folder in two_run_folders(runs_root)],
+    comparison = Comparison([RunStatistics(folder) for folder in two_run_folders(runs_root)],
                                   runs_root / COMPARISON_FOLDER)
     assert line_labels(comparison.chart()) == {f"{FINISHED_RUN_NAME} best", f"{FINISHED_RUN_NAME} mean",
                                                f"{UNFINISHED_RUN_NAME} best", f"{UNFINISHED_RUN_NAME} mean"}
@@ -256,13 +256,14 @@ def test_stats_writes_its_charts_without_ever_loading_pyplot(tmp_path):
 
 def test_every_chart_is_drawn_on_the_agg_canvas(tmp_path):
     runs_root = tmp_path / "runs"
-    run_statistics = [RunStatisticsReport(folder) for folder in two_run_folders(runs_root)]
-    figures = [*run_statistics[0].charts().values(),
-               ComparisonReport(run_statistics, runs_root / COMPARISON_FOLDER).chart()]
+    statistics_of_runs = [RunStatistics(folder) for folder in two_run_folders(runs_root)]
+    figures = [*statistics_of_runs[0].charts().values(),
+               Comparison(statistics_of_runs, runs_root / COMPARISON_FOLDER).chart()]
     assert all(type(figure.canvas) is FigureCanvasAgg for figure in figures)
 
 
-def test_statistics_knows_every_end_reason_without_importing_the_simulation():
-    """It reads end_reason as text, so its names for them must be EndReason's own."""
+def test_statistics_names_every_end_reason_as_the_simulation_does():
+    """It names the end reasons as text, never importing the simulation directly,
+    so its names must be EndReason's own."""
     assert list(END_REASON_COLOURS) == [end_reason.value for end_reason in EndReason]
     assert REACHED_FLAG_END_REASON == EndReason.REACHED_FLAG

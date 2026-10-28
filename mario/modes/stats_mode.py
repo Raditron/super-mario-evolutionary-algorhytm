@@ -11,8 +11,8 @@ from datetime import datetime
 from pathlib import Path
 
 from mario.constants.statistics import COMPARISON_FOLDER_TIMESTAMP_FORMAT, COMPARISONS_FOLDER_NAME, MAX_COMPARED_RUNS
-from mario.statistics.comparison_report import ComparisonReport
-from mario.statistics.run_statistics_report import RunStatisticsReport
+from mario.statistics.comparison import Comparison
+from mario.statistics.run_statistics import RunStatistics
 
 WROTE_STATISTICS_MESSAGE = "Wrote the statistics of {run_folder} to {statistics_folder}."
 WROTE_COMPARISON_MESSAGE = "Wrote the comparison of {run_count} runs to {comparison_folder}."
@@ -34,23 +34,24 @@ class StatsMode:
         """Exits with a message, writing nothing, if any folder can't be read as a run with a generation."""
         if len(self._run_folder_paths) > MAX_COMPARED_RUNS:
             raise SystemExit(CANT_WRITE_STATISTICS_MESSAGE.format(problem=TOO_MANY_RUNS_PROBLEM))
-        run_reports = [_read_run(run_folder_path) for run_folder_path in self._run_folder_paths]
-        if len(run_reports) == 1:
-            run_reports[0].write()
-            print(WROTE_STATISTICS_MESSAGE.format(run_folder=run_reports[0].run_folder_path,
-                                                  statistics_folder=run_reports[0].statistics_folder_path))
+        statistics_of_runs = [_read_run(run_folder_path) for run_folder_path in self._run_folder_paths]
+        if len(statistics_of_runs) == 1:
+            statistics_of_runs[0].write()
+            print(WROTE_STATISTICS_MESSAGE.format(run_folder=statistics_of_runs[0].run_folder_path,
+                                                  statistics_folder=statistics_of_runs[0].statistics_folder_path))
             return
         comparison_folder_path = (self._runs_root / COMPARISONS_FOLDER_NAME
                                   / self._now.strftime(COMPARISON_FOLDER_TIMESTAMP_FORMAT))
-        comparison = ComparisonReport(run_reports, comparison_folder_path)
+        comparison = Comparison(statistics_of_runs, comparison_folder_path)
         comparison.write()
-        print(WROTE_COMPARISON_MESSAGE.format(run_count=len(run_reports), comparison_folder=comparison_folder_path))
+        print(WROTE_COMPARISON_MESSAGE.format(run_count=len(statistics_of_runs),
+                                              comparison_folder=comparison_folder_path))
 
 
-def _read_run(run_folder_path: Path) -> RunStatisticsReport:
+def _read_run(run_folder_path: Path) -> RunStatistics:
     """Exits with a message if the folder isn't a run folder, has no generation yet, or has a row it can't read."""
     try:
-        return RunStatisticsReport(run_folder_path)
+        return RunStatistics(run_folder_path)
     except LookupError as problem:
         raise SystemExit(CANT_WRITE_STATISTICS_MESSAGE.format(problem=problem.args[0])) from None
     except ValueError as error:

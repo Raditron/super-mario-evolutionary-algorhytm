@@ -7,8 +7,8 @@ from mario.constants.level import LEVEL_WIDTH_TILES, TILE_SIZE_PIXELS
 STATISTICS_FOLDER_NAME = "statistics"
 SUMMARY_FILE_NAME = "summary.txt"
 
-# The end_reason of an attempt that touched the flagpole (EndReason.REACHED_FLAG):
-# statistics reads it from results.csv and never imports the simulation.
+# The end_reason of an attempt that touched the flagpole (EndReason.REACHED_FLAG): statistics
+# names it as text, so that it never imports the simulation directly.
 REACHED_FLAG_END_REASON = "reached_flag"
 
 # --- The summary --------------------------------------------------------------------------

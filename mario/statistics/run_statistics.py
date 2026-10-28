@@ -1,5 +1,5 @@
 """One run folder's statistics (spec section 13): its six charts and summary.txt,
-written into <run-folder>/statistics/, overwriting any earlier ones, from its rows alone."""
+written into <run-folder>/statistics/, overwriting any earlier ones, from its rows and the level."""
 
 from pathlib import Path
 
@@ -14,7 +14,7 @@ from mario.statistics.run_charts import RunCharts
 from mario.statistics.run_summary import RunSummary
 
 
-class RunStatisticsReport:
+class RunStatistics:
     def __init__(self, run_folder_path: Path):
         """Reads the run folder's rows. Raises LookupError if it isn't a run folder or has no generation yet."""
         self.run_folder_path = run_folder_path
