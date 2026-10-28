@@ -24,7 +24,7 @@ from mario.simulation.blocks import Blocks, HeadHit
 from mario.simulation.enemy_collision_check import EnemyCollisionCheck, EnemyCollisionOutcome, is_enemy_check_tick
 from mario.simulation.enemy_roster import EnemyRoster
 from mario.simulation.fireballs import Fireballs
-from mario.simulation.flagpole import FlagpoleTouch, touches_flagpole
+from mario.simulation.flagpole import Flag, FlagpoleTouch, touches_flagpole
 from mario.simulation.items import Items
 from mario.simulation.level_timer import LevelTimer
 from mario.simulation.mario import Mario
@@ -59,6 +59,7 @@ class Attempt:
         self.fireballs = Fireballs(self.mario, self.scoreboard, self.events)
         self._stall_rule = StallRule(self.mario.pixel_x) if ends_on_stall else None
         self.flagpole_touch: FlagpoleTouch | None = None
+        self.flag = Flag(level.flagpole_column) if level.flagpole_column is not None else None
         self.end_reason: EndReason | None = None
 
     @property

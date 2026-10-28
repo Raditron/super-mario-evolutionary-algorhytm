@@ -1,4 +1,4 @@
-"""The flagpole: when Mario touches it, and what the touch scores.
+"""The flagpole: when Mario touches it, what the touch scores, and its flag.
 
 As in the original (SideCheckLoop, HandleClimbing), he touches it with the side
 probe at his sprite y + 24, on his box's left or right edge, and only where that
@@ -10,6 +10,11 @@ units left are worth 50 points each.
 from dataclasses import dataclass
 
 from mario.constants.flagpole import (
+    FLAG_OFFSET_X_PIXELS,
+    FLAG_START_Y_PIXELS,
+    FLAGPOLE_SLIDE_FRACTION_BITS,
+    FLAGPOLE_SLIDE_FRACTION_PER_TICK,
+    FLAGPOLE_SLIDE_PIXELS_PER_TICK,
     FLAGPOLE_TOUCH_MAX_X_IN_TILE_PIXELS,
     FLAGPOLE_TOUCH_MIN_X_IN_TILE_PIXELS,
     FLAGPOLE_TOUCH_PROBE_SPRITE_Y_PIXELS,
@@ -59,3 +64,31 @@ def flag_points_for_touch_at(sprite_y_pixels: int) -> int:
         if sprite_y_pixels >= lowest_sprite_y_pixels:
             return points
     return FLAGPOLE_TOP_POINTS
+
+
+class FlagpoleDescent:
+    """How far something sliding down the pole moves each tick (ClimbingSub, and
+    FlagpoleRoutine for the flag): 1 px plus the carry of an 8-bit fraction that
+    gains $FF a tick, so 1 px on the first tick, then 2 px but one tick in 256."""
+
+    def __init__(self):
+        self._fraction = 0
+
+    def next_pixels(self) -> int:
+        self._fraction += FLAGPOLE_SLIDE_FRACTION_PER_TICK
+        carry = self._fraction >> FLAGPOLE_SLIDE_FRACTION_BITS
+        self._fraction -= carry << FLAGPOLE_SLIDE_FRACTION_BITS
+        return FLAGPOLE_SLIDE_PIXELS_PER_TICK + carry
+
+
+class Flag:
+    """The flag on the pole (FlagpoleObject): left of the pole's column, at the top
+    until Mario slides it down."""
+
+    def __init__(self, flagpole_column: int):
+        self.x_pixels = flagpole_column * TILE_SIZE_PIXELS + FLAG_OFFSET_X_PIXELS
+        self.y_pixels = FLAG_START_Y_PIXELS
+        self._descent = FlagpoleDescent()
+
+    def slide_down(self) -> None:
+        self.y_pixels += self._descent.next_pixels()
