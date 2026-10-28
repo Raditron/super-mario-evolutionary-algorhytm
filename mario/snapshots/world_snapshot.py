@@ -9,6 +9,7 @@ from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
 from mario.simulation.enemy import Enemy
 from mario.simulation.fireball import Fireball
+from mario.simulation.flagpole import Flag
 from mario.simulation.mario import Mario
 from mario.simulation.item import Item
 from mario.simulation.observation_builder import ObservationBuilder
@@ -106,6 +107,17 @@ class FireballSnapshot:
 
 
 @dataclass(frozen=True)
+class FlagSnapshot:
+    """The flag on the flagpole: its top-left corner, in level pixels."""
+    x_pixels: int
+    y_pixels: int
+
+    @classmethod
+    def of(cls, flag: Flag) -> "FlagSnapshot":
+        return cls(flag.x_pixels, flag.y_pixels)
+
+
+@dataclass(frozen=True)
 class HudSnapshot:
     """The numbers the HUD shows: score, coins and the level timer's time left."""
     score: int
@@ -142,6 +154,7 @@ class WorldSnapshot:
     bouncing_blocks: tuple[BouncingBlockSnapshot, ...] = ()
     items: tuple[ItemSnapshot, ...] = ()
     fireballs: tuple[FireballSnapshot, ...] = ()
+    flag: FlagSnapshot | None = None                  # None in a level without a flagpole
     observation: ObservationSnapshot | None = None
     recent_events: tuple[GameEvent, ...] = ()        # oldest first
 
@@ -168,6 +181,7 @@ class WorldSnapshot:
                                   for block in attempt.blocks.bouncing),
             items=tuple(ItemSnapshot.of(item) for item in attempt.items.active),
             fireballs=tuple(FireballSnapshot.of(fireball) for fireball in attempt.fireballs.active),
+            flag=FlagSnapshot.of(attempt.flag) if attempt.flag is not None else None,
             observation=(ObservationSnapshot.of(attempt, observation_builder)
                          if observation_builder is not None else None),
             recent_events=_recent_events(attempt),

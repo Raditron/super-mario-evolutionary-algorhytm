@@ -86,6 +86,26 @@ _Avoid_: Secret room, warp zone, underground level
 The midway point of the level where a human player starts again after losing a life; training attempts always start at the beginning.
 _Avoid_: Save point, midpoint, respawn point
 
+**Flag-height points**:
+The points for touching the flagpole, more the higher the touch, in the original's five bands from 100 to 5000.
+_Avoid_: Flag bonus, pole score
+
+**Remaining-time points**:
+The points for the units left on the level timer when Mario touches the flagpole, 50 for each.
+_Avoid_: Time bonus, timer score
+
+**End-of-level sequence**:
+What plays out after Mario touches the flagpole, with no Controller presses, in play and replay only: the flag slide, the castle walk, then the level timer counting down into the score.
+_Avoid_: Ending, cutscene, victory animation
+
+**Flag slide**:
+The part of the end-of-level sequence in which Mario slides down the flagpole while the flag slides down to its foot.
+_Avoid_: Pole slide, flag drop
+
+**Castle walk**:
+The part of the end-of-level sequence in which Mario hops round the flagpole, lets go of it and walks right until the castle door stops him.
+_Avoid_: Victory walk, exit walk
+
 ## Viewing
 
 **Sprite view**:
