@@ -48,7 +48,8 @@ mario/
                   observation, training, view, recording
   level/          StaticLevel: tile map + block/pipe/enemy tables, read-only
   simulation/     Attempt, Mario, enemies, items, blocks, collision, scroll,
-                  GameEvent, AttemptResult, ObservationBuilder (no pygame)
+                  flagpole, EndOfLevelSequence, GameEvent, AttemptResult,
+                  ObservationBuilder (no pygame)
   controller/     Controller bitmask, ControllerSource, ControllerLogSource,
                   BrainControllerSource (no pygame)
   snapshots/      WorldSnapshot + the shared-memory channel
@@ -102,7 +103,7 @@ config.toml       the run settings the user edits (section 10)
 - **Activation is as in the original:** an enemy appears once its spawn x is within 48 px past his screen's right edge. Enemies are removed once they are well off the left of the screen (a named constant).
 - **No 5-slot enemy limit.** Every enemy activates when its turn comes. In 1-1 the limit almost never bites, so it isn't modelled.
 - **Scroll is per-Attempt state.** It sets Mario's invisible left wall and when his enemies activate. It only moves right and follows the original's rule (scrolling starts past 80 px, full speed past 112 px).
-- **The scroll stops with the screen's left edge at column 192.** The screen then shows columns 192–207. Check this against the original during the build.
+- **The scroll stops with the screen's left edge at column 192.** The screen then shows columns 192–207. Checked against the original in #24 (see the world-1-1 research): the original has no stop, but the flagpole touch locks its scroll. Mario touches the pole with the screen's left edge at most 12 px past column 192, and running about 22 px short of it, so the stop changes nothing in training. Only the castle walk after the touch differs: the original scrolls on to about column 196, where the replica stays at 192 with the flagpole and castle in view.
 - **The bonus room** is a fixed screen. The scroll position is restored when Mario comes out at column 163.
 - **The hidden 1-UP block at (64,8) is present in every attempt.** It is invisible and solid only when hit from below.
 
@@ -110,13 +111,13 @@ config.toml       the run settings the user edits (section 10)
 
 **What ends a training attempt**, whichever comes first:
 - **Death**: touched by an enemy while small, or fell into a pit.
-- **Reaching the flag**: the moment Mario touches the flagpole. Flag-height and remaining-time points are counted then.
+- **Reaching the flag**: the moment Mario touches the flagpole. Flag-height and remaining-time points are counted then, as two `scored_points` events: by the height of the touch, 100, 400, 800, 2000 or 5000 (the original's bands), and 50 points for each unit left on the level timer, which stops at the touch.
 - **Level timer**: 400 units of 24 ticks (9,600 ticks ≈ 160 s).
 - **Stall**: no new furthest-right position *in the current area* (level or bonus room) for `STALL_LIMIT_TICKS = 180`. The record resets when Mario changes area. Only a new furthest-right position resets the count.
 
 **Play mode** uses the original's rules: death, flag and timer, with **no stall rule**. `PlaySession` gives 3 lives, adds one for a 1-UP (and for 100 coins, as the original does), keeps score and coins across lives, and restarts at the checkpoint (page 5, column 80) once the screen's left edge has reached it. Game over starts a new game. Each life is its own Attempt in a freshly loaded level. Training never sees `PlaySession`. **The stall rule depends on the mode**, not on who presses the Controller.
 
-**Replay** ends where the recorded attempt ended. **The flagpole slide and castle walk** run as an input-free sequence after the touch, in play and replay only.
+**Replay** ends where the recorded attempt ended. **The flagpole slide and castle walk** run as an input-free sequence after the touch, in play and replay only (`EndOfLevelSequence`, built in #24): the flag slide, the castle walk to the stopper at (205, 12), then the timer counting down into the score. The HUD shows the touch's points as they arrive, as the original does. Then play mode starts a new game.
 
 **`AttemptResult`** is a read-only dataclass:
 
