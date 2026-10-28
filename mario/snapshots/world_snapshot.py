@@ -126,7 +126,13 @@ class HudSnapshot:
 
     @classmethod
     def of(cls, attempt: Attempt) -> "HudSnapshot":
-        return cls(attempt.scoreboard.score, attempt.scoreboard.coins, attempt.level_timer.time_left)
+        """The attempt's own numbers. From the flagpole touch on, the score shows the
+        touch's points only as they arrive, and the time counts down into it."""
+        score, time_left = attempt.scoreboard.score, attempt.level_timer.time_left
+        if attempt.end_of_level is not None:
+            score -= attempt.end_of_level.points_still_to_count
+            time_left = attempt.end_of_level.time_left
+        return cls(score, attempt.scoreboard.coins, time_left)
 
 
 @dataclass(frozen=True)

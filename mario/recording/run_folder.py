@@ -41,8 +41,13 @@ class RunFolder:
     def generation_times_path(self) -> Path:
         return self.path / GENERATION_TIMES_FILE_NAME
 
+    @property
+    def generations_path(self) -> Path:
+        """The folder holding one folder per recorded generation."""
+        return self.path / GENERATIONS_FOLDER_NAME
+
     def generation_path(self, generation: int) -> Path:
-        return self.path / GENERATIONS_FOLDER_NAME / f"{generation:0{GENERATION_FOLDER_DIGITS}d}"
+        return self.generations_path / f"{generation:0{GENERATION_FOLDER_DIGITS}d}"
 
     def controller_logs_path(self, generation: int) -> Path:
         return self.generation_path(generation) / CONTROLLER_LOGS_FILE_NAME
