@@ -87,3 +87,64 @@ HUD_COINS_DIGITS = 2
 HUD_WORLD_CELL = (19, 3)
 HUD_TIME_CELL = (26, 3)
 HUD_TIME_DIGITS = 3
+
+# --- Sprite view (#32) -------------------------------------------------------------------------
+
+# The sprites folder, from the repo root, and the one file type read from it.
+# assets/sprites/README.md lists the file names and sizes.
+SPRITES_FOLDER_PARTS = ("assets", "sprites")
+SPRITE_FILE_EXTENSION = ".png"
+# The original's sizes (width, height) in px. Tiles and scenery are one 16 x 16
+# metatile each. The player object is 16 x 32, small Mario its lower 16 rows; an
+# enemy object is 16 x 24 with the Goomba in its lower 16 rows and the defeated
+# Goomba in its lowest 8 (EnemyGraphicsTable); a power-up is a Goomba-sized enemy
+# object; a fireball is one 8 x 8 sprite and its explosion four, 16 x 16
+# (DrawExplosion_Fireball).
+TILE_SPRITE_SIZE = (16, 16)
+SMALL_MARIO_SPRITE_SIZE = (16, 16)
+BIG_MARIO_SPRITE_SIZE = (16, 32)
+GOOMBA_SPRITE_SIZE = (16, 16)
+DEFEATED_GOOMBA_SPRITE_SIZE = (16, 8)
+ITEM_SPRITE_SIZE = (16, 16)
+FIREBALL_SPRITE_SIZE = (8, 8)
+FIREBALL_EXPLOSION_SPRITE_SIZE = (16, 16)
+# Every sprite the Sprite view draws: its file name (without the extension) and size.
+SPRITE_SIZES = {
+    # tiles, by how they look: the bricks and ? blocks don't show what they hold
+    "ground": TILE_SPRITE_SIZE,
+    "hard_block": TILE_SPRITE_SIZE,
+    "brick": TILE_SPRITE_SIZE,
+    "question_block": TILE_SPRITE_SIZE,
+    "used_block": TILE_SPRITE_SIZE,
+    "pipe": TILE_SPRITE_SIZE,
+    "flagpole": TILE_SPRITE_SIZE,
+    # background scenery
+    "cloud": TILE_SPRITE_SIZE,
+    "hill": TILE_SPRITE_SIZE,
+    "bush": TILE_SPRITE_SIZE,
+    "castle_battlement": TILE_SPRITE_SIZE,
+    "castle_window": TILE_SPRITE_SIZE,
+    "castle_brick": TILE_SPRITE_SIZE,
+    "castle_door_arch": TILE_SPRITE_SIZE,
+    "castle_door": TILE_SPRITE_SIZE,
+    # Mario, by power state
+    "mario_small": SMALL_MARIO_SPRITE_SIZE,
+    "mario_big": BIG_MARIO_SPRITE_SIZE,
+    "mario_fiery": BIG_MARIO_SPRITE_SIZE,
+    # enemies
+    "goomba": GOOMBA_SPRITE_SIZE,
+    "goomba_defeated": DEFEATED_GOOMBA_SPRITE_SIZE,
+    # items
+    "super_mushroom": ITEM_SPRITE_SIZE,
+    "one_up_mushroom": ITEM_SPRITE_SIZE,
+    "fire_flower": ITEM_SPRITE_SIZE,
+    # Mario's fireballs
+    "fireball": FIREBALL_SPRITE_SIZE,
+    "fireball_explosion": FIREBALL_EXPLOSION_SPRITE_SIZE,
+}
+# Scenery has no hitbox; a missing scenery sprite is drawn in these colours (RGB).
+CLOUD_COLOUR = (252, 252, 252)
+HILL_COLOUR = (0, 120, 0)
+BUSH_COLOUR = (128, 208, 16)
+CASTLE_BRICK_COLOUR = (172, 80, 36)
+CASTLE_OPENING_COLOUR = (0, 0, 0)        # its windows and door

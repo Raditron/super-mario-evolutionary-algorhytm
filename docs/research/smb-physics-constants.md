@@ -377,6 +377,19 @@ These facts were sourced from [D] while building the fire flower and fireballs. 
 - **Explosion drawing:** the snapshot shows the fireball as exploding from the tick it explodes; the original draws it as a fireball once more on that frame.
 - **Not reproduced:** the fireball's removal above the screen's top and its status-bar skip (a fireball rises at most about 16 px after a bounce, so neither happens in 1-1); climbing (no vine in 1-1); the shooting animation (drawing only).
 
+## Added during the build (#32)
+
+These facts were sourced from [D] while building the Sprite view, for the sizes its sprites are drawn at. Line numbers refer to the same file.
+
+| Fact | Value | Source |
+|---|---|---|
+| Mario's sprites | The player object is 16 × 32 px, 4 rows of two 8 × 8 tiles. Every big-Mario frame fills all of it but crouching, whose top row is blank (16 × 24). Every small-Mario frame leaves the top 2 rows blank (`$fc`): small Mario is **16 × 16**, the object's lower half. The intermediate grow frame leaves the top row blank. | [D] `PlayerGraphicsTable` l. 14399-14429 |
+| Enemy sprites | An enemy object is 16 × 24 px, 3 rows of two tiles. The Goomba leaves its top row blank: **16 × 16**, as its box. The defeated (squashed) Goomba leaves its top 2 rows blank: **16 × 8**, standing on the same feet. | [D] `EnemyGraphicsTable` l. 13551-13575 (`;goomba`, `;defeated goomba`) |
+| Fireball explosion | Four 8 × 8 sprites, from 4 px up and left of the fireball's position to 12 px down and right: **16 × 16, centred on the 8 × 8 fireball**. A flying fireball is one 8 × 8 sprite at its position. | [D] `DrawFireball` l. 14229-14234, `DrawExplosion_Fireball`/`DrawExplosion_Fireworks` l. 14258-14300 |
+
+**Replica choices**:
+- **One picture per sprite:** the Sprite view draws each thing with one picture (small, big or fire Mario; a Goomba; a squashed Goomba). Crouching, the grow frames, walking frames and facing are drawing only, and wait for the texture pass (spec section 12).
+
 ## Not covered or uncertain
 
 - **Swimming** (rows 5–6 of the jump tables), **springboards** (Y −12 if A held, −7 otherwise [S]), **vines** and **whirlpools**. None of these appear in 1-1.
