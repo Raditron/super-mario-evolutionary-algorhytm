@@ -101,7 +101,8 @@ SPRITE_FILE_EXTENSION = ".png"
 # enemy object is 16 x 24 with the Goomba in its lower 16 rows and the defeated
 # Goomba in its lowest 8 (EnemyGraphicsTable); a power-up is two rows of two
 # 8 x 8 tiles, 16 x 16 (PowerUpGfxTable, DrawPowerUp); a fireball is one 8 x 8
-# sprite and its explosion four, 16 x 16 (DrawExplosion_Fireball).
+# sprite and its explosion four, 16 x 16 (DrawExplosion_Fireball); the flag is
+# three 8 x 8 sprites in a 16 x 16 square from its corner (FlagpoleGfxHandler).
 TILE_SPRITE_SIZE = (16, 16)
 SMALL_MARIO_SPRITE_SIZE = (16, 16)
 BIG_MARIO_SPRITE_SIZE = (16, 32)
@@ -110,6 +111,7 @@ DEFEATED_GOOMBA_SPRITE_SIZE = (16, 8)
 ITEM_SPRITE_SIZE = (16, 16)
 FIREBALL_SPRITE_SIZE = (8, 8)
 FIREBALL_EXPLOSION_SPRITE_SIZE = (16, 16)
+FLAG_SPRITE_SIZE = (16, 16)
 # Every sprite the Sprite view draws: its file name (without the extension) and size.
 SPRITE_SIZES = {
     # tiles, by how they look: the bricks and ? blocks don't show what they hold
@@ -120,6 +122,8 @@ SPRITE_SIZES = {
     "used_block": TILE_SPRITE_SIZE,
     "pipe": TILE_SPRITE_SIZE,
     "flagpole": TILE_SPRITE_SIZE,
+    # the flag on the flagpole
+    "flag": FLAG_SPRITE_SIZE,
     # background scenery
     "cloud": TILE_SPRITE_SIZE,
     "hill": TILE_SPRITE_SIZE,

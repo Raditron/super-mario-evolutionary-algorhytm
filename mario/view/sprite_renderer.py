@@ -16,6 +16,7 @@ from mario.constants.view import (
     CLOUD_COLOUR,
     EXPLODING_FIREBALL_COLOUR,
     FIREBALL_COLOUR,
+    FLAG_COLOUR,
     HILL_COLOUR,
     INVULNERABLE_MARIO_DRAWN_EVERY_TICKS,
     SKY_COLOUR,
@@ -27,6 +28,7 @@ from mario.level.tile_kind import TileKind
 from mario.snapshots.world_snapshot import (
     EnemySnapshot,
     FireballSnapshot,
+    FlagSnapshot,
     ItemKind,
     ItemSnapshot,
     MarioSnapshot,
@@ -85,6 +87,7 @@ ITEM_SPRITE_NAMES = {
 
 FIREBALL_SPRITE_NAME = "fireball"
 FIREBALL_EXPLOSION_SPRITE_NAME = "fireball_explosion"
+FLAG_SPRITE_NAME = "flag"
 
 
 class SpriteRenderer:
@@ -101,6 +104,8 @@ class SpriteRenderer:
             if item.is_emerging:
                 self._draw_item(item, snapshot.screen_left_x_pixels, screen)
         self._draw_tiles(snapshot, screen)
+        if snapshot.flag is not None:
+            self._draw_flag(snapshot.flag, snapshot.screen_left_x_pixels, screen)
         for item in snapshot.items:
             if not item.is_emerging:
                 self._draw_item(item, snapshot.screen_left_x_pixels, screen)
@@ -166,6 +171,11 @@ class SpriteRenderer:
         else:
             self._draw_sprite(FIREBALL_SPRITE_NAME, FIREBALL_COLOUR, _standing_on(box, FIREBALL_SPRITE_NAME),
                               screen_left_x_pixels, screen)
+
+    def _draw_flag(self, flag: FlagSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
+        """From its top-left corner, on the left of the pole (FlagpoleGfxHandler)."""
+        place = pygame.Rect((flag.x_pixels, flag.y_pixels), SPRITE_SIZES[FLAG_SPRITE_NAME])
+        self._draw_sprite(FLAG_SPRITE_NAME, FLAG_COLOUR, place, screen_left_x_pixels, screen)
 
     def _draw_sprite(self, sprite_name: str, hitbox_colour: tuple[int, int, int], place: pygame.Rect,
                      screen_left_x_pixels: int, screen: pygame.Surface) -> None:

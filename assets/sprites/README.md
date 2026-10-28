@@ -26,6 +26,12 @@ Tiles are named by how they look: a brick or ? block doesn't show what it holds.
 | `pipe.png` | 16 × 16 | every tile of a pipe |
 | `flagpole.png` | 16 × 16 | the flagpole's ball and shaft |
 
+### The flag
+
+| File | Size (px) | Drawn for |
+|---|---|---|
+| `flag.png` | 16 × 16 | the flag on the left of the flagpole, from its top-left corner, sliding down with Mario at the end of the level |
+
 ### Background scenery (16 × 16, one per tile, behind the tiles)
 
 Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A cloud, hill or bush is several tiles, each drawn with the same picture.
