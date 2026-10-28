@@ -34,7 +34,7 @@ Everything that appears in World 1-1 is built; only audio is out:
 |---|---|
 | `py -m mario play` | A human plays with the keyboard (section 6). |
 | `py -m mario train [config] [--watch]` | Trains one run. `config` defaults to `config.toml` at the repo root. `--watch` turns on watch-live (section 11); without it, training is headless. |
-| `py -m mario replay <run-folder> [--generation N] [--best]` | Replays generation `N` (default: the last one recorded): all agents as ghosts, or with `--best` only its best agent. |
+| `py -m mario replay <run-folder> [--generation N] [--best]` | Replays generation `N` (default: the last one recorded): all agents as ghosts, or with `--best` only its best agent. Until all-ghost replay is built (#30), `replay` without `--best` exits with a message saying so. |
 | `py -m mario stats <run-folder> [more run folders...]` | Writes charts and a summary (section 13). |
 
 Python 3.12, run as `py`. Dependencies (in `requirements.txt`): pygame, numpy, matplotlib, pytest. Nothing else.
@@ -56,11 +56,16 @@ mario/
                   BrainControllerSource (no pygame)
   snapshots/      WorldSnapshot + the shared-memory channel
   training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool, ChunkPlayer
-  recording/      RunFolder, RunRecorder (training's GenerationRecorder feeds it)
+  recording/      RunFolder, RunRecorder (training's GenerationRecorder feeds it),
+                  RecordedRun: a run folder read back for replay; ResultsRow:
+                  one row of results.csv, written and read back by RESULTS_COLUMNS;
+                  best_agent_index: the one best-agent rule both go by
   statistics/     charts and summary from run folders (only matplotlib importer)
   view/           Window, KeyboardControllerSource, SpriteRenderer, DebugRenderer,
-                  HUD, followed-agent camera (only pygame importer)
-  modes/          PlayMode (+ PlaySession), TrainMode, ReplayMode, StatsMode
+                  HUD, Viewer (window + both views + HUD, with F1, shared by every
+                  mode that draws), followed-agent camera (only pygame importer)
+  modes/          PlayMode (+ PlaySession), TrainMode, ReplayMode (+ ReplaySession),
+                  StatsMode
 neuroevolution/   the user's package; exposes create_algorithm(settings)
 assets/sprites/   textures, added last (section 12)
 tests/game/       the game's pytest suite
@@ -275,7 +280,11 @@ runs/YYYY-MM-DD_HH-MM_<run-name>/
   - Without `--watch`, nothing is written and training runs at full speed. The budget at real time is about 25–40 s per generation.
   - *Suggested shape:* each worker publishes full detail for its own rightmost living agent, and the window uses the overall rightmost.
 - **All-ghost replay** reuses the same worker + snapshot pipeline, with `ControllerLogSource` in place of the brain.
-- **Best-agent replay** and **play** are one Mario each and run in the main process.
+- **Best-agent replay** and **play** are one Mario each and run in the main process (built in #28):
+  - The best agent is read from `results.csv` (highest fitness, lowest index on a tie), and its Controller log from `controller_logs.npz`. A generation counts as recorded once its folder holds its Controller logs (the last thing written of it), so a run stopped early replays from its last complete generation.
+  - The recorded attempts are training attempts, so the replay's Attempt has the **stall rule on**, as they had. It ends where the recorded attempt ended; one that reached the flag then plays out the end of the level through `step_end_of_level`, as play mode does.
+  - Once it is over, the last frame stays until the viewer quits (`Esc` or closing the window). The terminal gets one line naming the generation, the agent, its fitness, end reason, `furthest_x` and ticks.
+  - The window, both views, `F1` and the HUD are one `Viewer` (`view/viewer.py`) that play and replay share, and watch-live reuses.
 - The rule: **many agents → workers + snapshots; one Mario → main process.**
 - Replays are always rebuilt from Controller logs, **never by re-running a genome**. Float rounding in a brain could flip a button that sits on the threshold (#4).
 

@@ -48,12 +48,10 @@ class PlaySession:
             self._lose_life()
 
     def snapshot(self) -> WorldSnapshot:
-        score, time_left = self.score, self.attempt.level_timer.time_left
-        end_of_level = self.attempt.end_of_level
-        if end_of_level is not None:
-            score -= end_of_level.points_still_to_count
-            time_left = end_of_level.time_left
-        hud = HudSnapshot(score, self.coins, time_left)
+        """The attempt's snapshot, its HUD carrying the score and coins of the lives before it."""
+        attempts_own_hud = HudSnapshot.of(self.attempt)
+        hud = HudSnapshot(self._score_before_this_life + attempts_own_hud.score, self.coins,
+                          attempts_own_hud.time_left)
         return WorldSnapshot.of(self.attempt, hud, self._observation_builder)
 
     def _start_new_game(self) -> None:
