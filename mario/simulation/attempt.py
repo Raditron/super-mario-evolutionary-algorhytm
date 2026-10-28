@@ -1,14 +1,16 @@
 """One Attempt: one life of one Mario in a freshly loaded level.
 
-Its only way in is step(buttons), one tick given that tick's Controller
-bitmask. It uses no randomness, no floats and no wall clock, so the same
-Controller log always gives the same Attempt.
+Its one way in is step(buttons), one tick given that tick's Controller bitmask.
+Once it has ended with reached_flag, and in play or replay only, a second one
+opens: step_end_of_level(), one input-free tick of its EndOfLevelSequence. It
+uses no randomness, no floats and no wall clock, so the same Controller log
+always gives the same Attempt.
 
 It ends when Mario dies, touches the flagpole or the level timer runs out, and,
 if the mode turns the stall rule on (training does, play doesn't), when he
 stalls. The touch scores the flag-height and remaining-time points at once, and
 ends the tick there: the level timer stops, and nothing else moves (the slide and
-castle walk after it are EndOfLevelSequence's, in play and replay only). While Mario
+castle walk after it are step_end_of_level's). While Mario
 grows, shrinks or catches fire, everything else stands still, the level timer
 too, but for his fireballs, which the original runs every frame; the ticks
 still count, and so does the stall rule.
@@ -22,6 +24,7 @@ from mario.simulation.attempt_result import AttemptResult, DefeatMethod, EndReas
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.blocks import Blocks, HeadHit
 from mario.simulation.enemy_collision_check import EnemyCollisionCheck, EnemyCollisionOutcome, is_enemy_check_tick
+from mario.simulation.end_of_level_sequence import WALK_RIGHT, EndOfLevelSequence
 from mario.simulation.enemy_roster import EnemyRoster
 from mario.simulation.fireballs import Fireballs
 from mario.simulation.flagpole import Flag, FlagpoleTouch, touches_flagpole
@@ -59,6 +62,7 @@ class Attempt:
         self.fireballs = Fireballs(self.mario, self.scoreboard, self.events)
         self._stall_rule = StallRule(self.mario.pixel_x) if ends_on_stall else None
         self.flagpole_touch: FlagpoleTouch | None = None
+        self.end_of_level: EndOfLevelSequence | None = None
         self.flag = Flag(level.flagpole_column) if level.flagpole_column is not None else None
         self.end_reason: EndReason | None = None
 
@@ -79,6 +83,16 @@ class Attempt:
             self._stall_rule.observe(self.mario.pixel_x)
         self.end_reason = self._reason_to_end()
 
+    def step_end_of_level(self) -> None:
+        """After reached_flag, in play and replay only: one input-free tick of the
+        end of the level, starting on the touch's own tick. Walking to the castle,
+        Mario moves as step moves him, pressing right, and the screen follows."""
+        if self.end_of_level is None:
+            raise RuntimeError("the attempt did not reach the flag")
+        if self.end_of_level.is_walking_to_the_castle:
+            self._move_mario(WALK_RIGHT)
+        self.end_of_level.step()
+
     def result(self) -> AttemptResult:
         if not self.is_over:
             raise RuntimeError("the attempt is still running")
@@ -92,11 +106,7 @@ class Attempt:
         )
 
     def _play_one_tick(self, controller: ControllerState) -> None:
-        pixel_x_before = self.mario.pixel_x
-        self.mario.step(controller, self.tiles)
-        if self.mario.head_hit_tile is not None:
-            self._hit_block_from_below(*self.mario.head_hit_tile)
-        self.scroll.follow(self.mario, self.mario.pixel_x - pixel_x_before)
+        self._move_mario(controller)
         self.furthest_x = max(self.furthest_x, self.mario.pixel_x)
         if touches_flagpole(self.mario, self.tiles):
             self._touch_flagpole()
@@ -116,6 +126,16 @@ class Attempt:
         self.flagpole_touch = FlagpoleTouch.of(self.mario, self.level_timer.time_left)
         self.scoreboard.score_points(self.flagpole_touch.flag_points, self.ticks_elapsed)
         self.scoreboard.score_points(self.flagpole_touch.time_points, self.ticks_elapsed)
+        self.end_of_level = EndOfLevelSequence(self.mario, self.tiles, self.flag, self.flagpole_touch,
+                                               self.level.flagpole_column)
+
+    def _move_mario(self, controller: ControllerState) -> None:
+        """Mario moves, any block his head hit is hit, and the screen follows him."""
+        pixel_x_before = self.mario.pixel_x
+        self.mario.step(controller, self.tiles)
+        if self.mario.head_hit_tile is not None:
+            self._hit_block_from_below(*self.mario.head_hit_tile)
+        self.scroll.follow(self.mario, self.mario.pixel_x - pixel_x_before)
 
     def _hit_block_from_below(self, column: int, row: int) -> None:
         head_hit = self.blocks.hit_from_below(column, row, self.ticks_elapsed, mario_is_big=self.mario.is_big)

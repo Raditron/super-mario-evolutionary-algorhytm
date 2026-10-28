@@ -4,8 +4,8 @@ Each life is its own Attempt in a freshly loaded level, with no stall rule.
 The game starts with 3 lives and gains one for every 100 coins and every 1-UP
 collected. Score, coins and 1-UPs carry across lives. A life lost once the screen's left edge has reached the
 checkpoint restarts there (PlayerLoseLife); losing the last life starts a new game.
-Touching the flagpole plays out the end of the level, input-free (EndOfLevelSequence),
-then starts a new game.
+Touching the flagpole plays out the end of the level, input-free
+(Attempt.step_end_of_level), then starts a new game.
 """
 
 from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS
@@ -13,7 +13,6 @@ from mario.constants.scoring import COINS_PER_EXTRA_LIFE, STARTING_LIVES
 from mario.level.static_level import StaticLevel
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import EndReason
-from mario.simulation.end_of_level_sequence import EndOfLevelSequence
 from mario.simulation.observation_builder import ObservationBuilder
 from mario.snapshots.world_snapshot import HudSnapshot, WorldSnapshot
 
@@ -39,34 +38,35 @@ class PlaySession:
         return self._total_coins() % COINS_PER_EXTRA_LIFE
 
     def step(self, buttons: int) -> None:
-        """One tick of the current life; when it ends, the next one starts. After
-        the flagpole touch, one tick of the end of the level, which ignores the buttons."""
-        if self._end_of_level is not None:
-            self._end_of_level.step()
-            if self._end_of_level.is_over:
-                self._start_new_game()
-            return
-        self.attempt.step(buttons)
+        """One tick of the current life; when it ends, the next one starts. From
+        the flagpole touch on, one tick of the end of the level, which ignores the buttons."""
+        if not self.attempt.is_over:
+            self.attempt.step(buttons)
         if self.attempt.end_reason is EndReason.REACHED_FLAG:
-            self._end_of_level = EndOfLevelSequence(self.attempt)
+            self._play_end_of_level_tick()
         elif self.attempt.is_over:
             self._lose_life()
 
     def snapshot(self) -> WorldSnapshot:
         score, time_left = self.score, self.attempt.level_timer.time_left
-        if self._end_of_level is not None:
-            score -= self._end_of_level.points_still_to_count
-            time_left = self._end_of_level.time_left
+        end_of_level = self.attempt.end_of_level
+        if end_of_level is not None:
+            score -= end_of_level.points_still_to_count
+            time_left = end_of_level.time_left
         hud = HudSnapshot(score, self.coins, time_left)
         return WorldSnapshot.of(self.attempt, hud, self._observation_builder)
 
     def _start_new_game(self) -> None:
-        self._end_of_level: EndOfLevelSequence | None = None
         self._lives_lost = 0
         self._score_before_this_life = 0
         self._coins_before_this_life = 0
         self._one_ups_before_this_life = 0
         self.attempt = Attempt(self._level)
+
+    def _play_end_of_level_tick(self) -> None:
+        self.attempt.step_end_of_level()
+        if self.attempt.end_of_level.is_over:
+            self._start_new_game()
 
     def _lose_life(self) -> None:
         self._lives_lost += 1

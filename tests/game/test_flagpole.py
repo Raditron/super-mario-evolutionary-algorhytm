@@ -5,6 +5,7 @@ import pytest
 
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import EndReason, GameEvent, GameEventKind
+from mario.simulation.flagpole import flag_points_for_touch_at
 from tests.game.helpers import GROUND_TOP_ROW, build_level
 from tests.game.scripted_pilot import ScriptedPilot
 
@@ -71,3 +72,24 @@ def test_a_higher_touch_scores_more_points_in_the_original_bands(ledge_top_row, 
     run_into_the_pole(attempt)
     assert attempt.end_reason is EndReason.REACHED_FLAG
     assert attempt.flagpole_touch.flag_points == flag_points
+
+
+# Every band edge of FlagpoleYPosData, touched exactly and one pixel above it.
+@pytest.mark.parametrize("sprite_y_pixels, flag_points", [
+    (33, 5000),
+    (34, 2000),
+    (79, 2000),
+    (80, 800),
+    (103, 800),
+    (104, 400),
+    (143, 400),
+    (144, 100),
+])
+def test_each_band_starts_exactly_at_its_sprite_y(sprite_y_pixels, flag_points):
+    assert flag_points_for_touch_at(sprite_y_pixels) == flag_points
+
+
+def test_an_attempt_that_did_not_reach_the_flag_has_no_end_of_level_to_step():
+    attempt = Attempt(flagpole_level(ledge_top_row=7))
+    with pytest.raises(RuntimeError):
+        attempt.step_end_of_level()

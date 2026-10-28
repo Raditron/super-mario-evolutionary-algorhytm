@@ -7,7 +7,7 @@ more than one tile per tick, so checking its leading edge is enough.
 
 from enum import Enum, auto
 
-from mario.constants.level import SUBPIXEL_TO_TILE_SHIFT, TILE_SIZE_SUBPIXELS
+from mario.constants.level import SUBPIXEL_TO_TILE_SHIFT, TILE_SIZE_PIXELS, TILE_SIZE_SUBPIXELS
 from mario.constants.physics import SUBPIXEL_BITS
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.hitbox import Hitbox
@@ -109,6 +109,15 @@ class TileBody:
         left_column = self.x >> SUBPIXEL_TO_TILE_SHIFT
         right_column = (self.x + self.width - 1) >> SUBPIXEL_TO_TILE_SHIFT
         return _row_has_solid_tile(tiles, row_below, left_column, right_column)
+
+    def is_flush_against_solid_tile_on_the_right(self, tiles: AttemptTiles) -> bool:
+        """Whether the box's right edge, in whole pixels, touches a solid tile's left side."""
+        hitbox = self.hitbox()
+        if hitbox.right_x_pixels % TILE_SIZE_PIXELS != 0:
+            return False
+        return _column_has_solid_tile(tiles, hitbox.right_x_pixels // TILE_SIZE_PIXELS,
+                                      hitbox.y_pixels // TILE_SIZE_PIXELS,
+                                      (hitbox.bottom_y_pixels - 1) // TILE_SIZE_PIXELS)
 
 
 def _column_has_solid_tile(tiles: AttemptTiles, column: int, top_row: int, bottom_row: int) -> bool:

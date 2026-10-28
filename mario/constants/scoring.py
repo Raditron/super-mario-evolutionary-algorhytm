@@ -28,7 +28,7 @@ FLAGPOLE_TOP_POINTS = 5000
 # Then every unit left on the level timer is worth 50 points (AwardGameTimerPoints).
 POINTS_PER_TIME_UNIT_LEFT = 50
 
-# --- Play mode only (PlaySession)---------------------------------------------------------
+# --- Play mode only (PlaySession) ---------------------------------------------------------
 
 STARTING_LIVES = 3                                           # PrimaryGameSetup
 COINS_PER_EXTRA_LIFE = 100                                   # GiveOneCoin; the coin count then restarts at 0

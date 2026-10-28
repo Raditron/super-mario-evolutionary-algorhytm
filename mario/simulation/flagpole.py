@@ -1,10 +1,11 @@
 """The flagpole: when Mario touches it, what the touch scores, and its flag.
 
 As in the original (SideCheckLoop, HandleClimbing), he touches it with the side
-probe at his sprite y + 24, on his box's left or right edge, and only where that
-probe is 6 to 9 px into the pole's tile. The height of the touch (his sprite's
-top) picks the points (FlagpoleYPosData), and the level timer stops there; its
-units left are worth 50 points each.
+probe FLAGPOLE_TOUCH_PROBE_SPRITE_Y_PIXELS below his sprite's top, on his box's
+left or right edge, and only where that probe is FLAGPOLE_TOUCH_MIN_X_IN_TILE_PIXELS
+to FLAGPOLE_TOUCH_MAX_X_IN_TILE_PIXELS into the pole's tile. The height of the
+touch (his sprite's top) picks the points (FlagpoleYPosData), and the level timer
+stops there; its units left are worth POINTS_PER_TIME_UNIT_LEFT each.
 """
 
 from dataclasses import dataclass
@@ -20,7 +21,6 @@ from mario.constants.flagpole import (
     FLAGPOLE_TOUCH_PROBE_SPRITE_Y_PIXELS,
 )
 from mario.constants.level import TILE_SIZE_PIXELS
-from mario.constants.physics import SUBPIXEL_BITS
 from mario.constants.scoring import (
     FLAGPOLE_POINTS_BY_LOWEST_SPRITE_Y_PIXELS,
     FLAGPOLE_TOP_POINTS,
@@ -40,17 +40,23 @@ class FlagpoleTouch:
 
     @property
     def time_points(self) -> int:
-        return POINTS_PER_TIME_UNIT_LEFT * self.time_left
+        return points_for_time_left(self.time_left)
 
     @classmethod
     def of(cls, mario: Mario, time_left: int) -> "FlagpoleTouch":
         return cls(flag_points_for_touch_at(mario.sprite_y_pixels), time_left)
 
 
+def points_for_time_left(time_left: int) -> int:
+    """The remaining-time points for this many units left on the level timer."""
+    return POINTS_PER_TIME_UNIT_LEFT * time_left
+
+
 def touches_flagpole(mario: Mario, tiles: AttemptTiles) -> bool:
     probe_row = (mario.sprite_y_pixels + FLAGPOLE_TOUCH_PROBE_SPRITE_Y_PIXELS) // TILE_SIZE_PIXELS
-    left_x_pixels = mario.pixel_x
-    right_x_pixels = left_x_pixels + (mario.width >> SUBPIXEL_BITS) - 1
+    hitbox = mario.hitbox()
+    left_x_pixels = hitbox.x_pixels
+    right_x_pixels = hitbox.right_x_pixels - 1      # the box's last pixel column
     return any(FLAGPOLE_TOUCH_MIN_X_IN_TILE_PIXELS <= probe_x_pixels % TILE_SIZE_PIXELS
                <= FLAGPOLE_TOUCH_MAX_X_IN_TILE_PIXELS
                and tiles.tile_kind(probe_x_pixels // TILE_SIZE_PIXELS, probe_row) is TileKind.FLAGPOLE
