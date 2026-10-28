@@ -49,8 +49,9 @@ mario/
                   size_change, snapshots, flagpole
   level/          StaticLevel: tile map + block/pipe/enemy tables, read-only;
                   BackgroundScenery: layer 2, drawing data for the Sprite view only
-  simulation/     Attempt, Mario, enemies, items, blocks, collision, scroll,
-                  flagpole, EndOfLevelSequence, GameEvent, AttemptResult,
+  simulation/     Attempt, Mario, enemies (Goomba, Koopa and its shell),
+                  ShellHits, items, blocks, collision, scroll, flagpole,
+                  EndOfLevelSequence, GameEvent, AttemptResult,
                   ObservationBuilder (no pygame)
   controller/     Controller bitmask, ControllerSource, ControllerLogSource,
                   BrainControllerSource (no pygame)
@@ -97,7 +98,7 @@ config.toml       the run settings the user edits (section 10)
   - the Mario–enemy check runs every other tick
   - speed is capped *before* gravity is added, so a fall can overshoot to ≈ 4.5 px/f for one tick
 - **Tile collision:** axis-separated boxes. Move along x and push out of solid tiles, then move along y and push out again. Landing snaps feet to the tile top. Hitting a tile from below stops the rise and bumps the block. The original's point probes are not copied.
-- **Entity collision:** as in the original (`ChkForPlayerInjury`), when hitboxes overlap and Mario is moving down at 1 px/f or more, it's a stomp, wherever his feet are. Otherwise Mario takes damage, or with Starman the enemy is defeated. This is checked every other tick. A "feet above the enemy's centre" clause was dropped in #17: Mario falls up to ≈ 9 px between checks, and the clause made 224 of 386 jumps onto a Goomba fatal. Enemies use the same tile collision and turn around at walls.
+- **Entity collision:** as in the original (`ChkForPlayerInjury`), when hitboxes overlap and Mario is moving down at 1 px/f or more, it's a stomp, wherever his feet are. Otherwise Mario takes damage, or with Starman the enemy is defeated. This is checked every other tick. Any touch of a still shell kicks it instead (`HandlePECollisions`, built in #22). A touch counts once: an enemy that touched him at the last check and still does is let be until they part, so a shell he has just kicked doesn't hurt him on its way out. A moving shell defeats the enemies it touches on the other ticks (`EnemiesCollision`, `ShellHits`). A "feet above the enemy's centre" clause was dropped in #17: Mario falls up to ≈ 9 px between checks, and the clause made 224 of 386 jumps onto a Goomba fatal. Enemies use the same tile collision and turn around at walls.
 - **Hitbox sizes** are on the 16 px grid. An enemy's box comes from its tile probes, as Mario's does (a Goomba is 16 × 16). The original's smaller bounding boxes are recorded in the physics research but not used.
 
 ### Level (#3, #8)
