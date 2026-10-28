@@ -11,6 +11,8 @@ from mario.constants.view import (
     GROUND_COLOUR,
     HARD_BLOCK_COLOUR,
     HIDDEN_BLOCK_COLOUR,
+    KOOPA_COLOUR,
+    KOOPA_SHELL_COLOUR,
     MARIO_COLOUR,
     ONE_UP_MUSHROOM_COLOUR,
     PIPE_COLOUR,
@@ -40,6 +42,13 @@ TILE_COLOURS = {
 
 ENEMY_COLOURS = {
     EnemyKind.GOOMBA: GOOMBA_COLOUR,
+    EnemyKind.KOOPA: KOOPA_COLOUR,
+}
+
+
+# An enemy drawn as its shell: a Koopa's, still, moving, or knocked out of the level.
+SHELL_COLOURS = {
+    EnemyKind.KOOPA: KOOPA_SHELL_COLOUR,
 }
 
 

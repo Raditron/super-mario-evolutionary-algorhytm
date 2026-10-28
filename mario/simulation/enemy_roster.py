@@ -17,9 +17,9 @@ class EnemyRoster:
         self.active: list[Enemy] = []
         self._spawner = EnemySpawner(spawns)
 
-    def step(self, playfield: Playfield) -> None:
+    def step(self, playfield: Playfield, tick: int) -> None:
         for enemy in self.active:
-            enemy.step(playfield.tiles)
+            enemy.step(playfield.tiles, tick)
         screen_left_x_pixels = playfield.screen_left_x_pixels
         self.active = [enemy for enemy in self.active if not self._is_out_of_play(enemy, screen_left_x_pixels)]
         self.active += self._spawner.activate_due(screen_left_x_pixels)

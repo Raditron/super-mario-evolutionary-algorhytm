@@ -61,6 +61,8 @@ Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A cloud, hill or bus
 |---|---|---|
 | `goomba.png` | 16 × 16 | a Goomba |
 | `goomba_defeated.png` | 16 × 8 | a squashed Goomba |
+| `koopa.png` | 16 × 24 | the green Koopa Troopa, walking |
+| `koopa_shell.png` | 16 × 16 | its shell: still, kicked, or flipped as it falls out of the level |
 
 ### Items
 

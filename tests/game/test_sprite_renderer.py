@@ -32,6 +32,8 @@ from mario.constants.view import (
     GOOMBA_COLOUR,
     GROUND_COLOUR,
     HILL_COLOUR,
+    KOOPA_COLOUR,
+    KOOPA_SHELL_COLOUR,
     MARIO_COLOUR,
     SKY_COLOUR,
     SPRITE_SIZES,
@@ -172,6 +174,11 @@ def goomba(is_defeated: bool = False) -> EnemySnapshot:
                          GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated)
 
 
+def koopa(is_shell: bool = False, is_defeated: bool = False) -> EnemySnapshot:
+    return EnemySnapshot(EnemyKind.KOOPA, THING_X, THING_Y, GOOMBA_HITBOX_WIDTH_PIXELS,
+                         GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated, is_shell)
+
+
 def mushroom(is_emerging: bool = False, x: int = THING_X, y: int = THING_Y) -> ItemSnapshot:
     return ItemSnapshot(ItemKind.SUPER_MUSHROOM, x, y, ITEM_HITBOX_WIDTH_PIXELS, ITEM_HITBOX_HEIGHT_PIXELS,
                         is_emerging)
@@ -194,6 +201,13 @@ THINGS_AND_THEIR_SPRITES_PLACES = [
     pytest.param(sky_screen(enemies=(goomba(),)), GOOMBA_COLOUR, (THING_X, THING_Y, 16, 16), id="Goomba"),
     pytest.param(sky_screen(enemies=(goomba(is_defeated=True),)), GOOMBA_COLOUR,
                  (THING_X, THING_Y + 8, 16, 8), id="squashed Goomba"),
+    # EnemyGraphicsTable: a Koopa fills the 16 x 24 enemy object; its shell, upright
+    # or flipped, the lower 16 rows
+    pytest.param(sky_screen(enemies=(koopa(),)), KOOPA_COLOUR, (THING_X, THING_Y - 8, 16, 24), id="Koopa"),
+    pytest.param(sky_screen(enemies=(koopa(is_shell=True),)), KOOPA_SHELL_COLOUR, (THING_X, THING_Y, 16, 16),
+                 id="Koopa shell"),
+    pytest.param(sky_screen(enemies=(koopa(is_shell=True, is_defeated=True),)), KOOPA_SHELL_COLOUR,
+                 (THING_X, THING_Y, 16, 16), id="defeated Koopa"),
     pytest.param(sky_screen(items=(mushroom(),)), SUPER_MUSHROOM_COLOUR, (THING_X, THING_Y, 16, 16),
                  id="Super Mushroom"),
     pytest.param(sky_screen(fireballs=(fireball(is_exploding=False),)), FIREBALL_COLOUR,

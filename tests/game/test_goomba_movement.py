@@ -21,8 +21,8 @@ def step(goomba: Goomba, level: StaticLevel, ticks: int) -> list[tuple[int, int]
     """Step the Goomba; return its hitbox position after every tick."""
     tiles = AttemptTiles(level)
     positions = []
-    for _ in range(ticks):
-        goomba.step(tiles)
+    for tick in range(1, ticks + 1):
+        goomba.step(tiles, tick)
         positions.append((goomba.hitbox().x_pixels, goomba.hitbox().y_pixels))
     return positions
 

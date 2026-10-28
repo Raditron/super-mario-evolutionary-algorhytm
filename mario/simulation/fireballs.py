@@ -61,7 +61,7 @@ class Fireballs:
         """The original checks its enemy slots from the last down; the newest enemy
         is the nearest the replica has to the last slot."""
         for enemy in reversed(enemies):
-            if enemy.can_be_hit_by_fireball(screen_left_x_pixels) and enemy.hitbox().overlaps(fireball.hitbox()):
+            if enemy.can_be_hit(screen_left_x_pixels) and enemy.hitbox().overlaps(fireball.hitbox()):
                 fireball.explode()
                 enemy.defeat_by_fireball(self._mario.x)
                 self._events.append(GameEvent(tick, GameEventKind.DEFEATED_ENEMY, DefeatMethod.FIREBALL))

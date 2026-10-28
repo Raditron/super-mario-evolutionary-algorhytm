@@ -10,9 +10,9 @@ from mario.constants.level import ENEMY_ACTIVATION_RANGE_PIXELS, SCREEN_WIDTH_PI
 from mario.level.static_level import EnemyKind, EnemySpawn
 from mario.simulation.enemy import Enemy
 from mario.simulation.goomba import Goomba
+from mario.simulation.koopa import Koopa
 
-# The Koopa joins with its own slice (#22); until then its turn in the list passes without one.
-ENEMY_CLASS_BY_KIND = {EnemyKind.GOOMBA: Goomba}
+ENEMY_CLASS_BY_KIND = {EnemyKind.GOOMBA: Goomba, EnemyKind.KOOPA: Koopa}
 
 
 class EnemySpawner:
@@ -29,7 +29,6 @@ class EnemySpawner:
             if spawn.activation_x_pixels > screen_right_x_pixels + ENEMY_ACTIVATION_RANGE_PIXELS:
                 break
             self._next_spawn_index += 1
-            enemy_class = ENEMY_CLASS_BY_KIND.get(spawn.kind)
-            if spawn.activation_x_pixels >= screen_right_x_pixels and enemy_class is not None:
-                activated.append(enemy_class(spawn))
+            if spawn.activation_x_pixels >= screen_right_x_pixels:
+                activated.append(ENEMY_CLASS_BY_KIND[spawn.kind](spawn))
         return activated

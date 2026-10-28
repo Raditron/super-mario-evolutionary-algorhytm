@@ -24,6 +24,12 @@ class Scoreboard:
         self.score += points
         self._events.append(GameEvent(tick, GameEventKind.SCORED_POINTS, points))
 
+    def score_points_if_any(self, points: int | None, tick: int) -> None:
+        """Points from a step of the score table; None, a step beyond it (a 1-UP in
+        the original, not reproduced), scores nothing."""
+        if points is not None:
+            self.score_points(points, tick)
+
     def collect_coin(self, tick: int) -> None:
         self.coins += 1
         self._events.append(GameEvent(tick, GameEventKind.COLLECTED_COIN))

@@ -32,8 +32,10 @@ FLAG_COLOUR = (60, 188, 60)
 MARIO_COLOUR = (216, 40, 0)                  # small or big
 FIRE_MARIO_COLOUR = (252, 252, 252)
 GOOMBA_COLOUR = (136, 76, 0)
-# A defeated enemy (so far only a squashed Goomba) is drawn flattened to this
-# height, standing on its feet.
+KOOPA_COLOUR = (88, 216, 84)
+KOOPA_SHELL_COLOUR = (16, 112, 72)           # still or moving
+# A defeated enemy (a squashed Goomba, or one knocked out of the level) is drawn
+# flattened to this height, standing on its feet.
 DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS = 8
 SUPER_MUSHROOM_COLOUR = (252, 116, 180)
 ONE_UP_MUSHROOM_COLOUR = (0, 200, 120)
@@ -98,8 +100,8 @@ SPRITES_FOLDER_PARTS = ("assets", "sprites")
 SPRITE_FILE_EXTENSION = ".png"
 # The original's sizes (width, height) in px. Tiles and scenery are one 16 x 16
 # metatile each. The player object is 16 x 32, small Mario its lower 16 rows; an
-# enemy object is 16 x 24 with the Goomba in its lower 16 rows and the defeated
-# Goomba in its lowest 8 (EnemyGraphicsTable); a power-up is two rows of two
+# enemy object is 16 x 24, the Koopa all of it, the Goomba and the Koopa's shell
+# its lower 16 rows and the defeated Goomba its lowest 8 (EnemyGraphicsTable); a power-up is two rows of two
 # 8 x 8 tiles, 16 x 16 (PowerUpGfxTable, DrawPowerUp); a fireball is one 8 x 8
 # sprite and its explosion four, 16 x 16 (DrawExplosion_Fireball); the flag is
 # three 8 x 8 sprites in a 16 x 16 square from its corner (FlagpoleGfxHandler).
@@ -108,6 +110,8 @@ SMALL_MARIO_SPRITE_SIZE = (16, 16)
 BIG_MARIO_SPRITE_SIZE = (16, 32)
 GOOMBA_SPRITE_SIZE = (16, 16)
 DEFEATED_GOOMBA_SPRITE_SIZE = (16, 8)
+KOOPA_SPRITE_SIZE = (16, 24)
+KOOPA_SHELL_SPRITE_SIZE = (16, 16)
 ITEM_SPRITE_SIZE = (16, 16)
 FIREBALL_SPRITE_SIZE = (8, 8)
 FIREBALL_EXPLOSION_SPRITE_SIZE = (16, 16)
@@ -140,6 +144,8 @@ SPRITE_SIZES = {
     # enemies
     "goomba": GOOMBA_SPRITE_SIZE,
     "goomba_defeated": DEFEATED_GOOMBA_SPRITE_SIZE,
+    "koopa": KOOPA_SPRITE_SIZE,
+    "koopa_shell": KOOPA_SHELL_SPRITE_SIZE,
     # items
     "super_mushroom": ITEM_SPRITE_SIZE,
     "one_up_mushroom": ITEM_SPRITE_SIZE,

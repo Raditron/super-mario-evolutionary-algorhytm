@@ -1,8 +1,8 @@
 """What every walking enemy shares.
 
 An enemy spawns at its fixed spawn position and starts walking left; it walks
-as every WalkingBody does. One defeated by a bumped block or a fireball jumps up
-away from Mario and falls through everything, out of the level.
+as every WalkingBody does. One defeated by a bumped block, a fireball or a moving
+shell jumps up away from Mario and falls through everything, out of the level.
 """
 
 from abc import ABC, abstractmethod
@@ -19,6 +19,7 @@ from mario.constants.physics import (
     ENEMY_GRAVITY,
     ENEMY_TERMINAL_FALL_SPEED,
     FIREBALL_DEFEAT_SPEED_Y,
+    SHELL_DEFEAT_SPEED_Y,
     SUBPIXELS_PER_PIXEL,
 )
 from mario.level.static_level import EnemyKind, EnemySpawn
@@ -49,14 +50,29 @@ class Enemy(WalkingBody, ABC):
         return self._is_knocked_off
 
     @property
-    def is_harmful(self) -> bool:
-        """Whether touching it hurts Mario."""
-        return not self.is_defeated
+    def is_shell(self) -> bool:
+        """Whether it is (drawn as) a shell; only a Koopa ever is."""
+        return False
 
-    def can_be_hit_by_fireball(self, screen_left_x_pixels: int) -> bool:
-        """FireballEnemyCDLoop skips a defeated enemy and one off the screen. Not
-        the same as being harmful: the original's fireball also hits a Koopa's
-        shell, which Mario kicks rather than gets hurt by."""
+    @property
+    def can_be_kicked(self) -> bool:
+        """Whether Mario's touch kicks it (a still or hopping shell); only a Koopa can be."""
+        return False
+
+    @property
+    def is_moving_shell(self) -> bool:
+        """Whether it is a kicked shell, which defeats the enemies it touches; only a Koopa is."""
+        return False
+
+    def score_shell_defeat(self) -> int | None:
+        """A moving shell has defeated an enemy: its points, by the shell's own chain.
+        Only a moving shell is ever asked."""
+        raise NotImplementedError("only a moving shell defeats enemies")
+
+    def can_be_hit(self, screen_left_x_pixels: int) -> bool:
+        """Whether a fireball or a moving shell can hit it: FireballEnemyCDLoop and
+        EnemiesCollision skip a defeated enemy and one off the screen. A Koopa's
+        shell can be hit too, though Mario kicks it rather than gets hurt by it."""
         return not self.is_defeated and not self._is_off_screen(screen_left_x_pixels)
 
     def _is_off_screen(self, screen_left_x_pixels: int) -> bool:
@@ -73,13 +89,18 @@ class Enemy(WalkingBody, ABC):
     def stomp(self) -> None:
         """Mario landed on it."""
 
-    def defeat_by_bump(self, mario_x: int) -> None:
-        """The block under it was bumped (KillEnemyAboveBlock, ChkToStunEnemies)."""
+    def bump_from_below(self, mario_x: int) -> None:
+        """The block under it was bumped, which defeats it (KillEnemyAboveBlock,
+        ChkToStunEnemies); a Koopa is only stunned."""
         self._knock_off(mario_x, BUMP_DEFEAT_SPEED_Y)
 
     def defeat_by_fireball(self, mario_x: int) -> None:
         """A fireball hit it (HandleEnemyFBallCol, ShellOrBlockDefeat, ChkToStunEnemies)."""
         self._knock_off(mario_x, FIREBALL_DEFEAT_SPEED_Y)
+
+    def defeat_by_shell(self, mario_x: int) -> None:
+        """A moving shell hit it (ShellCollisions, ShellOrBlockDefeat, ChkToStunEnemies)."""
+        self._knock_off(mario_x, SHELL_DEFEAT_SPEED_Y)
 
     def _knock_off(self, mario_x: int, velocity_y: int) -> None:
         """Lifted, it jumps away from Mario, and from then on falls through everything."""
@@ -91,7 +112,8 @@ class Enemy(WalkingBody, ABC):
         """True once it has fallen below the screen into a pit."""
         return self.sprite_top_has_reached(ENEMY_FELL_OUT_SPRITE_Y_PIXELS)
 
-    def step(self, tiles: AttemptTiles) -> None:
+    def step(self, tiles: AttemptTiles, tick: int) -> None:
+        """One tick of moving; the tick's number is the original's FrameCounter."""
         if self._is_knocked_off:
             self._fall_through_everything()
             return

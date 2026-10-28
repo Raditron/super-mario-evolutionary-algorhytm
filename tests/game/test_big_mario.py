@@ -16,6 +16,7 @@ from tests.game.helpers import (
     GROUND_TOP_ROW,
     HOLD_JUMP,
     HOLD_NOTHING,
+    HOLD_RIGHT,
     big_mario_attempt,
     build_level,
     goomba_spawn,
@@ -208,6 +209,9 @@ def test_while_mario_shrinks_the_game_stands_still_and_his_box_follows_the_shrin
 
 
 def test_during_the_invulnerability_a_second_touch_does_nothing_but_one_after_it_kills():
+    """A touch that began while he couldn't be hurt doesn't hurt him once he can,
+    until he and the Goomba have parted (Enemy_CollisionBits d0); then he walks
+    into it again."""
     attempt = big_mario_attempt(build_level(enemy_spawns=(goomba_spawn(GOOMBA_START_X),)))
     wait_until_hurt(attempt)
     hurt_tick = attempt.ticks_elapsed
@@ -217,7 +221,10 @@ def test_during_the_invulnerability_a_second_touch_does_nothing_but_one_after_it
         touching_ticks += touches_an_enemy(attempt)
     assert attempt.ticks_elapsed - hurt_tick == SHRINK_TICKS + INVULNERABLE_TICKS_AFTER_SHRINKING
     assert touching_ticks > 0 and not attempt.is_over
-    while not attempt.is_over and attempt.ticks_elapsed < TICK_LIMIT:
+    while touches_an_enemy(attempt) and attempt.ticks_elapsed < TICK_LIMIT:
         attempt.step(HOLD_NOTHING)
+    assert not attempt.is_over
+    while not attempt.is_over and attempt.ticks_elapsed < TICK_LIMIT:
+        attempt.step(HOLD_RIGHT)
     assert attempt.result().end_reason is EndReason.DIED_TO_ENEMY
     assert event_kinds(attempt) == [GameEventKind.TOOK_DAMAGE]
