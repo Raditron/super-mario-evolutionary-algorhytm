@@ -45,7 +45,8 @@ Python 3.12, run as `py`. Dependencies (in `requirements.txt`): pygame, numpy, m
 mario/
   __main__.py     py -m mario play | train | replay | stats
   constants/      one Python module per area: physics, level, scoring,
-                  observation, training, view, recording
+                  observation, training, view, recording, controller,
+                  size_change, snapshots, flagpole
   level/          StaticLevel: tile map + block/pipe/enemy tables, read-only
   simulation/     Attempt, Mario, enemies, items, blocks, collision, scroll,
                   flagpole, EndOfLevelSequence, GameEvent, AttemptResult,
@@ -79,7 +80,7 @@ config.toml       the run settings the user edits (section 10)
 ## 4. The simulation (#4, #8)
 
 - **`StaticLevel`** is loaded once per process and shared read-only by every Attempt. It holds layer 1 of the tile grid (stored as a data file next to the loader, copied from the research), the block contents, the pipes and the enemy spawn table. Layer 2 (background scenery) is drawing data for the Sprite view only.
-- **`Attempt`** is one life of one Mario in a freshly loaded level. It owns his Mario, his own enemies, items, changed blocks, scroll, counters and events. Agents never collide with or affect each other. Its one way in is **`step(buttons)`**: one tick, given that tick's Controller bitmask. It never imports pygame.
+- **`Attempt`** is one life of one Mario in a freshly loaded level. It owns his Mario, his own enemies, items, changed blocks, scroll, counters and events. Agents never collide with or affect each other. Its one way in is **`step(buttons)`**: one tick, given that tick's Controller bitmask. A second opens only once it has ended with `reached_flag`, and only for play or replay: **`step_end_of_level()`**, one input-free tick of its `EndOfLevelSequence` (section 5). Training never calls it. It never imports pygame.
 - **Fixed timestep.** One tick is one NES frame; the game runs at 60 ticks per second. The simulation never reads the wall clock.
 - **Integer fixed point.** Positions and speeds are integers in **1/4096 px** on both axes. Every #2 constant is an exact integer in this unit (X units ×256, Y units ×16).
 - **Deterministic.** The simulation has no RNG and no floats. The same Controller log always gives the same attempt, bit for bit, and replays rely on this.
