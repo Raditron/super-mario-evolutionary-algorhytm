@@ -134,6 +134,13 @@ def test_the_flag_time_line_is_drawn_only_for_a_run_with_finishers(tmp_path):
     assert FLAG_TIME_LINE_LABEL not in line_labels(RunStatisticsReport(unfinished_run).charts()["coins_and_time.png"])
 
 
+def test_the_distance_chart_marks_the_warp_pipe_and_the_flagpole_of_the_level(tmp_path):
+    """World 1-1's warp pipe is at column 57 and its flagpole at column 198 (docs/research/world-1-1-layout.md)."""
+    run_folder = write_run_folder(tmp_path / "finished", FINISHED_RUN_RESULTS, FINISHED_RUN_GENERATION_TIMES)
+    (panel,) = RunStatisticsReport(run_folder).charts()["distance.png"].axes
+    assert {text.get_text() for text in panel.texts} == {"warp pipe (column 57)", "flag (column 198)"}
+
+
 def test_a_run_with_no_finishers_still_gets_all_six_charts(tmp_path):
     run_folder = write_run_folder(tmp_path / "unfinished", NO_FINISHER_RESULTS, NO_FINISHER_GENERATION_TIMES)
     StatsMode([run_folder], tmp_path / "runs", NOW).run()

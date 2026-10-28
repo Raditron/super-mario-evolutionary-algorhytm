@@ -48,11 +48,6 @@ CHART_DPI = 150
 FITNESS_BAND_LOW_PERCENTILE = 10
 FITNESS_BAND_HIGH_PERCENTILE = 90
 
-# The distance chart's dashed lines: the warp pipe and the flagpole, by their level column
-# (docs/research/world-1-1-layout.md: pipe at columns 57-58, flagpole at column 198).
-WARP_PIPE_COLUMN = 57
-FLAGPOLE_COLUMN = 198
-
 # The heatmap counts attempts by furthest_x in bins of this many pixels: one level column each.
 HEATMAP_BIN_WIDTH_PIXELS = TILE_SIZE_PIXELS
 HEATMAP_LEVEL_WIDTH_PIXELS = LEVEL_WIDTH_TILES * TILE_SIZE_PIXELS
@@ -83,7 +78,7 @@ END_REASON_COLOURS = {
     "reached_flag": SERIES_COLOURS[4],
 }
 # The heatmap's one-hue ramp, from no attempts (lightest) to the most (darkest).
-HEATMAP_COLOURS = ("#fcfcfb", "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b")
+HEATMAP_COLOURS = (CHART_SURFACE_COLOUR, "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b")
 HEATMAP_COLOUR_MAP_NAME = "attempts"
 
 # --- Marks -------------------------------------------------------------------------------------
@@ -113,8 +108,9 @@ MEDIAN_LABEL = "median"
 FITNESS_BAND_LABEL = f"{FITNESS_BAND_LOW_PERCENTILE}th-{FITNESS_BAND_HIGH_PERCENTILE}th percentile"
 DISTANCE_CHART_TITLE = "Distance per generation"
 FURTHEST_X_AXIS_LABEL = "furthest_x (px)"
-WARP_PIPE_LABEL = f"warp pipe (column {WARP_PIPE_COLUMN})"
-FLAGPOLE_LABEL = f"flag (column {FLAGPOLE_COLUMN})"
+# The distance chart's dashed lines, at the warp pipe's and the flagpole's columns in StaticLevel.
+WARP_PIPE_LABEL_FORMAT = "warp pipe (column {column})"
+FLAGPOLE_LABEL_FORMAT = "flag (column {column})"
 END_REASONS_CHART_TITLE = "How attempts ended"
 SHARE_OF_ATTEMPTS_AXIS_LABEL = "share of attempts"
 WHERE_ATTEMPTS_END_CHART_TITLE = "Where attempts end"

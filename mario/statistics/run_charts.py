@@ -31,8 +31,7 @@ from mario.constants.statistics import (
     FLAG_TIME_MARKER,
     FLAG_TIME_MARKER_SIZE_POINTS,
     FLAG_TIME_SERIES_COLOUR,
-    FLAGPOLE_COLUMN,
-    FLAGPOLE_LABEL,
+    FLAGPOLE_LABEL_FORMAT,
     FURTHEST_X_AXIS_LABEL,
     HEATMAP_COLOUR_MAP_NAME,
     HEATMAP_CELL_HALF_WIDTH_GENERATIONS,
@@ -55,18 +54,20 @@ from mario.constants.statistics import (
     SHARE_OF_ATTEMPTS_AXIS_LABEL,
     STACKED_AREA_GAP_WIDTH_POINTS,
     STACKED_PANELS_CHART_SIZE_INCHES,
-    WARP_PIPE_COLUMN,
-    WARP_PIPE_LABEL,
+    WARP_PIPE_LABEL_FORMAT,
     WHERE_ATTEMPTS_END_CHART_FILE_NAME,
     WHERE_ATTEMPTS_END_CHART_TITLE,
 )
+from mario.level.static_level import PipeDestination, StaticLevel
 from mario.statistics.chart_style import add_legend, add_legend_beside_stack, name_panel, new_chart
 from mario.statistics.generation_series import GenerationSeries
 
 
 class RunCharts:
-    def __init__(self, series: GenerationSeries):
+    def __init__(self, series: GenerationSeries, level: StaticLevel):
+        """level: where the distance chart's landmarks, the warp pipe and the flagpole, stand."""
         self._series = series
+        self._level = level
 
     def figures(self) -> dict[str, Figure]:
         """Each chart's figure, keyed by its file name."""
@@ -102,8 +103,12 @@ class RunCharts:
                    linewidth=SERIES_LINE_WIDTH_POINTS, label=BEST_LABEL)
         panel.plot(series.generations, series.median_furthest_x, color=MEDIAN_SERIES_COLOUR,
                    linewidth=SERIES_LINE_WIDTH_POINTS, label=MEDIAN_LABEL)
-        for column, label in ((WARP_PIPE_COLUMN, WARP_PIPE_LABEL), (FLAGPOLE_COLUMN, FLAGPOLE_LABEL)):
+        warp_pipe_column = next(pipe.left_column for pipe in self._level.pipes
+                                if pipe.leads_to is PipeDestination.BONUS_ROOM)
+        for column, label_format in ((warp_pipe_column, WARP_PIPE_LABEL_FORMAT),
+                                     (self._level.flagpole_column, FLAGPOLE_LABEL_FORMAT)):
             landmark_x = column * TILE_SIZE_PIXELS
+            label = label_format.format(column=column)
             panel.axhline(landmark_x, color=CHART_MUTED_TEXT_COLOUR, linestyle=REFERENCE_LINE_STYLE,
                           linewidth=REFERENCE_LINE_WIDTH_POINTS)
             panel.annotate(label, (0, landmark_x), xycoords=("axes fraction", "data"), va="bottom",

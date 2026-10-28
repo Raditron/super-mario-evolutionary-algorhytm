@@ -6,6 +6,7 @@ from pathlib import Path
 from matplotlib.figure import Figure
 
 from mario.constants.statistics import STATISTICS_FOLDER_NAME, SUMMARY_FILE_NAME
+from mario.level.static_level import StaticLevel
 from mario.recording.recorded_run import RecordedRun
 from mario.statistics.chart_style import save_chart
 from mario.statistics.generation_series import GenerationSeries
@@ -31,7 +32,7 @@ class RunStatisticsReport:
 
     def charts(self) -> dict[str, Figure]:
         """The six charts, keyed by their file names."""
-        return RunCharts(self.series).figures()
+        return RunCharts(self.series, StaticLevel.load_world_1_1()).figures()
 
     def write(self) -> None:
         self.statistics_folder_path.mkdir(exist_ok=True)
