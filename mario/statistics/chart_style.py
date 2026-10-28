@@ -3,6 +3,7 @@ pyplot, so stats runs headless and keeps no global figure state."""
 
 from pathlib import Path
 
+import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
@@ -17,6 +18,7 @@ from mario.constants.statistics import (
     GENERATION_AXIS_LABEL,
     LABEL_FONT_SIZE_POINTS,
     LEGEND_BESIDE_PANEL_ANCHOR,
+    SERIES_LINE_WIDTH_POINTS,
     TITLE_FONT_SIZE_POINTS,
 )
 
@@ -28,13 +30,24 @@ def new_chart(size_inches: tuple[float, float], panel_count: int = 1) -> tuple[F
     panels = figure.subplots(panel_count, 1, sharex=True, squeeze=False)[:, 0]
     for panel in panels:
         _style(panel)
-    panels[-1].set_xlabel(GENERATION_AXIS_LABEL, fontsize=LABEL_FONT_SIZE_POINTS, color=CHART_MUTED_TEXT_COLOUR)
+    panels[-1].set_xlabel(GENERATION_AXIS_LABEL, **muted_label_style())
     return figure, list(panels)
 
 
 def name_panel(panel: Axes, title: str, value_label: str) -> None:
     panel.set_title(title, fontsize=TITLE_FONT_SIZE_POINTS, color=CHART_TEXT_COLOUR, loc="left")
-    panel.set_ylabel(value_label, fontsize=LABEL_FONT_SIZE_POINTS, color=CHART_MUTED_TEXT_COLOUR)
+    panel.set_ylabel(value_label, **muted_label_style())
+
+
+def muted_label_style() -> dict[str, object]:
+    """The font size and colour of every axis label, landmark label and note: muted, beside the data."""
+    return {"fontsize": LABEL_FONT_SIZE_POINTS, "color": CHART_MUTED_TEXT_COLOUR}
+
+
+def plot_series(panel: Axes, generations: np.ndarray, values: np.ndarray, colour: str, label: str | None = None,
+                **line_style) -> None:
+    """One series as a line of the shared width. line_style: any further line properties (a dash, a marker)."""
+    panel.plot(generations, values, color=colour, linewidth=SERIES_LINE_WIDTH_POINTS, label=label, **line_style)
 
 
 def add_legend(panel: Axes) -> None:

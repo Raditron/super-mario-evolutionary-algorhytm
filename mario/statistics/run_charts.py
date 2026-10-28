@@ -36,7 +36,6 @@ from mario.constants.statistics import (
     HEATMAP_COLOUR_MAP_NAME,
     HEATMAP_CELL_HALF_WIDTH_GENERATIONS,
     HEATMAP_COLOURS,
-    LABEL_FONT_SIZE_POINTS,
     MEAN_LABEL,
     MEAN_LINE_STYLE,
     MEAN_SERIES_COLOUR,
@@ -50,7 +49,6 @@ from mario.constants.statistics import (
     SECONDS_PER_GENERATION_CHART_FILE_NAME,
     SECONDS_PER_GENERATION_CHART_TITLE,
     SECONDS_SERIES_COLOUR,
-    SERIES_LINE_WIDTH_POINTS,
     SHARE_OF_ATTEMPTS_AXIS_LABEL,
     STACKED_AREA_GAP_WIDTH_POINTS,
     STACKED_PANELS_CHART_SIZE_INCHES,
@@ -59,7 +57,14 @@ from mario.constants.statistics import (
     WHERE_ATTEMPTS_END_CHART_TITLE,
 )
 from mario.level.static_level import PipeDestination, StaticLevel
-from mario.statistics.chart_style import add_legend, add_legend_beside_stack, name_panel, new_chart
+from mario.statistics.chart_style import (
+    add_legend,
+    add_legend_beside_stack,
+    muted_label_style,
+    name_panel,
+    new_chart,
+    plot_series,
+)
 from mario.statistics.generation_series import GenerationSeries
 
 
@@ -86,12 +91,9 @@ class RunCharts:
         panel.fill_between(series.generations, series.fitness_band_low, series.fitness_band_high,
                            color=FITNESS_BAND_COLOUR, alpha=FITNESS_BAND_OPACITY, linewidth=0,
                            label=FITNESS_BAND_LABEL)
-        panel.plot(series.generations, series.best_fitness, color=BEST_SERIES_COLOUR,
-                   linewidth=SERIES_LINE_WIDTH_POINTS, label=BEST_LABEL)
-        panel.plot(series.generations, series.mean_fitness, color=MEAN_SERIES_COLOUR,
-                   linewidth=SERIES_LINE_WIDTH_POINTS, label=MEAN_LABEL)
-        panel.plot(series.generations, series.median_fitness, color=MEDIAN_SERIES_COLOUR,
-                   linewidth=SERIES_LINE_WIDTH_POINTS, label=MEDIAN_LABEL)
+        plot_series(panel, series.generations, series.best_fitness, BEST_SERIES_COLOUR, BEST_LABEL)
+        plot_series(panel, series.generations, series.mean_fitness, MEAN_SERIES_COLOUR, MEAN_LABEL)
+        plot_series(panel, series.generations, series.median_fitness, MEDIAN_SERIES_COLOUR, MEDIAN_LABEL)
         name_panel(panel, FITNESS_CHART_TITLE, FITNESS_AXIS_LABEL)
         add_legend(panel)
         return figure
@@ -99,10 +101,8 @@ class RunCharts:
     def _distance(self) -> Figure:
         series = self._series
         figure, (panel,) = new_chart(CHART_SIZE_INCHES)
-        panel.plot(series.generations, series.best_furthest_x, color=BEST_SERIES_COLOUR,
-                   linewidth=SERIES_LINE_WIDTH_POINTS, label=BEST_LABEL)
-        panel.plot(series.generations, series.median_furthest_x, color=MEDIAN_SERIES_COLOUR,
-                   linewidth=SERIES_LINE_WIDTH_POINTS, label=MEDIAN_LABEL)
+        plot_series(panel, series.generations, series.best_furthest_x, BEST_SERIES_COLOUR, BEST_LABEL)
+        plot_series(panel, series.generations, series.median_furthest_x, MEDIAN_SERIES_COLOUR, MEDIAN_LABEL)
         warp_pipe_column = next(pipe.left_column for pipe in self._level.pipes
                                 if pipe.leads_to is PipeDestination.BONUS_ROOM)
         for column, label_format in ((warp_pipe_column, WARP_PIPE_LABEL_FORMAT),
@@ -112,7 +112,7 @@ class RunCharts:
             panel.axhline(landmark_x, color=CHART_MUTED_TEXT_COLOUR, linestyle=REFERENCE_LINE_STYLE,
                           linewidth=REFERENCE_LINE_WIDTH_POINTS)
             panel.annotate(label, (0, landmark_x), xycoords=("axes fraction", "data"), va="bottom",
-                           fontsize=LABEL_FONT_SIZE_POINTS, color=CHART_MUTED_TEXT_COLOUR)
+                           **muted_label_style())
         name_panel(panel, DISTANCE_CHART_TITLE, FURTHEST_X_AXIS_LABEL)
         add_legend(panel)
         return figure
@@ -139,8 +139,7 @@ class RunCharts:
         colour_bar = figure.colorbar(heatmap, ax=panel)
         colour_bar.locator = MaxNLocator(integer=True)
         colour_bar.update_ticks()
-        colour_bar.set_label(ATTEMPTS_COLOUR_BAR_LABEL, fontsize=LABEL_FONT_SIZE_POINTS,
-                             color=CHART_MUTED_TEXT_COLOUR)
+        colour_bar.set_label(ATTEMPTS_COLOUR_BAR_LABEL, **muted_label_style())
         panel.grid(False)
         name_panel(panel, WHERE_ATTEMPTS_END_CHART_TITLE, FURTHEST_X_AXIS_LABEL)
         return figure
@@ -149,29 +148,24 @@ class RunCharts:
         """Coins above, the fastest flag time below: two measures, so two panels, not two scales on one."""
         series = self._series
         figure, (coins_panel, flag_time_panel) = new_chart(STACKED_PANELS_CHART_SIZE_INCHES, panel_count=2)
-        coins_panel.plot(series.generations, series.best_coins, color=BEST_SERIES_COLOUR,
-                         linewidth=SERIES_LINE_WIDTH_POINTS, label=BEST_LABEL)
-        coins_panel.plot(series.generations, series.mean_coins, color=MEAN_SERIES_COLOUR,
-                         linewidth=SERIES_LINE_WIDTH_POINTS, linestyle=MEAN_LINE_STYLE, label=MEAN_LABEL)
+        plot_series(coins_panel, series.generations, series.best_coins, BEST_SERIES_COLOUR, BEST_LABEL)
+        plot_series(coins_panel, series.generations, series.mean_coins, MEAN_SERIES_COLOUR, MEAN_LABEL,
+                    linestyle=MEAN_LINE_STYLE)
         name_panel(coins_panel, COINS_AND_TIME_CHART_TITLE, COINS_AXIS_LABEL)
         add_legend(coins_panel)
         if series.anyone_reached_the_flag:
-            flag_time_panel.plot(series.generations, series.fastest_flag_seconds, color=FLAG_TIME_SERIES_COLOUR,
-                                 linewidth=SERIES_LINE_WIDTH_POINTS, marker=FLAG_TIME_MARKER,
-                                 markersize=FLAG_TIME_MARKER_SIZE_POINTS, label=FLAG_TIME_LABEL)
+            plot_series(flag_time_panel, series.generations, series.fastest_flag_seconds, FLAG_TIME_SERIES_COLOUR,
+                        FLAG_TIME_LABEL, marker=FLAG_TIME_MARKER, markersize=FLAG_TIME_MARKER_SIZE_POINTS)
             add_legend(flag_time_panel)
         else:
             flag_time_panel.text(*NO_FINISHER_NOTE_POSITION, NO_FINISHER_NOTE, transform=flag_time_panel.transAxes,
-                                 ha="center", va="center", fontsize=LABEL_FONT_SIZE_POINTS,
-                                 color=CHART_MUTED_TEXT_COLOUR)
-        flag_time_panel.set_ylabel(FLAG_TIME_AXIS_LABEL, fontsize=LABEL_FONT_SIZE_POINTS,
-                                   color=CHART_MUTED_TEXT_COLOUR)
+                                 ha="center", va="center", **muted_label_style())
+        flag_time_panel.set_ylabel(FLAG_TIME_AXIS_LABEL, **muted_label_style())
         return figure
 
     def _seconds_per_generation(self) -> Figure:
         series = self._series
         figure, (panel,) = new_chart(CHART_SIZE_INCHES)
-        panel.plot(series.timed_generations, series.seconds_per_generation, color=SECONDS_SERIES_COLOUR,
-                   linewidth=SERIES_LINE_WIDTH_POINTS)
+        plot_series(panel, series.timed_generations, series.seconds_per_generation, SECONDS_SERIES_COLOUR)
         name_panel(panel, SECONDS_PER_GENERATION_CHART_TITLE, SECONDS_AXIS_LABEL)
         return figure

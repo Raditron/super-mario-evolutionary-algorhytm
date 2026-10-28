@@ -20,9 +20,8 @@ from mario.constants.statistics import (
     MEAN_LINE_STYLE,
     RUN_SERIES_LABEL_FORMAT,
     SERIES_COLOURS,
-    SERIES_LINE_WIDTH_POINTS,
 )
-from mario.statistics.chart_style import add_legend, name_panel, new_chart, save_chart
+from mario.statistics.chart_style import add_legend, name_panel, new_chart, plot_series, save_chart
 from mario.statistics.run_statistics_report import RunStatisticsReport
 
 
@@ -36,12 +35,10 @@ class ComparisonReport:
         figure, (panel,) = new_chart(CHART_SIZE_INCHES)
         for run_report, colour in zip(self._run_reports, SERIES_COLOURS):
             run_name = run_report.run_folder_path.name
-            panel.plot(run_report.series.generations, run_report.series.best_fitness, color=colour,
-                       linewidth=SERIES_LINE_WIDTH_POINTS, label=RUN_SERIES_LABEL_FORMAT.format(
-                           run=run_name, series=BEST_LABEL))
-            panel.plot(run_report.series.generations, run_report.series.mean_fitness, color=colour,
-                       linewidth=SERIES_LINE_WIDTH_POINTS, linestyle=MEAN_LINE_STYLE,
-                       label=RUN_SERIES_LABEL_FORMAT.format(run=run_name, series=MEAN_LABEL))
+            plot_series(panel, run_report.series.generations, run_report.series.best_fitness, colour,
+                        RUN_SERIES_LABEL_FORMAT.format(run=run_name, series=BEST_LABEL))
+            plot_series(panel, run_report.series.generations, run_report.series.mean_fitness, colour,
+                        RUN_SERIES_LABEL_FORMAT.format(run=run_name, series=MEAN_LABEL), linestyle=MEAN_LINE_STYLE)
         name_panel(panel, FITNESS_COMPARISON_CHART_TITLE, FITNESS_AXIS_LABEL)
         add_legend(panel)
         return figure
