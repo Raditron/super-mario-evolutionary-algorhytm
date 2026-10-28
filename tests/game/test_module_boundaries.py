@@ -9,14 +9,16 @@ import mario
 import mario.constants.physics as physics_constants
 
 PACKAGE_ROOT = Path(mario.__file__).parent
-PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training", "recording")
+PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training", "recording", "statistics")
 USERS_PACKAGE = "neuroevolution"
 THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE = PACKAGE_ROOT / "modes" / "train_mode.py"
 PACKAGES_THAT_DEPEND_ON_THE_CONTROLLER = ("mario.simulation", "mario.training")
 THE_SIMULATION = ("mario.simulation",)
 # Recording knows only AttemptResults, Controller logs, floats and flat arrays (spec section 3).
 WHAT_RECORDING_MAY_IMPORT_OF_THE_GAME = ("mario.recording", "mario.constants", "mario.simulation.attempt_result")
-NONDETERMINISTIC_MODULES ={"random", "time", "datetime", "secrets", "uuid"}
+CHARTING_LIBRARY = "matplotlib"
+THE_ONLY_CHARTING_PACKAGE = PACKAGE_ROOT / "statistics"
+NONDETERMINISTIC_MODULES = {"random", "time", "datetime", "secrets", "uuid"}
 
 
 def python_files(package: str) -> list[Path]:
@@ -80,6 +82,19 @@ def test_recording_knows_of_the_game_only_attempt_results():
         game_imports = {name for name in imported_dotted_names(source_file) if name.split(".")[0] == "mario"}
         assert all(any(name == allowed or name.startswith(f"{allowed}.")
                        for allowed in WHAT_RECORDING_MAY_IMPORT_OF_THE_GAME) for name in game_imports), source_file
+
+
+def test_only_statistics_imports_matplotlib():
+    importers = [source_file for source_file in sorted(PACKAGE_ROOT.rglob("*.py"))
+                 if CHARTING_LIBRARY in imported_module_names(source_file)]
+    assert importers
+    assert all(source_file.is_relative_to(THE_ONLY_CHARTING_PACKAGE) for source_file in importers), importers
+
+
+def test_statistics_never_imports_the_simulation():
+    """It reads only run-folder files (spec section 3), through recording's readers."""
+    for source_file in python_files("statistics"):
+        assert not imports_any_of(source_file, THE_SIMULATION), source_file
 
 
 def test_simulation_has_no_randomness_wall_clock_or_floats():

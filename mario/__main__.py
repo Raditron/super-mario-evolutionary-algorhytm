@@ -1,6 +1,7 @@
-"""py -m mario play | train [config] | replay <run-folder> [--generation N] --best"""
+"""py -m mario play | train [config] | replay <run-folder> [--generation N] --best | stats <run-folder> [more...]"""
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 from mario.constants.recording import RUNS_FOLDER_NAME
@@ -19,7 +20,7 @@ ALL_GHOST_REPLAY_NOT_BUILT_MESSAGE = ("Replaying every agent of a generation as 
 
 
 def main(runs_root: Path = RUNS_ROOT) -> None:
-    """runs_root: where train makes its run folder; tests pass a folder of their own."""
+    """runs_root: where train makes its run folder and stats its comparisons; tests pass a folder of their own."""
     parser = argparse.ArgumentParser(prog="py -m mario", description="Mario World 1-1 neuroevolution")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("play", help="play World 1-1 with the keyboard")
@@ -31,6 +32,8 @@ def main(runs_root: Path = RUNS_ROOT) -> None:
     replay_parser.add_argument("--generation", type=int, default=None,
                                help="the generation to replay (default: the last one recorded)")
     replay_parser.add_argument("--best", action="store_true", help="replay only the generation's best agent")
+    stats_parser = commands.add_parser("stats", help="write charts and a summary of one run, or compare several")
+    stats_parser.add_argument("run_folders", nargs="+", type=Path, help="one run folder, or several to compare")
     arguments = parser.parse_args()
     if arguments.command == "play":
         from mario.modes.play_mode import PlayMode
@@ -43,6 +46,9 @@ def main(runs_root: Path = RUNS_ROOT) -> None:
             raise SystemExit(ALL_GHOST_REPLAY_NOT_BUILT_MESSAGE)
         from mario.modes.replay_mode import ReplayMode
         ReplayMode.of_best_agent(arguments.run_folder, arguments.generation, SPRITES_FOLDER).run()
+    elif arguments.command == "stats":
+        from mario.modes.stats_mode import StatsMode
+        StatsMode(arguments.run_folders, runs_root, datetime.now()).run()
 
 
 if __name__ == "__main__":
