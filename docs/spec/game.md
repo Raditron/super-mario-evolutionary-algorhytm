@@ -46,7 +46,7 @@ mario/
   __main__.py     py -m mario play | train | replay | stats
   constants/      one Python module per area: physics, level, scoring,
                   observation, training, view, recording, controller,
-                  size_change, snapshots, flagpole
+                  size_change, snapshots, flagpole, statistics
   level/          StaticLevel: tile map + block/pipe/enemy tables, read-only;
                   BackgroundScenery: layer 2, drawing data for the Sprite view only
   simulation/     Attempt, Mario, enemies (Goomba, Koopa and its shell),
@@ -60,8 +60,12 @@ mario/
   recording/      RunFolder, RunRecorder (training's GenerationRecorder feeds it),
                   RecordedRun: a run folder read back for replay; ResultsRow:
                   one row of results.csv, written and read back by RESULTS_COLUMNS;
+                  GenerationTimeRow: the same for generation_times.csv;
                   best_agent_index: the one best-agent rule both go by
-  statistics/     charts and summary from run folders (only matplotlib importer)
+  statistics/     RunStatistics: one run's six charts (RunCharts, drawn from its
+                  GenerationSeries) and summary.txt (RunSummary); Comparison:
+                  several runs side by side; read through RecordedRun, drawn on
+                  matplotlib's Agg canvas (only matplotlib importer)
   view/           Window, KeyboardControllerSource, SpriteRenderer, DebugRenderer,
                   HUD, Viewer (window + both views + HUD, with F1, shared by every
                   mode that draws), followed-agent camera (only pygame importer)
@@ -79,7 +83,7 @@ config.toml       the run settings the user edits (section 10)
 - `controller` depends only on `constants`: it never imports `simulation` or `training`, which both depend on it.
 - `view` reads only `WorldSnapshot`s, plus one second input for the Sprite view: `BackgroundScenery` (`level/background_scenery.py`), the read-only, static drawing data of layer 2 (clouds, hills, bushes, castle), which never changes during an attempt and so is not in the snapshot. That and the kind enums (`TileKind`, `EnemyKind`, `SceneryKind`) are the only things `view` imports from `level`. It is the only package that imports pygame, so workers and headless training never load it.
 - `recording` knows only `AttemptResult`s, Controller logs, floats and flat arrays.
-- `statistics` reads only run-folder files. It never imports the simulation.
+- `statistics` reads run-folder files, through `recording`'s `RecordedRun`, and the level's warp pipe and flagpole, from `StaticLevel`. It never imports the simulation directly; it gets `EndReason` only as the type of `ResultsRow.end_reason`.
 - Only `TrainMode` (in `modes/`) imports `neuroevolution`, through the one fixed import of section 9; `training` gets the algorithm by injection and never imports it (ADR 0001). `play`, `replay` and `stats` work while the algorithm is empty or half-written.
 
 **The game package is frozen once built.** The user's code changes; the game's doesn't. That's why the seam (section 9) hands over everything the game knows.
@@ -310,6 +314,15 @@ For one run folder, it writes PNGs plus `summary.txt` into `<run-folder>/statist
 For several folders, it writes a comparison to `runs/comparisons/YYYY-MM-DD_HH-MM/`: best and mean fitness of every run on one chart, labelled by run name, plus the first-flag generation per run and the summaries side by side.
 
 `final_score` isn't charted. Summaries are computed from the rows every time and never stored.
+
+**As built (#31):**
+- It reads both CSVs through recording's `RecordedRun` (`ResultsRow`, `GenerationTimeRow`), never a parser of its own. It never imports the simulation directly: it names the end reasons as text, and `ResultsRow`, whose `end_reason` is an `EndReason`, is what brings the simulation's `EndReason` in. A row it can't read, such as an `end_reason` that isn't an `EndReason`, stops the command with a message. Charts are drawn on matplotlib's Agg canvas, never pyplot, so it runs headless.
+- The distance chart's dashed lines stand at the warp pipe (the pipe to the bonus room) and the flagpole as `StaticLevel` places them, so their columns are defined once, in the level.
+- `summary.txt` is one `label: value` line per fact. A fact held by several agents belongs to the earliest: the lowest generation, then the lowest agent index (the best-agent rule). With no finisher, the first-flag generation and the fastest finish read `never`. The fastest finish is given in seconds (ticks / 60) and ticks; the total run time is the sum of `generation_times.csv`'s seconds.
+- Chart 5 is two stacked panels over one generation axis, coins above and the fastest flag time below, because two measures never share one axis. With no finisher there is no flag-time line, only a note saying no agent reached the flag.
+- Chart 4 counts attempts by `furthest_x` in one-column (16 px) bins.
+- In a comparison, each run is labelled by its run folder's name, which holds its run name after when it started, so two runs of one name (the default config's, say) stay apart. The comparison is `fitness_comparison.png` (best solid, mean dashed, one colour per run) and `comparison.txt`, a table with one column per run whose first row is the first-flag generation. Each run's colour is its own and never cycled, so at most eight runs are compared at once.
+- A folder that isn't a run folder, or has no generation yet, stops the command with a message before anything is written.
 
 ## 14. Build order
 
