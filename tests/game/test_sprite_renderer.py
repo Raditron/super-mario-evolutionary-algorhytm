@@ -28,6 +28,7 @@ from mario.constants.view import (
     EXPLODING_FIREBALL_COLOUR,
     FIREBALL_COLOUR,
     FIRE_MARIO_COLOUR,
+    FLAG_COLOUR,
     GOOMBA_COLOUR,
     GROUND_COLOUR,
     HILL_COLOUR,
@@ -45,6 +46,7 @@ from mario.snapshots.world_snapshot import (
     BouncingBlockSnapshot,
     EnemySnapshot,
     FireballSnapshot,
+    FlagSnapshot,
     HudSnapshot,
     ItemKind,
     ItemSnapshot,
@@ -110,12 +112,12 @@ def sky_screen(mario_box: tuple[int, int, int, int] = (0, SCREEN_HEIGHT_PIXELS, 
                power_state: PowerState = PowerState.SMALL, enemies: tuple[EnemySnapshot, ...] = (),
                items: tuple[ItemSnapshot, ...] = (), fireballs: tuple[FireballSnapshot, ...] = (),
                tiles: VisibleTiles = VisibleTiles(0, ()), tick: int = 0,
-               mario_is_invulnerable: bool = False) -> WorldSnapshot:
+               mario_is_invulnerable: bool = False, flag: FlagSnapshot | None = None) -> WorldSnapshot:
     """The level's start with only what is given on it; Mario out of sight below the screen unless placed."""
     return WorldSnapshot(tick=tick, screen_left_x_pixels=SKY_SCREEN_LEFT_X, tiles=tiles,
                          mario=MarioSnapshot(*mario_box, power_state, is_invulnerable=mario_is_invulnerable),
                          enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
-                         items=items, fireballs=fireballs)
+                         items=items, fireballs=fireballs, flag=flag)
 
 
 def filled_box(screen: pygame.Surface, snapshot: WorldSnapshot,
@@ -198,6 +200,9 @@ THINGS_AND_THEIR_SPRITES_PLACES = [
                  (THING_X, THING_Y, 8, 8), id="fireball"),
     pytest.param(sky_screen(fireballs=(fireball(is_exploding=True),)), EXPLODING_FIREBALL_COLOUR,
                  (THING_X - 4, THING_Y - 4, 16, 16), id="fireball exploding"),
+    # FlagpoleGfxHandler: three 8 x 8 sprites, two side by side from the flag's corner, one under the right
+    pytest.param(sky_screen(flag=FlagSnapshot(THING_X, THING_Y)), FLAG_COLOUR, (THING_X, THING_Y, 16, 16),
+                 id="flag"),
 ]
 
 
@@ -247,6 +252,13 @@ def test_a_png_dropped_in_under_its_name_is_drawn_at_its_sprites_size_in_place_o
     squashed_goombas_place = (THING_X, THING_Y + 8, 16, 8)
     assert filled_box(screen, snapshot, squashed_goombas_place) == {PNG_COLOUR}
     assert border_colours(screen, snapshot, squashed_goombas_place) == {SKY_COLOUR}
+
+
+def test_a_flag_png_is_drawn_on_the_flag(tmp_path, scenery):
+    write_png(tmp_path / "flag.png", (*PNG_COLOUR, 255))
+    snapshot = sky_screen(flag=FlagSnapshot(THING_X, THING_Y))
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert filled_box(screen, snapshot, (THING_X, THING_Y, 16, 16)) == {PNG_COLOUR}
 
 
 def test_a_tile_or_scenery_png_is_drawn_on_every_tile_of_its_kind(tmp_path, world_1_1, scenery):
