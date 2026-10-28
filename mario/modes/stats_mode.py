@@ -18,6 +18,8 @@ WROTE_STATISTICS_MESSAGE = "Wrote the statistics of {run_folder} to {statistics_
 WROTE_COMPARISON_MESSAGE = "Wrote the comparison of {run_count} runs to {comparison_folder}."
 CANT_WRITE_STATISTICS_MESSAGE = "Can't write statistics: {problem}."
 TOO_MANY_RUNS_PROBLEM = f"at most {MAX_COMPARED_RUNS} runs can be compared at once"
+# A row whose value isn't of its column's kind: an end_reason that isn't an EndReason, say.
+UNREADABLE_ROW_PROBLEM = "a row of {run_folder} can't be read ({error})"
 
 
 class StatsMode:
@@ -32,10 +34,7 @@ class StatsMode:
         """Exits with a message, writing nothing, if any folder can't be read as a run with a generation."""
         if len(self._run_folder_paths) > MAX_COMPARED_RUNS:
             raise SystemExit(CANT_WRITE_STATISTICS_MESSAGE.format(problem=TOO_MANY_RUNS_PROBLEM))
-        try:
-            run_reports = [RunStatisticsReport(run_folder_path) for run_folder_path in self._run_folder_paths]
-        except LookupError as problem:
-            raise SystemExit(CANT_WRITE_STATISTICS_MESSAGE.format(problem=problem.args[0])) from None
+        run_reports = [_read_run(run_folder_path) for run_folder_path in self._run_folder_paths]
         if len(run_reports) == 1:
             run_reports[0].write()
             print(WROTE_STATISTICS_MESSAGE.format(run_folder=run_reports[0].run_folder_path,
@@ -46,3 +45,14 @@ class StatsMode:
         comparison = ComparisonReport(run_reports, comparison_folder_path)
         comparison.write()
         print(WROTE_COMPARISON_MESSAGE.format(run_count=len(run_reports), comparison_folder=comparison_folder_path))
+
+
+def _read_run(run_folder_path: Path) -> RunStatisticsReport:
+    """Exits with a message if the folder isn't a run folder, has no generation yet, or has a row it can't read."""
+    try:
+        return RunStatisticsReport(run_folder_path)
+    except LookupError as problem:
+        raise SystemExit(CANT_WRITE_STATISTICS_MESSAGE.format(problem=problem.args[0])) from None
+    except ValueError as error:
+        problem = UNREADABLE_ROW_PROBLEM.format(run_folder=run_folder_path, error=error)
+        raise SystemExit(CANT_WRITE_STATISTICS_MESSAGE.format(problem=problem)) from None

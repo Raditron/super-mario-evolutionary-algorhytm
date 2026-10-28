@@ -192,6 +192,14 @@ def test_a_run_folder_with_no_generation_yet_says_so(tmp_path):
         StatsMode([run_folder], tmp_path / "runs", NOW).run()
 
 
+def test_a_run_folder_with_an_unknown_end_reason_says_so(tmp_path):
+    run_folder = write_run_folder(tmp_path / "runs" / "2026-10-28_11-30_odd",
+                                  [(1, 0, 12.5, "teleported", 1100, 400, 100, 1)], [(1, 1.0)])
+    with pytest.raises(SystemExit, match="can't be read.*teleported"):
+        StatsMode([run_folder], tmp_path / "runs", NOW).run()
+    assert not (run_folder / "statistics").exists()
+
+
 def test_more_runs_than_there_are_series_colours_are_not_compared(tmp_path):
     """Each run's colour is its own, never cycled: eight colours, so at most eight runs."""
     runs_root = tmp_path / "runs"
