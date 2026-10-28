@@ -315,6 +315,35 @@ Added for #17, sourced from `SMBDIS.ASM` (gist 1wErt3r/4048722); `l.` is its lin
 - **Removal:** only the left side is used, as the spec (§4) asks. The original's right-side erase isn't modelled.
 - **Points:** they are scored on the stomp's own tick, not 5 ticks later. A stomp beyond 8000 scores nothing. Its 1-UP waits for the 1-UP slice (#19).
 
+## Flagpole, castle walk and end-of-level points
+
+Added for #24, sourced from `SMBDIS.ASM` (gist 1wErt3r/4048722); `l.` is its line number.
+
+| Fact | Value | Source |
+|---|---|---|
+| The touch | Mario's side probes run each frame after he moves. On a climbable tile (the pole's ball `$24` or shaft `$25`) the upper probe is skipped for the lower one, at sprite y + 24, on his left (sprite x + 2) or right (sprite x + 13) side. It touches the pole only where it is 6 to 9 px into the pole's tile: the pole is thinner than its tile. Moving right, he touches it with his sprite at x 3161–3164. | `SideCheckLoop`/`BHalf` l. 12034-12061, `CheckSideMTiles` l. 12063-12068, `HandleClimbing`/`ChkForFlagpole` l. 12153-12165, `BlockBuffer_X_Adder`/`_Y_Adder` l. 13030-13040 |
+| What the touch does | It sets `ScrollLock` (the screen stops), stores Mario's sprite y and its band for the points, and starts the slide (game routine 4). He is put on the pole with his sprite 7 px left of its column, facing right, with no speed. | `FlagpoleCollision` l. 12167-12194, `PutPlayerOnVine`/`SetVXPl` l. 12206-12227, `ClimbXPosAdder` l. 12144 |
+| Height points | His sprite's y at the touch is checked against `FlagpoleYPosData` from the bottom: y ≥ `$90` (144) scores **100**, ≥ `$68` (104) **400**, ≥ `$50` (80) **800**, ≥ `$22` (34) **2000**, above that **5000** (the table's first entry, `$18`, is never compared). The points are `FlagpoleScoreMods` at the digit `FlagpoleScoreDigits` gives (3 = thousands, 4 = hundreds). They are added when the slide ends. | `FlagpoleYPosData` l. 12150-12151, `ChkFlagpoleYPosLoop`/`MtchF` l. 12187-12192, `FlagpoleScoreMods`/`FlagpoleScoreDigits` l. 6573-6577, `GiveFPScr` l. 6611-6617 |
+| The timer stops | `RunGameTimer` runs only in game routines 8 and up, so it stops on the touch's frame: the touch comes in the player routine, before the timer runs that frame. | `RunGameTimer` l. 6436-6441, `GameEngine` l. 5311-5334 |
+| The flag | `FlagpoleObject` puts the flag 8 px left of the pole's column, its top at y = `$30` (48). | `FlagpoleObject` l. 3966-3990 |
+| The slide | Each frame Mario, pressing down (`AutoControlPlayer` with `$04`), moves down 1 px plus the carry of a fraction that gains `$FF`, until his sprite's y is `$9E` (158) or more. Then the flag moves the same way, from the touch's own frame on. The slide ends (and the height points are added) once the flag's y is `$AA` (170) or more, or Mario's `$A2` (162). | `FlagpoleSlide`/`SlidePlayer` l. 5810-5822, `ClimbingSub` l. 5966-5976, `Climb_Y_SpeedData`/`Climb_Y_MForceData` l. 6036-6040, `ProcClimb` l. 6054-6058, `FlagpoleRoutine` l. 6579-6617 |
+| Leaving the pole | `PlayerEndLevel` presses right (`$01`) from then on. Still climbing, the first press moves him `$0E` (14) px right, round the pole, facing left, and sets the climb-side timer to `$18` (24 frames). When it has run out, the next press moves him `$04` px right; his probe is then out of the pole's thin part, so he is no longer climbing: he falls, then walks right. (The timer has run out by the end of the slide: it is cleared on every frame no left or right is held.) | `PlayerEndLevel` l. 5831-5836, `ClimbingSub`/`CSetFDir`/`InitCSTimer` l. 5976-6009, `ClimbAdderLow` l. 5961-5964 |
+| The screen | The scroll lock is cleared once Mario's sprite y reaches `$AE` (174), off the pole, so the screen follows him again into the castle. | `PlayerEndLevel` l. 5836-5842, `ScrollHandler` l. 5383-5384 |
+| The castle | The invisible stopper at (205, 12) stops his right side (`ImpedePlayerMove` clears collision bit 0). That starts the star flag's tasks: on the same frame, the fireworks count is chosen from the timer's last digit; from the next frame, the timer counts down **1 unit a frame**, each worth **50 points**; then the star flag rises over the castle, fireworks go off, and once the music ends the next area loads. | `ChkStop`/`InCastle`/`RdyNextA` l. 5843-5852, `ImpedePlayerMove`/`ExIPM` l. 12318-12351, `RunStarFlagObj` l. 10452-10485, `GameTimerFireworks` l. 10466-10482, `AwardGameTimerPoints`/`EndAreaPoints` l. 10487-10516 |
+
+**The camera stop at column 192, checked against the original** (spec §4). The original has no scroll stop, but the touch locks its scroll (above). Before the touch, its screen follows Mario's rule (scrolling from 80 px, full speed from 112 px), and he touches the pole with his sprite at x 3161–3164. So its left edge is then at most 3164 − 80 = 3084 px (column 192.75):
+- **Running**, as the test pilot does, the left edge is about 3050 px (column 190.6) at the touch. That is short of the replica's stop, which then changes nothing.
+- **Walking slowly**, the original's screen can be up to 12 px further right than the replica's.
+- **During the castle walk**, the original scrolls again and ends around column 195–196, its right edge near column 212. The replica stays at column 192 (right edge at column 208). Both show the flagpole and the whole castle (202–206).
+
+The caveat below ("no scroll lock in 1-1") is wrong about the flagpole: the lock exists, from the touch until Mario is off the pole.
+
+**Replica choices** (spec §5):
+- **The points are scored at the touch**, both the height points and the remaining-time points, and the attempt ends there. In play mode the HUD shows them as the original does: the height points once the flag is down, the time points one unit a tick in the castle.
+- **The sequence after the touch** (play and replay only) is the slide, leaving the pole, the walk to the stopper and the count. The star flag, the fireworks and the wait for the music are not built: play mode starts a new game when the count is done.
+- Both sliding fractions start at 0. Enemies, items and fireballs stand still after the touch.
+- The replica's boxes stop Mario with his box's right edge on the stopper (sprite x 3266); the original's probe stops him 1 px further right.
+
 ## Caveats and uncertainty
 
 - **Decoding fidelity:** I wrote my own decoder (Python) that statically reimplements the disassembly's object routines. It does not emulate the column-by-column renderer.
@@ -322,7 +351,7 @@ Added for #17, sourced from `SMBDIS.ASM` (gist 1wErt3r/4048722); `l.` is its lin
   - Every terrain and block position was checked against the Mario Wiki map image (columns 0–207). **High confidence.**
 - **Group Goomba x positions** depend on scroll speed at trigger time. The values given are ±~4 px. The data columns are exact.
 - **Exact enemy y:** the game spawns enemies at `16·row + 8` px and gravity settles them. The "row 12 / row 4" in the table is where they end up resting, not a stored value.
-- **Level width past column 207:** this is inferred from the scroll code (no scroll lock in 1-1), not from an image. The map image's art stops at 207. Treat columns 208–223 as "ground continues, nothing else", and stop the camera wherever is convenient.
+- **Level width past column 207:** this is inferred from the scroll code (no scroll lock in 1-1, but for the flagpole's: see above), not from an image. The map image's art stops at 207. Treat columns 208–223 as "ground continues, nothing else", and stop the camera wherever is convenient.
 - **Hidden block content:** the 1-UP is confirmed by the object type in the data (`$03` small object → `Hidden1UpBlock`). Its row 8 is one row higher than the usual ?-block row 9.
 - **Not covered:** the bonus room's layout, enemy AI/speeds, and item behaviour. Each is a separate research question.
 

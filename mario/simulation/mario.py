@@ -231,6 +231,17 @@ class Mario(TileBody):
         if not keeps_speed:
             self.velocity_x &= X_SUBSPEED_MASK
 
+    def hold_flagpole(self, sprite_x_pixels: int, sprite_y_pixels: int, facing_direction: int) -> None:
+        """On the flagpole, his sprite here (PutPlayerOnVine), with no speed. Once
+        let go of, he falls from there."""
+        self.x = (sprite_x_pixels + SMALL_MARIO_HITBOX_OFFSET_X_PIXELS) * SUBPIXELS_PER_PIXEL
+        self.y = (sprite_y_pixels + self.hitbox_offset_y_pixels) * SUBPIXELS_PER_PIXEL
+        self.velocity_x = 0
+        self.velocity_y = 0
+        self.x_speed_absolute = 0
+        self.facing_direction = facing_direction
+        self.movement_state = MovementState.FALLING
+
     def bounce_off_enemy(self) -> None:
         """After a stomp (EnemyStomped): rise again at the bounce speed. The speed's
         fraction and the gravity are kept."""

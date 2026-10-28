@@ -1,13 +1,16 @@
-"""The Debug view: the level as the game treats it, as coloured, filled hitboxes,
-with the followed agent's Observation over it and the recent game events."""
+"""The Debug view: the level as the game treats it, as coloured, filled hitboxes
+(the flag on the flagpole too), with the followed agent's Observation over it and
+the recent game events."""
 
 import pygame
 
+from mario.constants.flagpole import FLAG_SIZE_PIXELS
 from mario.constants.level import TILE_SIZE_PIXELS
 from mario.constants.view import (
     DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS,
     EXPLODING_FIREBALL_COLOUR,
     FIREBALL_COLOUR,
+    FLAG_COLOUR,
     INVULNERABLE_MARIO_DRAWN_EVERY_TICKS,
     SKY_COLOUR,
 )
@@ -33,6 +36,9 @@ class DebugRenderer:
             if item.is_emerging:
                 self._draw_item(item, snapshot.screen_left_x_pixels, screen)
         self._draw_tiles(snapshot, screen)
+        if snapshot.flag is not None:
+            _fill_level_box(screen, FLAG_COLOUR, snapshot.screen_left_x_pixels, snapshot.flag.x_pixels,
+                            snapshot.flag.y_pixels, FLAG_SIZE_PIXELS, FLAG_SIZE_PIXELS)
         for item in snapshot.items:
             if not item.is_emerging:
                 self._draw_item(item, snapshot.screen_left_x_pixels, screen)

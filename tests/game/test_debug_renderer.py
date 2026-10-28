@@ -1,5 +1,6 @@
 """The Debug view draws Goombas as coloured hitboxes, a squashed one flattened (#17),
-and over them the followed agent's Observation and the recent game events (#25)."""
+the flag on the flagpole (#24), and over them the followed agent's Observation and
+the recent game events (#25)."""
 
 import pygame
 import pytest
@@ -32,6 +33,7 @@ from mario.constants.view import (
     DEBUG_TEXT_LINE_PIXELS,
     EXPLODING_FIREBALL_COLOUR,
     FIREBALL_COLOUR,
+    FLAG_COLOUR,
     FIRE_FLOWER_COLOUR,
     FIRE_MARIO_COLOUR,
     GOOMBA_COLOUR,
@@ -51,6 +53,7 @@ from mario.simulation.item_kind import ItemKind
 from mario.snapshots.world_snapshot import (
     EnemySnapshot,
     FireballSnapshot,
+    FlagSnapshot,
     HudSnapshot,
     ItemSnapshot,
     MarioSnapshot,
@@ -84,6 +87,7 @@ def fonts():
 def snapshot_with(enemies: tuple[EnemySnapshot, ...] = (), observation: ObservationSnapshot | None = None,
                   recent_events: tuple[GameEvent, ...] = (), items: tuple[ItemSnapshot, ...] = (),
                   fireballs: tuple[FireballSnapshot, ...] = (),
+                  flag: FlagSnapshot | None = None,
                   tiles: VisibleTiles = VisibleTiles(0, ()), tick: int = 0,
                   mario_is_invulnerable: bool = False,
                   mario_power_state: PowerState = PowerState.SMALL) -> WorldSnapshot:
@@ -93,7 +97,7 @@ def snapshot_with(enemies: tuple[EnemySnapshot, ...] = (), observation: Observat
                                              SMALL_MARIO_HITBOX_HEIGHT_PIXELS, mario_power_state,
                                              is_invulnerable=mario_is_invulnerable),
                          enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
-                         items=items, fireballs=fireballs, observation=observation,
+                         items=items, fireballs=fireballs, flag=flag, observation=observation,
                          recent_events=recent_events)
 
 
@@ -200,6 +204,14 @@ def test_a_fireball_is_drawn_as_its_box_flying_or_exploding(is_exploding, colour
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == colour
     assert colour_at(screen, GOOMBA_X + FIREBALL_SIZE_PIXELS - 1, GOOMBA_Y + FIREBALL_SIZE_PIXELS - 1) == colour
     assert colour_at(screen, GOOMBA_X + FIREBALL_SIZE_PIXELS, GOOMBA_Y) == SKY_COLOUR
+
+
+def test_the_flag_is_drawn_as_a_tile_sized_box_at_its_place():
+    screen = drawn(snapshot_with(flag=FlagSnapshot(GOOMBA_X, GOOMBA_Y)))
+    assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == FLAG_COLOUR
+    assert colour_at(screen, GOOMBA_X + TILE_SIZE_PIXELS - 1, GOOMBA_Y + TILE_SIZE_PIXELS - 1) == FLAG_COLOUR
+    assert colour_at(screen, GOOMBA_X + TILE_SIZE_PIXELS, GOOMBA_Y) == SKY_COLOUR
+    assert colour_at(screen, GOOMBA_X, GOOMBA_Y + TILE_SIZE_PIXELS) == SKY_COLOUR
 
 
 def test_invulnerable_mario_blinks_drawn_only_on_even_ticks():

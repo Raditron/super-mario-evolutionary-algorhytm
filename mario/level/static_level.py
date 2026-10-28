@@ -61,7 +61,8 @@ class EnemySpawn:
 
 class StaticLevel:
     """Tile lookup and the level's tables. Columns and rows outside the grid
-    are solid at the sides and open above and below (pits)."""
+    are solid at the sides and open above and below (pits). flagpole_column is the
+    column of the flagpole, None in a level without one."""
 
     def __init__(self, layer_1_rows: list[str], pipes: tuple[Pipe, ...] = (),
                  enemy_spawns: tuple[EnemySpawn, ...] = ()):
@@ -78,6 +79,9 @@ class StaticLevel:
                             for column, kind in enumerate(kinds) if kind in BLOCK_TILE_KINDS)
         self.pipes = pipes
         self.enemy_spawns = enemy_spawns
+        self.flagpole_column = next((column for column in range(self.width_tiles)
+                                     if any(kinds[column] is TileKind.FLAGPOLE for kinds in self._tile_rows)),
+                                    None)
 
     @classmethod
     def load_world_1_1(cls) -> "StaticLevel":

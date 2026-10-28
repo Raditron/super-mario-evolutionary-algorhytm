@@ -20,6 +20,14 @@ ITEM_POINTS = 1000
 # A brick big Mario breaks (BrickShatter: DigitModifier+5 = 5, the tens digit).
 BROKEN_BRICK_POINTS = 50
 
+# Touching the flagpole scores by the height of the touch (FlagpoleYPosData,
+# FlagpoleScoreMods, FlagpoleScoreDigits): Mario's sprite's top at or below each y
+# scores its points, checked from the lowest band up; above them all, the top prize.
+FLAGPOLE_POINTS_BY_LOWEST_SPRITE_Y_PIXELS = ((0x90, 100), (0x68, 400), (0x50, 800), (0x22, 2000))
+FLAGPOLE_TOP_POINTS = 5000
+# Then every unit left on the level timer is worth 50 points (AwardGameTimerPoints).
+POINTS_PER_TIME_UNIT_LEFT = 50
+
 # --- Play mode only (PlaySession) ---------------------------------------------------------
 
 STARTING_LIVES = 3                                           # PrimaryGameSetup
