@@ -1,10 +1,12 @@
 """What a renderer may see of an Attempt on one tick. Renderers read only these."""
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 from mario.constants.level import SCREEN_WIDTH_PIXELS, TILE_SIZE_PIXELS
 from mario.constants.snapshots import RECENT_GAME_EVENT_TICKS
 from mario.level.static_level import EnemyKind
+from mario.controller.controller_state import RIGHT
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
 from mario.simulation.enemy import Enemy
@@ -16,6 +18,7 @@ from mario.simulation.observation_builder import ObservationBuilder
 
 # The game's vocabulary a snapshot carries, handed on so that the view needs
 # nothing from the simulation (spec section 3).
+from mario.simulation.attempt_result import EndReason
 from mario.simulation.attempt_result import GameEvent as GameEvent
 from mario.simulation.item_kind import ItemKind as ItemKind
 from mario.simulation.mario import PowerState as PowerState
@@ -151,6 +154,48 @@ class ObservationSnapshot:
                    tuple(builder.state_numbers_of(observation).tolist()))
 
 
+class Area(StrEnum):
+    """Where in the game an agent's Mario is."""
+    LEVEL = "level"
+    # The bonus room joins with #23, and with it the rule that ranks him there as
+    # being at the warp pipe's column (AgentSnapshot.ranking_x_pixels).
+
+
+@dataclass(frozen=True)
+class AgentSnapshot:
+    """One agent of a watched generation on one tick: his Mario's hitbox and power
+    state, which way he faces, where he is, and whether he is still in his attempt
+    or has reached the flag."""
+    agent: int                                        # his index within the generation
+    mario: MarioSnapshot
+    faces_right: bool
+    area: Area
+    is_in_attempt: bool
+    reached_flag: bool
+
+    @classmethod
+    def of(cls, agent: int, attempt: Attempt) -> "AgentSnapshot":
+        return cls(agent, MarioSnapshot.of(attempt.mario), attempt.mario.facing_direction == RIGHT, Area.LEVEL,
+                   not attempt.is_over, attempt.end_reason is EndReason.REACHED_FLAG)
+
+    @property
+    def ranking_x_pixels(self) -> int:
+        """How far right he counts when the followed agent and the ghosts are chosen:
+        his level x. This is the seam for the bonus room (#23): there, he is to
+        count as being at the warp pipe's column, 57."""
+        return self.mario.x_pixels
+
+
+@dataclass(frozen=True)
+class GenerationProgress:
+    """The HUD's line while a generation is watched: how many of its agents are
+    still in their attempt, and how many have reached the flag."""
+    generation: int
+    alive: int
+    population_size: int
+    reached_flag: int
+
+
 @dataclass(frozen=True)
 class WorldSnapshot:
     tick: int
@@ -165,6 +210,8 @@ class WorldSnapshot:
     flag: FlagSnapshot | None = None                  # None in a level without a flagpole
     observation: ObservationSnapshot | None = None
     recent_events: tuple[GameEvent, ...] = ()        # oldest first
+    ghosts: tuple[AgentSnapshot, ...] = ()           # watched generations: other agents, the rightmost first
+    generation_progress: GenerationProgress | None = None
 
     @classmethod
     def of(cls, attempt: Attempt, hud: HudSnapshot | None = None,

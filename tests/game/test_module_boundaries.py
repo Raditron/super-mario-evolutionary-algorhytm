@@ -9,7 +9,7 @@ import mario
 import mario.constants.physics as physics_constants
 
 PACKAGE_ROOT = Path(mario.__file__).parent
-PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training", "recording")
+PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training", "recording", "snapshots")
 USERS_PACKAGE = "neuroevolution"
 THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE = PACKAGE_ROOT / "modes" / "train_mode.py"
 PACKAGES_THAT_DEPEND_ON_THE_CONTROLLER = ("mario.simulation", "mario.training")
