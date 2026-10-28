@@ -385,6 +385,7 @@ These facts were sourced from [D] while building the Sprite view, for the sizes 
 |---|---|---|
 | Mario's sprites | The player object is 16 × 32 px, 4 rows of two 8 × 8 tiles. Every big-Mario frame fills all of it but crouching, whose top row is blank (16 × 24). Every small-Mario frame leaves the top 2 rows blank (`$fc`): small Mario is **16 × 16**, the object's lower half. The intermediate grow frame leaves the top row blank. | [D] `PlayerGraphicsTable` l. 14399-14429 |
 | Enemy sprites | An enemy object is 16 × 24 px, 3 rows of two tiles. The Goomba leaves its top row blank: **16 × 16**, as its box. The defeated (squashed) Goomba leaves its top 2 rows blank: **16 × 8**, standing on the same feet. | [D] `EnemyGraphicsTable` l. 13551-13575 (`;goomba`, `;defeated goomba`) |
+| Item sprites | Every power-up (Super Mushroom, fire flower, Starman, 1-UP Mushroom) is drawn as two rows of two 8 × 8 tiles (`PowerUpGfxTable`: top left, right, bottom left, right): **16 × 16**, from 8 px below the power-up object's position. | [D] `PowerUpGfxTable` l. 13474-13479, `DrawPowerUp`/`PUpDrawLoop` l. 13484-13511 |
 | Fireball explosion | Four 8 × 8 sprites, from 4 px up and left of the fireball's position to 12 px down and right: **16 × 16, centred on the 8 × 8 fireball**. A flying fireball is one 8 × 8 sprite at its position. | [D] `DrawFireball` l. 14229-14234, `DrawExplosion_Fireball`/`DrawExplosion_Fireworks` l. 14258-14300 |
 
 **Replica choices**:

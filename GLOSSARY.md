@@ -92,6 +92,10 @@ _Avoid_: Save point, midpoint, respawn point
 The level drawn as humans see it, with textured sprites.
 _Avoid_: Normal mode
 
+**Background scenery**:
+The clouds, hills, bushes and castle drawn behind the level (layer 2 of its grid); never solid, never seen by the game or the AI, and drawn only by the Sprite view.
+_Avoid_: Background, decoration, layer 2
+
 **Debug view**:
 The level drawn as the game and AI treat it: hitboxes, and the game events and rewards being scored.
 _Avoid_: Hitbox mode, AI view

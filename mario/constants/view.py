@@ -98,9 +98,9 @@ SPRITE_FILE_EXTENSION = ".png"
 # The original's sizes (width, height) in px. Tiles and scenery are one 16 x 16
 # metatile each. The player object is 16 x 32, small Mario its lower 16 rows; an
 # enemy object is 16 x 24 with the Goomba in its lower 16 rows and the defeated
-# Goomba in its lowest 8 (EnemyGraphicsTable); a power-up is a Goomba-sized enemy
-# object; a fireball is one 8 x 8 sprite and its explosion four, 16 x 16
-# (DrawExplosion_Fireball).
+# Goomba in its lowest 8 (EnemyGraphicsTable); a power-up is two rows of two
+# 8 x 8 tiles, 16 x 16 (PowerUpGfxTable, DrawPowerUp); a fireball is one 8 x 8
+# sprite and its explosion four, 16 x 16 (DrawExplosion_Fireball).
 TILE_SPRITE_SIZE = (16, 16)
 SMALL_MARIO_SPRITE_SIZE = (16, 16)
 BIG_MARIO_SPRITE_SIZE = (16, 32)
