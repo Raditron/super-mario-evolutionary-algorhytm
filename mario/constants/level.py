@@ -116,8 +116,10 @@ ENEMY_OFF_SCREEN_RIGHT_X_PIXELS = SCREEN_WIDTH_PIXELS
 GOOMBA_HITBOX_WIDTH_PIXELS = 16
 GOOMBA_HITBOX_HEIGHT_PIXELS = 16
 GOOMBA_HITBOX_OFFSET_Y_PIXELS = 8
-# The Koopa is the same enemy object, drawn 8 px taller (EnemyGraphicsTable), with
-# the same probes, so the same box; its shell keeps it.
+# The green Koopa is the same enemy object, drawn 8 px taller (EnemyGraphicsTable).
+# Its probes are every enemy's, whatever its kind (BlockBufferChk_Enemy: ChkUnderEnemy
+# at (8, 24), DoEnemySideCheck at (0, 20) and (16, 20)), so the same box; its shell,
+# which nothing re-probes or resizes, keeps it.
 KOOPA_HITBOX_WIDTH_PIXELS = GOOMBA_HITBOX_WIDTH_PIXELS
 KOOPA_HITBOX_HEIGHT_PIXELS = GOOMBA_HITBOX_HEIGHT_PIXELS
 KOOPA_HITBOX_OFFSET_Y_PIXELS = GOOMBA_HITBOX_OFFSET_Y_PIXELS

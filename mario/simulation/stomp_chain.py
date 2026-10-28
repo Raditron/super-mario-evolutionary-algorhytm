@@ -9,8 +9,8 @@ Kicking a shell scores from the same chain, without climbing it (HandlePECollisi
 from mario.constants.scoring import (
     KICKED_SHELL_POINTS_BY_INTERVAL_TICKS_LEFT,
     KICKED_SHELL_STEPS_PAST_STOMP_CHAIN,
-    STOMP_CHAIN_POINTS,
 )
+from mario.simulation.score_table import score_table_points
 
 
 class StompChain:
@@ -41,8 +41,3 @@ class StompChain:
         if shell_interval_ticks_left < len(KICKED_SHELL_POINTS_BY_INTERVAL_TICKS_LEFT):
             return KICKED_SHELL_POINTS_BY_INTERVAL_TICKS_LEFT[shell_interval_ticks_left]
         return score_table_points(self._stomps_since_landing + KICKED_SHELL_STEPS_PAST_STOMP_CHAIN)
-
-
-def score_table_points(step: int) -> int | None:
-    """The score table's points at this step, from 1; None beyond it (a 1-UP in the original)."""
-    return STOMP_CHAIN_POINTS[step - 1] if step <= len(STOMP_CHAIN_POINTS) else None

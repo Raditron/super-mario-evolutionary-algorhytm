@@ -54,6 +54,21 @@ class Enemy(WalkingBody, ABC):
         """Whether it is (drawn as) a shell; only a Koopa ever is."""
         return False
 
+    @property
+    def can_be_kicked(self) -> bool:
+        """Whether Mario's touch kicks it (a still or hopping shell); only a Koopa can be."""
+        return False
+
+    @property
+    def is_moving_shell(self) -> bool:
+        """Whether it is a kicked shell, which defeats the enemies it touches; only a Koopa is."""
+        return False
+
+    def score_shell_defeat(self) -> int | None:
+        """A moving shell has defeated an enemy: its points, by the shell's own chain.
+        Only a moving shell is ever asked."""
+        raise NotImplementedError("only a moving shell defeats enemies")
+
     def can_be_hit(self, screen_left_x_pixels: int) -> bool:
         """Whether a fireball or a moving shell can hit it: FireballEnemyCDLoop and
         EnemiesCollision skip a defeated enemy and one off the screen. A Koopa's

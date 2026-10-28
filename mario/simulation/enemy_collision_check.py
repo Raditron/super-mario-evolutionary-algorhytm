@@ -20,7 +20,6 @@ from dataclasses import dataclass
 
 from mario.constants.physics import ENEMY_CHECK_TICK_INTERVAL, STOMP_MIN_FALL_SPEED
 from mario.simulation.enemy import Enemy
-from mario.simulation.koopa import Koopa
 from mario.simulation.mario import Mario
 from mario.simulation.stomp_chain import StompChain
 
@@ -63,7 +62,7 @@ class EnemyCollisionCheck:
         for enemy in enemies:
             if enemy.is_defeated or not self._is_new_touch(mario, enemy):
                 continue
-            if isinstance(enemy, Koopa) and enemy.can_be_kicked:
+            if enemy.can_be_kicked:
                 points_per_kick.append(self._kick(mario, enemy))
             elif mario.velocity_y >= STOMP_MIN_FALL_SPEED or self._stomp_chain.stomped_this_tick:
                 points_per_stomp.append(self._stomp(mario, enemy))
@@ -88,7 +87,7 @@ class EnemyCollisionCheck:
         mario.bounce_off_enemy()
         return self._stomp_chain.stomp()
 
-    def _kick(self, mario: Mario, shell: Koopa) -> int | None:
+    def _kick(self, mario: Mario, shell: Enemy) -> int | None:
         points = self._stomp_chain.kick_points(shell.interval_ticks_left)
         shell.kick(mario.x)
         return points

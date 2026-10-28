@@ -150,12 +150,10 @@ class Attempt:
     def _record_enemy_collisions(self, outcome: EnemyCollisionOutcome) -> None:
         for points in outcome.points_per_stomp:
             self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.DEFEATED_ENEMY, DefeatMethod.STOMP))
-            if points is not None:
-                self.scoreboard.score_points(points, self.ticks_elapsed)
+            self.scoreboard.score_points_if_any(points, self.ticks_elapsed)
         for points in outcome.points_per_kick:
             self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.KICKED_SHELL))
-            if points is not None:
-                self.scoreboard.score_points(points, self.ticks_elapsed)
+            self.scoreboard.score_points_if_any(points, self.ticks_elapsed)
         if outcome.mario_took_damage:
             self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.TOOK_DAMAGE))
         self._died_to_enemy = outcome.mario_died

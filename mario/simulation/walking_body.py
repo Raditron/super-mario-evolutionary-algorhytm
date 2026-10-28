@@ -38,7 +38,12 @@ class WalkingBody(TileBody):
         little, it jumps at this speed and moves away from Mario."""
         self.y -= BUMPED_ENEMY_LIFT_PIXELS * SUBPIXELS_PER_PIXEL
         self.velocity_y = velocity_y
-        self.velocity_x = BUMPED_ENEMY_SPEED_X if self.x >= mario_x else -BUMPED_ENEMY_SPEED_X
+        self.velocity_x = self._speed_away_from(mario_x, BUMPED_ENEMY_SPEED_X)
+
+    def _speed_away_from(self, mario_x: int, speed: int) -> int:
+        """This speed away from Mario: rightwards if its x is at or right of his
+        (PlayerEnemyDiff, EnemyFacePlayer)."""
+        return speed if self.x >= mario_x else -speed
 
     def _step_x(self) -> int:
         """How far it moves along this tick: its walking speed."""

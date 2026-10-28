@@ -3,9 +3,13 @@ ledges; a stomp leaves a still shell, a touch kicks it, a moving shell defeats
 the enemies it hits, bounces off walls and hurts Mario, and a still shell nobody
 touches wakes back into a Koopa."""
 
-from mario.constants.physics import SUBPIXEL_BITS
+from mario.constants.physics import INTERVAL_TIMER_TICKS, SHELL_REVIVAL_TICKS, SUBPIXEL_BITS
 from mario.level.static_level import EnemyKind, EnemySpawn
 from mario.simulation.attempt import Attempt
+from mario.simulation.attempt_tiles import AttemptTiles
+from mario.simulation.enemy_collision_check import EnemyCollisionCheck
+from mario.simulation.koopa import Koopa
+from mario.simulation.mario import Mario
 from mario.constants.observation import ENEMY_CELL, OBSERVATION_TOP_ROW
 from mario.simulation.attempt_result import DefeatMethod, EndReason, GameEvent, GameEventKind
 from mario.simulation.observation_builder import ObservationBuilder
@@ -67,11 +71,15 @@ PIPE = {(PIPE_COLUMN, GROUND_TOP_ROW - 2): "{", (PIPE_COLUMN + 1, GROUND_TOP_ROW
 # A still shell wakes 16 interval ticks of 21 ticks after the stomp (RevivalRateData,
 # the longest the interval clock allows), walking at 0.5 px/f, rightwards on an
 # even tick (ReviveStunned, RevivedXSpeed by FrameCounter bit 0).
-SHELL_WAKE_TICKS = 16 * 21
+SHELL_WAKE_TICKS = SHELL_REVIVAL_TICKS
 # Kicked with 2 interval ticks left before it wakes (22 to 42 ticks), a shell scores
 # 500 (KickedShellPtsData).
-NEARLY_AWAKE_TICKS_LEFT = 2 * 21
+NEARLY_AWAKE_TICKS_LEFT = 2 * INTERVAL_TIMER_TICKS
 NEARLY_AWAKE_KICK_POINTS = 500
+# Kicked with its interval timer at 0, as a Koopa never stomped has it, a shell
+# scores 8000 (KickedShellPtsData $0A).
+TIMER_RUN_OUT_KICK_POINTS = 8000
+ENEMY_CHECK_TICK = 2                         # Mario is checked against enemies on even ticks
 # Walking right from a standstill and letting go this close to the shell, Mario
 # coasts to a stop a few pixels short of it.
 COAST_TO_THE_SHELL_GAP_PIXELS = 14
@@ -365,3 +373,33 @@ def test_a_shell_shows_as_an_enemy_in_the_observation():
     shell_centre_column = (shell.x_pixels + shell.width_pixels // 2) // TILE_PIXELS
     grid = builder.grid_of(observation)
     assert grid[shell_centre_row - OBSERVATION_TOP_ROW][shell_centre_column - window_first_column] == ENEMY_CELL
+
+
+def kick_points_touching(koopa: Koopa, mario: Mario) -> tuple[int | None, ...]:
+    """What Mario's touch scores, the Koopa moved onto him, at one enemy check."""
+    koopa.x, koopa.y = mario.x, mario.y
+    return EnemyCollisionCheck().step(ENEMY_CHECK_TICK, mario, [koopa]).points_per_kick
+
+
+def test_kicking_a_never_stomped_koopa_flipped_by_a_bumped_block_while_it_hops_scores_8000():
+    """Its EnemyIntervalTimer was never set (InitNormalEnemy; EraseEnemyObject
+    clears it) and SetStun leaves it be, so HandlePECollisions reads 0."""
+    mario = Mario()
+    koopa = Koopa(koopa_spawn(KOOPA_START_X))
+    koopa.bump_from_below(mario.x)
+    assert koopa.can_be_kicked
+    assert kick_points_touching(koopa, mario) == (TIMER_RUN_OUT_KICK_POINTS,)
+    assert koopa.is_moving_shell
+
+
+def test_a_shells_revival_timer_runs_down_while_it_slides_so_a_later_bump_and_kick_score_by_it():
+    """DecTimers runs every EnemyIntervalTimer down, whatever the enemy is doing."""
+    tiles = AttemptTiles(build_level())
+    mario = Mario()
+    koopa = Koopa(koopa_spawn(KOOPA_START_X))
+    koopa.stomp()
+    koopa.kick(mario.x)
+    for tick in range(SHELL_REVIVAL_TICKS - NEARLY_AWAKE_TICKS_LEFT):
+        koopa.step(tiles, tick)
+    koopa.bump_from_below(mario.x)
+    assert kick_points_touching(koopa, mario) == (NEARLY_AWAKE_KICK_POINTS,)
