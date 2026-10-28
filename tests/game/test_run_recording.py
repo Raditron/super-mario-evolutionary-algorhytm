@@ -17,6 +17,7 @@ from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import AttemptResult, EndReason
 from mario.training.agent_worker_pool import AgentWorkerPool
 from mario.training.algorithm_factory import AlgorithmFactory
+from mario.training.brain_chunk_controller_source import BrainChunkControllerSourceFactory
 from mario.training.generation_recorder import GenerationRecorder
 from mario.training.run_config import RunSettings
 from mario.training.trainer import GenerationListener, GenerationReport, Trainer
@@ -64,7 +65,7 @@ def record_a_run(tmp_path: Path) -> tuple[Path, list[GenerationReport]]:
     collector = GenerationCollector()
     run_settings = RunSettings(name=RUN_NAME, seed=SEED, generations=GENERATIONS, population_size=POPULATION_SIZE)
     algorithm_factory = AlgorithmFactory(create_random_buttons_algorithm, {})
-    with AgentWorkerPool(algorithm_factory, WORKER_COUNT) as worker_pool:
+    with AgentWorkerPool(BrainChunkControllerSourceFactory(algorithm_factory), WORKER_COUNT) as worker_pool:
         Trainer(algorithm_factory.create(), worker_pool, run_settings,
                 [GenerationRecorder(recorder), collector]).run()
     return recorder.run_folder_path, collector.reports
@@ -157,7 +158,8 @@ def test_stopping_a_run_mid_generation_leaves_only_its_complete_generations(tmp_
     recorder = start_recorder(tmp_path)
     run_settings = RunSettings(name=RUN_NAME, seed=SEED, generations=GENERATIONS, population_size=POPULATION_SIZE)
     with pytest.raises(KeyboardInterrupt):
-        with AgentWorkerPool(AlgorithmFactory(create_random_buttons_algorithm, {}), WORKER_COUNT) as worker_pool:
+        with AgentWorkerPool(BrainChunkControllerSourceFactory(AlgorithmFactory(create_random_buttons_algorithm, {})),
+                             WORKER_COUNT) as worker_pool:
             Trainer(StoppedDuringSecondGeneration(), worker_pool, run_settings,
                     [GenerationRecorder(recorder)]).run()
     run_folder = recorder.run_folder_path

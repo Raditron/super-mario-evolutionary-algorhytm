@@ -7,6 +7,7 @@ from mario.controller.controller_log_source import ControllerLogSource
 from mario.simulation.attempt import Attempt
 from mario.training.agent_worker_pool import AgentWorkerPool
 from mario.training.algorithm_factory import AlgorithmFactory
+from mario.training.brain_chunk_controller_source import BrainChunkControllerSourceFactory
 from mario.training.run_config import RunSettings
 from mario.training.trainer import GenerationListener, GenerationReport, Trainer
 from tests.game.random_buttons_algorithm import create_random_buttons_algorithm
@@ -30,7 +31,7 @@ def train(worker_count: int) -> list[GenerationReport]:
     collector = GenerationCollector()
     run_settings = RunSettings(name="test", seed=SEED, generations=GENERATIONS, population_size=POPULATION_SIZE)
     algorithm_factory = AlgorithmFactory(create_random_buttons_algorithm, {})
-    with AgentWorkerPool(algorithm_factory, worker_count) as worker_pool:
+    with AgentWorkerPool(BrainChunkControllerSourceFactory(algorithm_factory), worker_count) as worker_pool:
         Trainer(algorithm_factory.create(), worker_pool, run_settings, [collector]).run()
     return collector.reports
 

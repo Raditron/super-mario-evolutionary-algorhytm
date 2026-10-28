@@ -9,7 +9,6 @@ import time
 from collections.abc import Callable
 from datetime import datetime
 
-import numpy as np
 import pytest
 
 from mario.constants.snapshots import WATCHED_TICKS_PER_SECOND
@@ -19,13 +18,14 @@ from mario.snapshots.snapshot_channel import SnapshotChannel
 from mario.snapshots.world_snapshot import WorldSnapshot
 from mario.training.agent_worker_pool import AgentWorkerPool
 from mario.training.algorithm_factory import AlgorithmFactory
-from mario.training.chunk_player import ChunkPlayer
+from mario.training.brain_chunk_controller_source import BrainChunkControllerSourceFactory
 from mario.training.generation_recorder import GenerationRecorder
 from mario.training.play_watcher import PlayWatcher, ViewerClosed
 from mario.training.run_config import RunSettings
 from mario.training.trainer import GenerationListener, GenerationReport, Trainer
 from mario.view.followed_agent_camera import FollowedAgentCamera
-from tests.game.random_buttons_algorithm import RandomButtonsAlgorithm, create_random_buttons_algorithm
+from tests.game.chunk_controller_source_doubles import HeadlessTripwireControllerSourceFactory
+from tests.game.random_buttons_algorithm import create_random_buttons_algorithm
 
 SEED = 29
 GENERATIONS = 2
@@ -71,7 +71,8 @@ def train(play_watcher: PlayWatcher | None,
     collector = GenerationCollector()
     run_settings = RunSettings(name=RUN_NAME, seed=SEED, generations=GENERATIONS, population_size=POPULATION_SIZE)
     algorithm_factory = AlgorithmFactory(create_random_buttons_algorithm, {})
-    with AgentWorkerPool(algorithm_factory, WORKER_COUNT, play_watcher) as worker_pool:
+    controller_source_factory = BrainChunkControllerSourceFactory(algorithm_factory)
+    with AgentWorkerPool(controller_source_factory, WORKER_COUNT, play_watcher) as worker_pool:
         Trainer(algorithm_factory.create(), worker_pool, run_settings, [*extra_listeners, collector]).run()
     return collector.reports
 
@@ -130,18 +131,21 @@ def test_closing_the_window_stops_the_run_leaving_only_complete_generations(tmp_
     assert len(recorder.run_folder_path.joinpath("results.csv").read_text().splitlines()) == 1 + POPULATION_SIZE
 
 
-def test_headless_play_builds_no_snapshot_and_never_waits(world_1_1, monkeypatch):
-    """Nothing is written and nothing paced without watching, so headless speed is unchanged."""
-    def must_not_be_called(*arguments, **keywords):
-        raise AssertionError("headless play did watch-live work")
+def test_headless_training_makes_no_snapshot_channel_publishes_nothing_and_never_waits(monkeypatch):
+    """Spec section 11: without --watch, nothing is written and training runs at full speed.
+    Through the real pool and Trainer: the main process makes no channel, and each
+    worker (its tripwires set as it starts) attaches no shared memory, makes no
+    publisher, plays no chunk with a tick listener and never waits."""
+    def must_not_be_made(*arguments, **keywords):
+        raise AssertionError("headless training made a snapshot channel")
 
-    for watch_live_work in ("mario.snapshots.world_snapshot.WorldSnapshot.of",
-                            "mario.snapshots.world_snapshot.AgentSnapshot.of", "time.sleep"):
-        monkeypatch.setattr(watch_live_work, must_not_be_called)
-    algorithm = RandomButtonsAlgorithm()
-    genomes = algorithm.initial_genomes(POPULATION_SIZE, np.random.default_rng(SEED))
-    started_at = time.perf_counter()
-    played_attempts = ChunkPlayer(world_1_1).play(algorithm.build_brain(genomes), len(genomes))
-    seconds = time.perf_counter() - started_at
-    longest_attempt_ticks = max(played.attempt_result.ticks_elapsed for played in played_attempts)
-    assert seconds < longest_attempt_ticks / WATCHED_TICKS_PER_SECOND / 4  # far faster than real time
+    monkeypatch.setattr("mario.training.agent_worker_pool.SnapshotChannel", must_not_be_made)
+    collector = GenerationCollector()
+    run_settings = RunSettings(name=RUN_NAME, seed=SEED, generations=GENERATIONS, population_size=POPULATION_SIZE)
+    algorithm_factory = AlgorithmFactory(create_random_buttons_algorithm, {})
+    with AgentWorkerPool(HeadlessTripwireControllerSourceFactory(algorithm_factory), WORKER_COUNT) as worker_pool:
+        Trainer(algorithm_factory.create(), worker_pool, run_settings, [collector]).run()
+    assert [report.generation for report in collector.reports] == list(range(1, GENERATIONS + 1))
+    for report in collector.reports:
+        longest_attempt_ticks = max(played.attempt_result.ticks_elapsed for played in report.played_attempts)
+        assert report.seconds < longest_attempt_ticks / WATCHED_TICKS_PER_SECOND / 4  # far faster than real time

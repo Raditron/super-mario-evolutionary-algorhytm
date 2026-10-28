@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 from mario.recording.run_recorder import RunRecorder
 from mario.training.agent_worker_pool import AgentWorkerPool, WorkerStartError
 from mario.training.algorithm_factory import AlgorithmFactory, CreateAlgorithm
+from mario.training.brain_chunk_controller_source import BrainChunkControllerSourceFactory
 from mario.training.generation_printer import GenerationPrinter
 from mario.training.generation_recorder import GenerationRecorder
 from mario.training.neuroevolution_algorithm import NeuroevolutionAlgorithm
@@ -55,7 +56,8 @@ class TrainMode:
         watch_live = self._watch_live() if self._watch else None
         try:
             try:
-                worker_pool = AgentWorkerPool(algorithm_factory, play_watcher=watch_live)
+                worker_pool = AgentWorkerPool(BrainChunkControllerSourceFactory(algorithm_factory),
+                                              play_watcher=watch_live)
             except WorkerStartError as problem:  # it built here, but not in a worker
                 raise SystemExit(_not_ready(f"neuroevolution's {problem}")) from None
             try:  # the window opens, and so can be closed, only once the run is recording
