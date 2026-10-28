@@ -16,6 +16,7 @@ import numpy as np
 
 from mario.constants.recording import CONTROLLER_LOG_KEY_FORMAT, GENERATION_TIMES_COLUMNS, RESULTS_COLUMNS
 from mario.recording.best_agent import best_agent_index
+from mario.recording.generation_time_row import GenerationTimeRow
 from mario.recording.results_row import ResultsRow
 from mario.recording.run_folder import RunFolder
 from mario.simulation.attempt_result import AttemptResult
@@ -54,7 +55,8 @@ class RunRecorder:
             _append_rows(self._run_folder.results_path, [
                 ResultsRow.of(generation, agent_index, fitness, attempt_result).csv_values()
                 for agent_index, (attempt_result, fitness) in enumerate(zip(attempt_results, fitnesses, strict=True))])
-            _append_rows(self._run_folder.generation_times_path, [(generation, seconds)])
+            _append_rows(self._run_folder.generation_times_path,
+                         [GenerationTimeRow(generation, float(seconds)).csv_values()])
             self._run_folder.generation_path(generation).mkdir(parents=True)
             np.savez_compressed(self._run_folder.controller_logs_path(generation), **{
                 CONTROLLER_LOG_KEY_FORMAT.format(agent=agent): controller_log

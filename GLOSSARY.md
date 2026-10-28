@@ -52,9 +52,25 @@ _Avoid_: State, input, sensors, vision
 The score an agent earns for its attempt, used to decide who reproduces.
 _Avoid_: Reward (except for a single scored event), score
 
+**Statistics**:
+What is made of one run afterwards, from its run folder's rows: six charts of its generations and its summary, written into the run folder.
+_Avoid_: Report, analytics, results (results.csv is the rows they are made from)
+
+**Summary**:
+A run's headline facts, computed from its run folder's rows every time and never stored: the first generation to reach the flag; the best fitness, the fastest finish and the most coins, each with the generation and agent it belongs to; and the total run time.
+_Avoid_: Report, stats, results (results.csv is the rows it is computed from)
+
+**Comparison**:
+Several runs side by side: their best and mean fitness on one chart and their summaries in one table, written to a folder of its own, never into the runs' folders.
+_Avoid_: Benchmark, diff, leaderboard
+
 **Best agent**:
 The agent of a generation with the highest fitness; on a tie, the one with the lowest index. Its genome is the only one a run folder keeps.
 _Avoid_: Champion, winner, elite (the elite is the algorithm's to define)
+
+**Finisher**:
+An agent whose attempt reached the flag, that is, ended by touching the flagpole.
+_Avoid_: Winner, completer (a finisher need not be its generation's best agent)
 
 ## The level
 
