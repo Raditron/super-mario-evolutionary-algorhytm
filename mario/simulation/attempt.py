@@ -4,8 +4,11 @@ Its only way in is step(buttons), one tick given that tick's Controller
 bitmask. It uses no randomness, no floats and no wall clock, so the same
 Controller log always gives the same Attempt.
 
-It ends when Mario dies or the level timer runs out, and, if the mode turns
-the stall rule on (training does, play doesn't), when he stalls. While Mario
+It ends when Mario dies, touches the flagpole or the level timer runs out, and,
+if the mode turns the stall rule on (training does, play doesn't), when he
+stalls. The touch scores the flag-height and remaining-time points at once, and
+ends the tick there: the level timer stops, and nothing else moves (the slide and
+castle walk after it are EndOfLevelSequence's, in play and replay only). While Mario
 grows, shrinks or catches fire, everything else stands still, the level timer
 too, but for his fireballs, which the original runs every frame; the ticks
 still count, and so does the stall rule.
@@ -21,6 +24,7 @@ from mario.simulation.blocks import Blocks, HeadHit
 from mario.simulation.enemy_collision_check import EnemyCollisionCheck, EnemyCollisionOutcome, is_enemy_check_tick
 from mario.simulation.enemy_roster import EnemyRoster
 from mario.simulation.fireballs import Fireballs
+from mario.simulation.flagpole import FlagpoleTouch, touches_flagpole
 from mario.simulation.items import Items
 from mario.simulation.level_timer import LevelTimer
 from mario.simulation.mario import Mario
@@ -54,6 +58,7 @@ class Attempt:
         self.blocks = Blocks(self.tiles, self.scoreboard, self.items, self.events)
         self.fireballs = Fireballs(self.mario, self.scoreboard, self.events)
         self._stall_rule = StallRule(self.mario.pixel_x) if ends_on_stall else None
+        self.flagpole_touch: FlagpoleTouch | None = None
         self.end_reason: EndReason | None = None
 
     @property
@@ -91,6 +96,10 @@ class Attempt:
         if self.mario.head_hit_tile is not None:
             self._hit_block_from_below(*self.mario.head_hit_tile)
         self.scroll.follow(self.mario, self.mario.pixel_x - pixel_x_before)
+        self.furthest_x = max(self.furthest_x, self.mario.pixel_x)
+        if touches_flagpole(self.mario, self.tiles):
+            self._touch_flagpole()
+            return
         self.fireballs.step(self._playfield, self.enemies.active, self.ticks_elapsed)
         self.enemies.step(self._playfield)
         self.blocks.defeat_enemies_on_bumped_blocks(self.enemies.active, self.mario.x, self.ticks_elapsed)
@@ -99,9 +108,13 @@ class Attempt:
         self.items.step(self._playfield)
         self.blocks.knock_items_on_bumped_blocks(self.items.walking, self.mario.x)
         self._collect_touched_item()
-        self.furthest_x = max(self.furthest_x, self.mario.pixel_x)
         self.blocks.step()
         self.level_timer.count_down()
+
+    def _touch_flagpole(self) -> None:
+        self.flagpole_touch = FlagpoleTouch.of(self.mario, self.level_timer.time_left)
+        self.scoreboard.score_points(self.flagpole_touch.flag_points, self.ticks_elapsed)
+        self.scoreboard.score_points(self.flagpole_touch.time_points, self.ticks_elapsed)
 
     def _hit_block_from_below(self, column: int, row: int) -> None:
         head_hit = self.blocks.hit_from_below(column, row, self.ticks_elapsed, mario_is_big=self.mario.is_big)
@@ -140,6 +153,8 @@ class Attempt:
         self.mario.power_up()
 
     def _reason_to_end(self) -> EndReason | None:
+        if self.flagpole_touch is not None:
+            return EndReason.REACHED_FLAG
         if self._died_to_enemy:
             return EndReason.DIED_TO_ENEMY
         if self.mario.has_fallen_in_pit:

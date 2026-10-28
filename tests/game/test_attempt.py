@@ -11,7 +11,6 @@ from mario.snapshots.world_snapshot import VISIBLE_COLUMNS, WorldSnapshot
 from tests.game.helpers import HOLD_LEFT, HOLD_RIGHT, HOLD_RIGHT_RUN, build_level, without_enemies
 from tests.game.scripted_pilot import ScriptedPilot
 
-CASTLE_STOPPER_COLUMN = 205
 TICKS_TO_CROSS_THE_LEVEL = 3000
 
 
@@ -68,17 +67,18 @@ def test_mario_cannot_walk_off_the_screens_left_edge(flat_level):
     assert sprite_screen_x(attempt) == 0
 
 
-def test_the_pilot_crosses_1_1_and_the_screen_only_scrolls_right_until_column_192(world_1_1):
+def test_the_pilot_runs_through_1_1_to_the_flagpole_and_the_screen_only_scrolls_right(world_1_1):
+    """Running, the screen reaches the touch short of its stop at column 192, so the
+    stop plays no part: the original, which has no stop, shows the same screens."""
     attempt = Attempt(without_enemies(world_1_1))
     pilot = ScriptedPilot()
     scroll_positions = [attempt.scroll.left_x_pixels]
-    for _ in range(TICKS_TO_CROSS_THE_LEVEL):
+    while not attempt.is_over and attempt.ticks_elapsed < TICKS_TO_CROSS_THE_LEVEL:
         attempt.step(pilot.next_buttons(attempt))
-        assert not attempt.is_over
         scroll_positions.append(attempt.scroll.left_x_pixels)
+    assert attempt.end_reason is EndReason.REACHED_FLAG
     assert scroll_positions == sorted(scroll_positions)
-    assert max(scroll_positions) == SCROLL_STOP_LEFT_X_PIXELS
-    assert attempt.furthest_x >= CASTLE_STOPPER_COLUMN * 16 - 16
+    assert max(scroll_positions) < SCROLL_STOP_LEFT_X_PIXELS
 
 
 def test_a_snapshot_shows_the_screens_tiles_and_mario(flat_level):
