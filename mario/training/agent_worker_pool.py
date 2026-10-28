@@ -7,14 +7,16 @@ into contiguous chunks, each worker plays its chunks in lock-step with a brain
 built from their genomes, and the PlayedAttempts come back in agent order.
 
 A worker whose algorithm fails to build doesn't raise while starting (the pool
-would only start it again, forever); it raises WorkerStartError on its first
-chunk, which play passes on to the main process.
+would only start it again, forever); it reports why back to the main process,
+and the pool, once every worker has reported, stops them all and raises
+WorkerStartError before anything is played.
 """
 
 import multiprocessing
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
+from multiprocessing.queues import SimpleQueue
 
 import numpy as np
 
@@ -37,10 +39,21 @@ class WorkerStartError(RuntimeError):
 
 class AgentWorkerPool:
     def __init__(self, algorithm_factory: AlgorithmFactory, worker_count: int = TRAINING_WORKER_COUNT):
+        """Starts the workers and waits until each has built its algorithm.
+
+        Raises WorkerStartError, with every worker stopped, if any couldn't."""
         self._chunk_count = worker_count * CHUNKS_PER_WORKER
+        context = multiprocessing.get_context(WORKER_START_METHOD)
+        start_reports = context.SimpleQueue()
         with _blas_pinned_in_new_processes():
-            self._pool = multiprocessing.get_context(WORKER_START_METHOD).Pool(
-                worker_count, initializer=_start_worker, initargs=(algorithm_factory,))
+            self._pool = context.Pool(worker_count, initializer=_start_worker,
+                                      initargs=(algorithm_factory, start_reports))
+        start_failures = [start_failure for start_failure in (start_reports.get() for _ in range(worker_count))
+                          if start_failure]
+        if start_failures:
+            self._pool.terminate()
+            self._pool.join()
+            raise WorkerStartError(start_failures[0])
 
     def __enter__(self) -> "AgentWorkerPool":
         return self
@@ -86,23 +99,22 @@ class _Worker:
         return self._chunk_player.play(self._algorithm.build_brain(genomes), len(genomes))
 
 
-# The worker of this process, set once when the pool starts it, or why it couldn't be.
+# The worker of this process, set once when the pool starts it.
 _this_process_worker: _Worker | None = None
-_this_process_start_failure = ""
 
 
-def _start_worker(algorithm_factory: AlgorithmFactory) -> None:
-    global _this_process_worker, _this_process_start_failure
+def _start_worker(algorithm_factory: AlgorithmFactory, start_reports: SimpleQueue) -> None:
+    """Builds this process's worker, then reports to the main process: why it couldn't, or "" if it could."""
+    global _this_process_worker
     try:
         algorithm = algorithm_factory.create()
-    except Exception as problem:  # the user's code, half-written; kept for the first chunk to report
-        _this_process_start_failure = (f"create_algorithm(settings) failed in a worker process "
-                                       f"({type(problem).__name__}: {problem})")
+    except Exception as problem:  # the user's code, half-written
+        start_reports.put(f"create_algorithm(settings) failed in a worker process "
+                          f"({type(problem).__name__}: {problem})")
         return
     _this_process_worker = _Worker(algorithm)
+    start_reports.put("")
 
 
 def _play_chunk(genomes: list[np.ndarray]) -> list[PlayedAttempt]:
-    if _this_process_worker is None:
-        raise WorkerStartError(_this_process_start_failure)
     return _this_process_worker.play(genomes)

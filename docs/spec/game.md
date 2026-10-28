@@ -53,7 +53,7 @@ mario/
                   BrainControllerSource (no pygame)
   snapshots/      WorldSnapshot + the shared-memory channel
   training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool, ChunkPlayer
-  recording/      RunFolder, RunRecorder
+  recording/      RunFolder, RunRecorder (training's GenerationRecorder feeds it)
   statistics/     charts and summary from run folders (only matplotlib importer)
   view/           Window, KeyboardControllerSource, SpriteRenderer, DebugRenderer,
                   HUD, followed-agent camera (only pygame importer)
@@ -253,11 +253,13 @@ runs/YYYY-MM-DD_HH-MM_<run-name>/
   - `[algorithm]`: the user's settings, with keys they choose
 
   Game constants never go in it.
-- **Written once per generation**, after it finishes: append both CSVs and write `generations/NNNN/`. A stopped run leaves only complete generations, and replay and stats still work on it. Generations are numbered from `0001`.
+- **Made when the run starts** (built in #27): `runs/` is at the repo root (git-ignored), whatever folder `train` is run from, and the run folder is made only once the user's algorithm has built, in the main process and in every worker, so a `train` that says the algorithm isn't ready leaves no folder. The folder gets the config copy, byte for byte, and both CSVs with just their header rows. A run of the same name started in the same minute is refused rather than mixed in.
+- **Written once per generation**, after it finishes, in this order: append `results.csv`, append `generation_times.csv`, then write `generations/NNNN/`. Ctrl+C pressed while a generation is being written stops the run once it is written, so a stopped run leaves only complete generations, and replay and stats still work on it. Generations are numbered from `0001`.
+- **Both CSVs start with a header row** naming their columns. Floats (`fitness`, `seconds`) are written as Python's shortest round-trip text, so they read back to the same bits.
 - `results.csv`: `generation, agent, fitness, end_reason, furthest_x, ticks_elapsed, final_score, coins_collected`. No summaries are stored. Events during an attempt aren't stored either, because replays rebuild them.
-- `generation_times.csv`: `generation, seconds` (wall clock).
-- `controller_logs.npz`: one `uint8` array per agent (key = agent index), 1 byte per tick, compressed.
-- `best_genome.npy`: `np.save` of the best genome. Best = highest fitness; on a tie, the lowest agent index.
+- `generation_times.csv`: `generation, seconds` (wall clock: playing and scoring the generation, not recording it).
+- `controller_logs.npz`: one `uint8` array per agent (key = agent index as plain decimal text: `"0"`, `"1"`, ...), 1 byte per tick, compressed.
+- `best_genome.npy`: `np.save` of the best agent's genome. Best = highest fitness; on a tie, the lowest agent index.
 - `agent` is the agent's index within its generation, the same in every file.
 - A run folder is read only by replay and stats. Runs can't be resumed, and genomes don't seed new runs.
 

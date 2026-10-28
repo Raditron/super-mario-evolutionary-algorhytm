@@ -129,7 +129,7 @@ def time_workload(name: str, algorithm_factory: AlgorithmFactory) -> None:
     run_settings = RunSettings(name=name, seed=BENCHMARK_SEED, generations=TIMED_GENERATIONS,
                                population_size=BENCHMARK_POPULATION_SIZE)
     with AgentWorkerPool(algorithm_factory) as worker_pool:
-        Trainer(algorithm_factory.create(), worker_pool, run_settings, timer).run()
+        Trainer(algorithm_factory.create(), worker_pool, run_settings, [timer]).run()
     seconds_per_generation = statistics.median(timer.seconds)
     agent_ticks_per_second = sum(timer.agent_ticks) / sum(timer.seconds)
     ticks_per_attempt = sum(timer.agent_ticks) / (TIMED_GENERATIONS * BENCHMARK_POPULATION_SIZE)

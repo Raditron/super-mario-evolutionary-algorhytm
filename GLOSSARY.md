@@ -52,6 +52,10 @@ _Avoid_: State, input, sensors, vision
 The score an agent earns for its attempt, used to decide who reproduces.
 _Avoid_: Reward (except for a single scored event), score
 
+**Best agent**:
+The agent of a generation with the highest fitness; on a tie, the one with the lowest index. Its genome is the only one a run folder keeps.
+_Avoid_: Champion, winner, elite (the elite is the algorithm's to define)
+
 ## The level
 
 **Controller**:

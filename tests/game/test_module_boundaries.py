@@ -9,11 +9,13 @@ import mario
 import mario.constants.physics as physics_constants
 
 PACKAGE_ROOT = Path(mario.__file__).parent
-PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training")
+PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training", "recording")
 USERS_PACKAGE = "neuroevolution"
 THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE = PACKAGE_ROOT / "modes" / "train_mode.py"
 PACKAGES_THAT_DEPEND_ON_THE_CONTROLLER = ("mario.simulation", "mario.training")
 THE_SIMULATION = ("mario.simulation",)
+# Recording knows only AttemptResults, Controller logs, floats and flat arrays (spec section 3).
+WHAT_RECORDING_MAY_IMPORT_OF_THE_GAME = ("mario.recording", "mario.constants", "mario.simulation.attempt_result")
 NONDETERMINISTIC_MODULES ={"random", "time", "datetime", "secrets", "uuid"}
 
 
@@ -70,6 +72,14 @@ def test_the_view_never_imports_the_simulation():
     game's vocabulary, the snapshots module hands on."""
     for source_file in python_files("view"):
         assert not imports_any_of(source_file, THE_SIMULATION), source_file
+
+
+def test_recording_knows_of_the_game_only_attempt_results():
+    """The rest it is handed are Controller logs, floats and flat arrays."""
+    for source_file in python_files("recording"):
+        game_imports = {name for name in imported_dotted_names(source_file) if name.split(".")[0] == "mario"}
+        assert all(any(name == allowed or name.startswith(f"{allowed}.")
+                       for allowed in WHAT_RECORDING_MAY_IMPORT_OF_THE_GAME) for name in game_imports), source_file
 
 
 def test_simulation_has_no_randomness_wall_clock_or_floats():
