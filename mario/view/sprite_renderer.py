@@ -52,17 +52,6 @@ TILE_SPRITE_NAMES = {
     TileKind.FLAGPOLE: "flagpole",
 }
 
-SCENERY_SPRITE_NAMES = {
-    SceneryKind.CLOUD: "cloud",
-    SceneryKind.HILL: "hill",
-    SceneryKind.BUSH: "bush",
-    SceneryKind.CASTLE_BATTLEMENT: "castle_battlement",
-    SceneryKind.CASTLE_WINDOW: "castle_window",
-    SceneryKind.CASTLE_BRICK: "castle_brick",
-    SceneryKind.CASTLE_DOOR_ARCH: "castle_door_arch",
-    SceneryKind.CASTLE_DOOR: "castle_door",
-}
-
 SCENERY_COLOURS = {
     SceneryKind.CLOUD: CLOUD_COLOUR,
     SceneryKind.HILL: HILL_COLOUR,
@@ -124,14 +113,15 @@ class SpriteRenderer:
             self._draw_mario(mario, snapshot.screen_left_x_pixels, screen)
 
     def _draw_scenery(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
-        """Behind every tile the screen shows."""
+        """Behind every tile the screen shows; each SceneryKind's value is its sprite name."""
         tiles = snapshot.tiles
         for row, kinds in enumerate(tiles.rows):
             for column in range(tiles.first_column, tiles.first_column + len(kinds)):
                 scenery_kind = self._scenery.scenery_kind(column, row)
                 if scenery_kind is not None:
-                    self._draw_sprite(SCENERY_SPRITE_NAMES[scenery_kind], SCENERY_COLOURS[scenery_kind],
-                                      _standing_on(_tile_box(column, row), SCENERY_SPRITE_NAMES[scenery_kind]),
+                    sprite_name = scenery_kind.value
+                    self._draw_sprite(sprite_name, SCENERY_COLOURS[scenery_kind],
+                                      _standing_on(_tile_box(column, row), sprite_name),
                                       snapshot.screen_left_x_pixels, screen)
 
     def _draw_tiles(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
@@ -150,26 +140,26 @@ class SpriteRenderer:
 
     def _draw_mario(self, mario: MarioSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         sprite_name = MARIO_SPRITE_NAMES[mario.power_state]
-        box = pygame.Rect(mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels)
+        box = _hitbox(mario)
         self._draw_sprite(sprite_name, MARIO_COLOURS[mario.power_state], _standing_on(box, sprite_name),
                           screen_left_x_pixels, screen)
 
     def _draw_enemy(self, enemy: EnemySnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         sprite_names = DEFEATED_ENEMY_SPRITE_NAMES if enemy.is_defeated else ENEMY_SPRITE_NAMES
         sprite_name = sprite_names[enemy.kind]
-        box = pygame.Rect(enemy.x_pixels, enemy.y_pixels, enemy.width_pixels, enemy.height_pixels)
+        box = _hitbox(enemy)
         self._draw_sprite(sprite_name, ENEMY_COLOURS[enemy.kind], _standing_on(box, sprite_name),
                           screen_left_x_pixels, screen)
 
     def _draw_item(self, item: ItemSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         sprite_name = ITEM_SPRITE_NAMES[item.kind]
-        box = pygame.Rect(item.x_pixels, item.y_pixels, item.width_pixels, item.height_pixels)
+        box = _hitbox(item)
         self._draw_sprite(sprite_name, ITEM_COLOURS[item.kind], _standing_on(box, sprite_name),
                           screen_left_x_pixels, screen)
 
     def _draw_fireball(self, fireball: FireballSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         """Its explosion is centred on it (DrawExplosion_Fireball)."""
-        box = pygame.Rect(fireball.x_pixels, fireball.y_pixels, fireball.width_pixels, fireball.height_pixels)
+        box = _hitbox(fireball)
         if fireball.is_exploding:
             self._draw_sprite(FIREBALL_EXPLOSION_SPRITE_NAME, EXPLODING_FIREBALL_COLOUR,
                               _centred_on(box, FIREBALL_EXPLOSION_SPRITE_NAME), screen_left_x_pixels, screen)
@@ -186,6 +176,11 @@ class SpriteRenderer:
             screen.fill(hitbox_colour, place_on_screen)
         else:
             screen.blit(sprite, place_on_screen)
+
+
+def _hitbox(thing: MarioSnapshot | EnemySnapshot | ItemSnapshot | FireballSnapshot) -> pygame.Rect:
+    """The thing's box in level pixels."""
+    return pygame.Rect(thing.x_pixels, thing.y_pixels, thing.width_pixels, thing.height_pixels)
 
 
 def _tile_box(column: int, row: int) -> pygame.Rect:

@@ -13,6 +13,7 @@ LAYER_NAME = "layer_2"
 
 
 class SceneryKind(StrEnum):
+    # Each value is also the file name of its sprite in assets/sprites/.
     CLOUD = "cloud"
     HILL = "hill"
     BUSH = "bush"
