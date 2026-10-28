@@ -47,7 +47,8 @@ mario/
   constants/      one Python module per area: physics, level, scoring,
                   observation, training, view, recording, controller,
                   size_change, snapshots, flagpole
-  level/          StaticLevel: tile map + block/pipe/enemy tables, read-only
+  level/          StaticLevel: tile map + block/pipe/enemy tables, read-only;
+                  BackgroundScenery: layer 2, drawing data for the Sprite view only
   simulation/     Attempt, Mario, enemies, items, blocks, collision, scroll,
                   flagpole, EndOfLevelSequence, GameEvent, AttemptResult,
                   ObservationBuilder (no pygame)
@@ -70,7 +71,7 @@ config.toml       the run settings the user edits (section 10)
 **Dependency rules**
 - `simulation` depends only on `level`, `controller` and `constants`.
 - `controller` depends only on `constants`: it never imports `simulation` or `training`, which both depend on it.
-- `view` reads only `WorldSnapshot`s. It is the only package that imports pygame, so workers and headless training never load it.
+- `view` reads only `WorldSnapshot`s, plus one second input for the Sprite view: `BackgroundScenery` (`level/background_scenery.py`), the read-only, static drawing data of layer 2 (clouds, hills, bushes, castle), which never changes during an attempt and so is not in the snapshot. That and the kind enums (`TileKind`, `EnemyKind`, `SceneryKind`) are the only things `view` imports from `level`. It is the only package that imports pygame, so workers and headless training never load it.
 - `recording` knows only `AttemptResult`s, Controller logs, floats and flat arrays.
 - `statistics` reads only run-folder files. It never imports the simulation.
 - Only `TrainMode` (in `modes/`) imports `neuroevolution`, through the one fixed import of section 9; `training` gets the algorithm by injection and never imports it (ADR 0001). `play`, `replay` and `stats` work while the algorithm is empty or half-written.

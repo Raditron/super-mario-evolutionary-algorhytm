@@ -4,22 +4,20 @@ One StaticLevel is loaded per process and shared by every Attempt; nothing
 ever writes to it.
 """
 
-import tomllib
 from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
 
 from mario.constants.level import (
     GOOMBA_PAIR_FIRST_OFFSET_PIXELS,
     GOOMBA_PAIR_SECOND_OFFSET_PIXELS,
-    LEVEL_FILE_NAME,
-    LEVEL_HEIGHT_TILES,
-    LEVEL_WIDTH_TILES,
     TILE_SIZE_PIXELS,
 )
+from mario.level.level_file import grid_layer_rows, read_level_data
 from mario.level.tile_kind import BLOCK_TILE_KINDS, SOLID_TILE_KINDS, TILE_KIND_BY_CHARACTER, TileKind
 
 
+# The level data's grid layer with the solid and interactive tiles.
+LAYER_NAME = "layer_1"
 # An enemies entry of this kind places two Goombas relative to its data column.
 GOOMBA_PAIR_ENTRY_KIND = "goomba_pair"
 
@@ -87,12 +85,8 @@ class StaticLevel:
 
     @classmethod
     def load_world_1_1(cls) -> "StaticLevel":
-        level_data = tomllib.loads(Path(__file__).with_name(LEVEL_FILE_NAME).read_text())
-        layer_1_rows = level_data["layer_1"].split()
-        if len(layer_1_rows) != LEVEL_HEIGHT_TILES or any(len(row) != LEVEL_WIDTH_TILES
-                                                           for row in layer_1_rows):
-            raise ValueError(f"{LEVEL_FILE_NAME}: layer_1 must be "
-                             f"{LEVEL_WIDTH_TILES} x {LEVEL_HEIGHT_TILES} tiles")
+        level_data = read_level_data()
+        layer_1_rows = grid_layer_rows(level_data, LAYER_NAME)
         pipes = tuple(Pipe(entry["left_column"], entry["top_row"], entry["height_tiles"],
                            PipeDestination(entry["leads_to"]))
                       for entry in level_data["pipes"])
