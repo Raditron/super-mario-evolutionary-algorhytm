@@ -7,7 +7,8 @@ else, and every block small Mario hits, is bumped. A power-up ? block releases a
 Super Mushroom for small Mario and a fire flower for big Mario, and the hidden
 block a 1-UP mushroom (BumpBlock, SetupPowerUp).
 An enemy standing on a block while it bounces, or on a brick as it breaks, is
-defeated (HandleEToBGCollision); a mushroom there hops away from Mario. The
+defeated, or a Koopa flipped into its shell (HandleEToBGCollision); a mushroom
+there hops away from Mario. The
 multi-coin brick's timer is one for the whole level, as in the original
 (BrickCoinTimerFlag); 1-1 has one such brick.
 """
@@ -77,11 +78,13 @@ class Blocks:
         return HeadHit.BUMPED_BLOCK
 
     def defeat_enemies_on_bumped_blocks(self, enemies: list[Enemy], mario_x: int, tick: int) -> None:
-        """Defeat each enemy standing on a bouncing block, or on a brick broken this tick."""
+        """Bump each enemy standing on a bouncing block, or on a brick broken this
+        tick: it scores either way, though a Koopa is only stunned, not defeated."""
         for enemy in enemies:
             if not enemy.is_defeated and self._is_on_a_bumped_block(enemy):
-                enemy.defeat_by_bump(mario_x)
-                self._events.append(GameEvent(tick, GameEventKind.DEFEATED_ENEMY, DefeatMethod.BUMPED))
+                enemy.bump_from_below(mario_x)
+                if enemy.is_defeated:
+                    self._events.append(GameEvent(tick, GameEventKind.DEFEATED_ENEMY, DefeatMethod.BUMPED))
                 self._scoreboard.score_points(BUMPED_ENEMY_POINTS, tick)
 
     def knock_items_on_bumped_blocks(self, items: list[Mushroom], mario_x: int) -> None:

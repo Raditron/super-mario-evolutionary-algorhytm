@@ -96,9 +96,17 @@ GOOMBA_WALK_SPEED = 8 * NES_X_SPEED_UNIT                     # 0.5 px/f, starts 
 KOOPA_WALK_SPEED = 8 * NES_X_SPEED_UNIT                      # 0.5 px/f
 KICKED_SHELL_SPEED = 48 * NES_X_SPEED_UNIT                   # 3.0 px/f, away from Mario
 AIRBORNE_SHELL_SLOWDOWN = 24 * NES_X_SPEED_UNIT              # taken off a shell's speed in the air
+# A woken Koopa walks at this speed, rightwards if it wakes on a tick whose
+# FrameCounter bit 0 is clear (an even tick), leftwards otherwise (ReviveStunned,
+# RevivedXSpeed). The replica's tick number stands in for the frame counter.
 REVIVED_KOOPA_SPEED = 8 * NES_X_SPEED_UNIT
+FRAME_COUNTER_BIT_0 = 1
 SHELL_REVIVAL_INTERVAL_TICKS = 0x10                          # interval ticks before a Koopa wakes
 INTERVAL_TIMER_TICKS = 21                                    # ticks per interval tick
+# A still shell wakes once its interval timer, set at the stomp (or as a bumped
+# shell lands), has run out (ReviveStunned). Like STOMPED_GOOMBA_TICKS, the
+# replica always takes the longest the interval clock allows.
+SHELL_REVIVAL_TICKS = SHELL_REVIVAL_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
 # An enemy or a mushroom (to the original, an enemy object too) knocked from
 # below a block jumps up and walks away from Mario (SetStun, EnemyBGCXSpdData).
 BUMPED_ENEMY_SPEED_X = 16 * NES_X_SPEED_UNIT
@@ -110,6 +118,8 @@ BUMP_DEFEAT_SPEED_Y = -4 * NES_Y_SPEED_UNIT
 # An enemy defeated by a fireball gets only SetStun's jump (ShellOrBlockDefeat),
 # then falls through everything too.
 FIREBALL_DEFEAT_SPEED_Y = BUMPED_ENEMY_SPEED_Y
+# So does one a moving shell defeats (ShellCollisions, ShellOrBlockDefeat).
+SHELL_DEFEAT_SPEED_Y = BUMPED_ENEMY_SPEED_Y
 MUSHROOM_SPEED = 16 * NES_X_SPEED_UNIT                       # 1.0 px/f, starts moving right
 # An item rises out of its block 1 px every 4 ticks for 16 px, and a mushroom
 # sets off one step (4 ticks) after that (GrowThePowerUp). Mario can touch it

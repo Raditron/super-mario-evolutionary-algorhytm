@@ -37,6 +37,8 @@ from mario.constants.view import (
     FIRE_FLOWER_COLOUR,
     FIRE_MARIO_COLOUR,
     GOOMBA_COLOUR,
+    KOOPA_COLOUR,
+    KOOPA_SHELL_COLOUR,
     MARIO_COLOUR,
     OBSERVATION_ENEMY_TINT,
     OBSERVATION_SOLID_TINT,
@@ -159,6 +161,16 @@ def test_a_squashed_goomba_is_drawn_flattened_onto_its_feet():
     screen = drawn_with(goomba_snapshot(is_defeated=True))
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == SKY_COLOUR
     assert colour_at(screen, GOOMBA_X, GOOMBA_BOTTOM_Y) == GOOMBA_COLOUR
+
+
+@pytest.mark.parametrize("is_shell, colour", [(False, KOOPA_COLOUR), (True, KOOPA_SHELL_COLOUR)])
+def test_a_koopa_and_its_shell_are_drawn_as_its_hitbox_each_in_its_colour(is_shell, colour):
+    screen = drawn_with(EnemySnapshot(EnemyKind.KOOPA, GOOMBA_X, GOOMBA_Y, GOOMBA_HITBOX_WIDTH_PIXELS,
+                                      GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated=False, is_shell=is_shell))
+    assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == colour
+    assert colour_at(screen, GOOMBA_RIGHT_X, GOOMBA_BOTTOM_Y) == colour
+    assert colour_at(screen, GOOMBA_RIGHT_X + 1, GOOMBA_Y) == SKY_COLOUR
+    assert colour_at(screen, GOOMBA_X, GOOMBA_Y - 1) == SKY_COLOUR
 
 
 def mushroom_snapshot(kind: ItemKind, is_emerging: bool = False) -> ItemSnapshot:

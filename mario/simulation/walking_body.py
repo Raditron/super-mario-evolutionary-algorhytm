@@ -26,7 +26,7 @@ class WalkingBody(TileBody):
 
     def walk(self, tiles: AttemptTiles) -> None:
         """One tick of walking: along, turning at a wall, then falling if nothing is underneath."""
-        if self.move_horizontally(tiles, self.velocity_x):
+        if self.move_horizontally(tiles, self._step_x()):
             self.velocity_x = -self.velocity_x
         if self.is_falling:
             self._fall(tiles)
@@ -39,6 +39,10 @@ class WalkingBody(TileBody):
         self.y -= BUMPED_ENEMY_LIFT_PIXELS * SUBPIXELS_PER_PIXEL
         self.velocity_y = velocity_y
         self.velocity_x = BUMPED_ENEMY_SPEED_X if self.x >= mario_x else -BUMPED_ENEMY_SPEED_X
+
+    def _step_x(self) -> int:
+        """How far it moves along this tick: its walking speed."""
+        return self.velocity_x
 
     def _fall(self, tiles: AttemptTiles) -> None:
         contact = self.move_vertically(tiles, self.velocity_y)

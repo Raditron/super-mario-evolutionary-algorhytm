@@ -8,11 +8,24 @@ COIN_POINTS = 200
 # beyond the table is worth a 1-UP instead of points.
 STOMP_CHAIN_POINTS = (100, 200, 400, 500, 800, 1000, 2000, 4000, 5000, 8000)
 
+# Kicking a still shell scores the score table's step this far past the stomp
+# chain (HandlePECollisions: floatey number StompChainCounter + 3), so 400 once
+# Mario has landed; but while the shell's interval timer is at 0, 1 or 2, just
+# before it wakes, it scores these instead (KickedShellPtsData).
+KICKED_SHELL_STEPS_PAST_STOMP_CHAIN = 3
+KICKED_SHELL_POINTS_BY_INTERVAL_TICKS_LEFT = (8000, 1000, 500)
+
+# Each enemy a moving shell defeats scores the score table's step this far past
+# the shell's own chain, which counts its defeats for as long as it is a shell and
+# is never reset (ShellCollisions: floatey number ShellChainCounter + 4): 500, 800, ...
+SHELL_DEFEAT_STEPS_PAST_SHELL_CHAIN = 4
+
 # An enemy defeated by bumping the block under it (GiveOEPoints).
 BUMPED_ENEMY_POINTS = 100
 # A Goomba defeated by a fireball (ShellOrBlockDefeat, GoombaPoints: floatey number
-# $01). Most other enemies, a Koopa among them, give 200 (floatey number $02).
+# $01); a Koopa, walking or in its shell, like most other enemies (floatey number $02).
 GOOMBA_FIREBALL_POINTS = 100
+KOOPA_FIREBALL_POINTS = 200
 
 # An item collected (HandlePowerUpCollision: floatey number $06). The 1-UP
 # mushroom gives a life instead (floatey number $0B).

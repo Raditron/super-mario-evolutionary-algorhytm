@@ -17,7 +17,7 @@ from mario.constants.view import (
 from mario.snapshots.world_snapshot import EnemySnapshot, FireballSnapshot, ItemSnapshot, WorldSnapshot
 from mario.view.debug_text import DebugText
 from mario.view.game_event_feed import GameEventFeed
-from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, MARIO_COLOURS, TILE_COLOURS
+from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, MARIO_COLOURS, SHELL_COLOURS, TILE_COLOURS
 from mario.view.observation_overlay import ObservationOverlay
 
 
@@ -71,10 +71,11 @@ class DebugRenderer:
 
     @staticmethod
     def _draw_enemy(enemy: EnemySnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
-        """Its hitbox; a defeated one flattened onto its feet."""
+        """Its hitbox, a shell in the shell's colour; a defeated one flattened onto its feet."""
         drawn_height_pixels = DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS if enemy.is_defeated else enemy.height_pixels
         drawn_top_y_pixels = enemy.y_pixels + enemy.height_pixels - drawn_height_pixels
-        _fill_level_box(screen, ENEMY_COLOURS[enemy.kind], screen_left_x_pixels,
+        colour = SHELL_COLOURS[enemy.kind] if enemy.is_shell else ENEMY_COLOURS[enemy.kind]
+        _fill_level_box(screen, colour, screen_left_x_pixels,
                         enemy.x_pixels, drawn_top_y_pixels, enemy.width_pixels, drawn_height_pixels)
 
     @staticmethod

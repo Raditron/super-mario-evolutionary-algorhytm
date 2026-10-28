@@ -34,6 +34,7 @@ class DefeatMethod(StrEnum):
     """How an enemy was defeated: the detail of a defeated_enemy game event."""
     STOMP = "stomp"
     FIREBALL = "fireball"
+    KICKED_SHELL = "kicked_shell"
     BUMPED = "bumped"
 
 

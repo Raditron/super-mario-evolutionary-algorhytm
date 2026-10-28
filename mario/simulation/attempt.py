@@ -36,6 +36,7 @@ from mario.simulation.item_kind import ItemKind
 from mario.simulation.item import Item
 from mario.simulation.scoreboard import Scoreboard
 from mario.simulation.scroll import Scroll
+from mario.simulation.shell_hits import ShellHits
 from mario.simulation.stall_rule import StallRule
 
 
@@ -60,6 +61,7 @@ class Attempt:
         self.scoreboard = Scoreboard(self.events)
         self.blocks = Blocks(self.tiles, self.scoreboard, self.items, self.events)
         self.fireballs = Fireballs(self.mario, self.scoreboard, self.events)
+        self._shell_hits = ShellHits(self.scoreboard, self.events)
         self._stall_rule = StallRule(self.mario.pixel_x) if ends_on_stall else None
         self.flagpole_touch: FlagpoleTouch | None = None
         self.end_of_level: EndOfLevelSequence | None = None
@@ -112,7 +114,8 @@ class Attempt:
             self._touch_flagpole()
             return
         self.fireballs.step(self._playfield, self.enemies.active, self.ticks_elapsed)
-        self.enemies.step(self._playfield)
+        self.enemies.step(self._playfield, self.ticks_elapsed)
+        self._shell_hits.step(self.enemies.active, self.scroll.left_x_pixels, self.mario.x, self.ticks_elapsed)
         self.blocks.defeat_enemies_on_bumped_blocks(self.enemies.active, self.mario.x, self.ticks_elapsed)
         self._record_enemy_collisions(
             self._enemy_collision_check.step(self.ticks_elapsed, self.mario, self.enemies.active))
@@ -147,6 +150,10 @@ class Attempt:
     def _record_enemy_collisions(self, outcome: EnemyCollisionOutcome) -> None:
         for points in outcome.points_per_stomp:
             self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.DEFEATED_ENEMY, DefeatMethod.STOMP))
+            if points is not None:
+                self.scoreboard.score_points(points, self.ticks_elapsed)
+        for points in outcome.points_per_kick:
+            self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.KICKED_SHELL))
             if points is not None:
                 self.scoreboard.score_points(points, self.ticks_elapsed)
         if outcome.mario_took_damage:

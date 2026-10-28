@@ -35,7 +35,7 @@ from mario.snapshots.world_snapshot import (
     PowerState,
     WorldSnapshot,
 )
-from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, MARIO_COLOURS, TILE_COLOURS
+from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, MARIO_COLOURS, SHELL_COLOURS, TILE_COLOURS
 from mario.view.sprite_library import SpriteLibrary
 
 # Tiles by how they look: a brick or ? block doesn't show what it holds. Tiles
@@ -73,10 +73,15 @@ MARIO_SPRITE_NAMES = {
 
 ENEMY_SPRITE_NAMES = {
     EnemyKind.GOOMBA: "goomba",
+    EnemyKind.KOOPA: "koopa",
 }
 
 DEFEATED_ENEMY_SPRITE_NAMES = {
     EnemyKind.GOOMBA: "goomba_defeated",
+}
+
+SHELL_SPRITE_NAMES = {
+    EnemyKind.KOOPA: "koopa_shell",
 }
 
 ITEM_SPRITE_NAMES = {
@@ -150,11 +155,13 @@ class SpriteRenderer:
                           screen_left_x_pixels, screen)
 
     def _draw_enemy(self, enemy: EnemySnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
-        sprite_names = DEFEATED_ENEMY_SPRITE_NAMES if enemy.is_defeated else ENEMY_SPRITE_NAMES
-        sprite_name = sprite_names[enemy.kind]
-        box = _hitbox(enemy)
-        self._draw_sprite(sprite_name, ENEMY_COLOURS[enemy.kind], _standing_on(box, sprite_name),
-                          screen_left_x_pixels, screen)
+        """A shell, even a defeated one (the original flips it), is drawn as its shell."""
+        if enemy.is_shell:
+            sprite_name, colour = SHELL_SPRITE_NAMES[enemy.kind], SHELL_COLOURS[enemy.kind]
+        else:
+            sprite_names = DEFEATED_ENEMY_SPRITE_NAMES if enemy.is_defeated else ENEMY_SPRITE_NAMES
+            sprite_name, colour = sprite_names[enemy.kind], ENEMY_COLOURS[enemy.kind]
+        self._draw_sprite(sprite_name, colour, _standing_on(_hitbox(enemy), sprite_name), screen_left_x_pixels, screen)
 
     def _draw_item(self, item: ItemSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         sprite_name = ITEM_SPRITE_NAMES[item.kind]

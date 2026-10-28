@@ -58,19 +58,21 @@ class MarioSnapshot:
 
 @dataclass(frozen=True)
 class EnemySnapshot:
-    """One enemy's hitbox, in level pixels, and whether it has been defeated."""
+    """One enemy's hitbox, in level pixels, whether it has been defeated, and
+    whether it is a Koopa's shell."""
     kind: EnemyKind
     x_pixels: int
     y_pixels: int
     width_pixels: int
     height_pixels: int
     is_defeated: bool
+    is_shell: bool = False
 
     @classmethod
     def of(cls, enemy: Enemy) -> "EnemySnapshot":
         hitbox = enemy.hitbox()
         return cls(enemy.kind, hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
-                   enemy.is_defeated)
+                   enemy.is_defeated, enemy.is_shell)
 
 
 @dataclass(frozen=True)

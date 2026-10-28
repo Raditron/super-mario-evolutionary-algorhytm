@@ -108,7 +108,7 @@ ENEMY_SPAWN_DROP_PIXELS = 8
 ENEMY_OFF_SCREEN_LEFT_PIXELS = 8
 ENEMY_OFF_SCREEN_RIGHT_X_PIXELS = SCREEN_WIDTH_PIXELS
 
-# --- Goomba size (BlockBuffer_X_Adder / _Y_Adder for enemies) -------------------------------
+# --- Goomba and Koopa size (BlockBuffer_X_Adder / _Y_Adder for enemies) ---------------------
 
 # The original's enemy sprite is 16 x 24 px with the Goomba in its lower 16 rows.
 # Its side probes (sprite x + 0 and + 16) and foot probe (sprite y + 24) give one
@@ -116,6 +116,11 @@ ENEMY_OFF_SCREEN_RIGHT_X_PIXELS = SCREEN_WIDTH_PIXELS
 GOOMBA_HITBOX_WIDTH_PIXELS = 16
 GOOMBA_HITBOX_HEIGHT_PIXELS = 16
 GOOMBA_HITBOX_OFFSET_Y_PIXELS = 8
+# The Koopa is the same enemy object, drawn 8 px taller (EnemyGraphicsTable), with
+# the same probes, so the same box; its shell keeps it.
+KOOPA_HITBOX_WIDTH_PIXELS = GOOMBA_HITBOX_WIDTH_PIXELS
+KOOPA_HITBOX_HEIGHT_PIXELS = GOOMBA_HITBOX_HEIGHT_PIXELS
+KOOPA_HITBOX_OFFSET_Y_PIXELS = GOOMBA_HITBOX_OFFSET_Y_PIXELS
 
 # --- Fireball size, tile probe and removal (FireballObjCore, BlockBufferChk_FBall,
 # BoundBoxCtrlData, GetFireballOffscreenBits) -------------------------------------------------
