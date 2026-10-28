@@ -14,6 +14,7 @@ KEYBOARD_BUTTON_KEYS = {
     "run": "z",
 }
 QUIT_KEY = "escape"
+VIEW_TOGGLE_KEY = "f1"                    # switches between the Sprite view and the Debug view
 
 # --- Debug view colours (RGB) ------------------------------------------------------------
 

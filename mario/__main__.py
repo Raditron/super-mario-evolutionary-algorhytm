@@ -5,12 +5,15 @@ from pathlib import Path
 
 from mario.constants.recording import RUNS_FOLDER_NAME
 from mario.constants.training import DEFAULT_CONFIG_FILE_NAME
+from mario.constants.view import SPRITES_FOLDER_PARTS
 
 REPO_ROOT = Path(__file__).parent.parent
 # config.toml sits at the repo root, next to the mario package.
 DEFAULT_CONFIG_PATH = REPO_ROOT / DEFAULT_CONFIG_FILE_NAME
 # Run folders are made in runs/ at the repo root, whatever folder train is run from.
 RUNS_ROOT = REPO_ROOT / RUNS_FOLDER_NAME
+# The Sprite view's PNGs are in assets/sprites/ at the repo root.
+SPRITES_FOLDER = REPO_ROOT.joinpath(*SPRITES_FOLDER_PARTS)
 
 
 def main(runs_root: Path = RUNS_ROOT) -> None:
@@ -24,7 +27,7 @@ def main(runs_root: Path = RUNS_ROOT) -> None:
     arguments = parser.parse_args()
     if arguments.command == "play":
         from mario.modes.play_mode import PlayMode
-        PlayMode.with_keyboard().run()
+        PlayMode.with_keyboard(SPRITES_FOLDER).run()
     elif arguments.command == "train":
         from mario.modes.train_mode import TrainMode
         TrainMode(arguments.config, runs_root).run()

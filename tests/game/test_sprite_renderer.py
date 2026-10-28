@@ -8,6 +8,7 @@ from pathlib import Path
 import pygame
 import pytest
 
+from mario.__main__ import SPRITES_FOLDER
 from mario.constants.level import (
     FIREBALL_SIZE_PIXELS,
     GOOMBA_HITBOX_HEIGHT_PIXELS,
@@ -55,8 +56,8 @@ from mario.snapshots.world_snapshot import (
 from mario.view.sprite_library import SpriteLibrary
 from mario.view.sprite_renderer import SpriteRenderer
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-SPRITES_README = REPO_ROOT / "assets" / "sprites" / "README.md"
+# The folder play mode reads its PNGs from, assets/sprites/.
+SPRITES_README = SPRITES_FOLDER / "README.md"
 
 # A screen of open sky at the level's start, where things are put by hand.
 SKY_SCREEN_LEFT_X = 0
@@ -280,4 +281,4 @@ def test_the_sprites_readme_documents_every_sprite_file_and_its_size():
 
 def test_the_repos_sprites_folder_loads():
     """Whatever has been added so far, the folder the play mode reads loads."""
-    SpriteLibrary.load(SPRITES_README.parent)
+    SpriteLibrary.load(SPRITES_FOLDER)
