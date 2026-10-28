@@ -124,6 +124,10 @@ _Avoid_: Hitbox mode, AI view
 The agent the view's camera tracks: the Mario furthest right in the level among those still in their attempt; with one Mario, simply him.
 _Avoid_: Leader, focused agent, selected agent, best agent
 
+**Replay**:
+An attempt watched again, rebuilt tick by tick from its Controller log in a freshly loaded level, never by re-running its genome; it ends where the recorded attempt ended (after the end-of-level sequence, if it reached the flag).
+_Avoid_: Playback, rerun, re-evaluation
+
 **Headless mode**:
 Training with nothing drawn, so generations run as fast as the machine allows.
 _Avoid_: Fast mode, background mode
