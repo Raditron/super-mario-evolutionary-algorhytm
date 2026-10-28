@@ -2,7 +2,7 @@
 
 import copy
 
-from mario.constants.level import LEVEL_HEIGHT_TILES
+from mario.constants.level import LEVEL_HEIGHT_TILES, TILE_SIZE_PIXELS
 from mario.controller.controller_state import ControllerState
 from mario.level.static_level import EnemyKind, EnemySpawn, StaticLevel
 from mario.simulation.attempt import Attempt
@@ -11,6 +11,11 @@ from mario.simulation.mario import Mario
 
 GROUND_TOP_ROW = 13
 TEST_LEVEL_WIDTH_TILES = 120
+# World 1-1's castle stopper column: the castle walk ends with Mario's right edge at its left edge.
+CASTLE_STOPPER_COLUMN = 205
+CASTLE_STOPPER_X_PIXELS = CASTLE_STOPPER_COLUMN * TILE_SIZE_PIXELS
+# Jumping at enemies too, the scripted pilot reaches 1-1's flagpole, touching it in mid-air well above its foot.
+PILOT_ENEMY_LOOK_AHEAD_PIXELS = 40
 
 HOLD_NOTHING = ControllerState.bitmask()
 HOLD_RIGHT = ControllerState.bitmask(right=True)

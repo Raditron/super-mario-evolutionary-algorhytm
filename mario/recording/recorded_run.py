@@ -7,34 +7,14 @@ Controller logs, whatever the run's config planned.
 """
 
 import csv
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
 from mario.constants.recording import CONTROLLER_LOG_KEY_FORMAT
+from mario.recording.best_agent import best_agent_index
+from mario.recording.results_row import ResultsRow
 from mario.recording.run_folder import RunFolder
-from mario.simulation.attempt_result import EndReason
-
-
-@dataclass(frozen=True)
-class ResultsRow:
-    """One agent's row of results.csv: its fitness and its attempt's end-of-attempt facts."""
-    generation: int
-    agent: int
-    fitness: float
-    end_reason: EndReason
-    furthest_x: int
-    ticks_elapsed: int
-    final_score: int
-    coins_collected: int
-
-    @classmethod
-    def parse(cls, row: dict[str, str]) -> "ResultsRow":
-        """A row as csv.DictReader reads it, keyed by the RESULTS_COLUMNS."""
-        return cls(int(row["generation"]), int(row["agent"]), float(row["fitness"]), EndReason(row["end_reason"]),
-                   int(row["furthest_x"]), int(row["ticks_elapsed"]), int(row["final_score"]),
-                   int(row["coins_collected"]))
 
 
 class RecordedRun:
@@ -56,13 +36,14 @@ class RecordedRun:
         self._check_is_a_run_folder()
         if not self._is_recorded(generation):
             raise LookupError(f"generation {generation} isn't recorded in {self._run_folder.path}")
-        rows = [row for row in self._results_rows() if row.generation == generation]
-        return max(rows, key=lambda row: (row.fitness, -row.agent))
+        rows = sorted((row for row in self._results_rows() if row.generation == generation),
+                      key=lambda row: row.agent_index)
+        return rows[best_agent_index([row.fitness for row in rows])]
 
-    def controller_log(self, generation: int, agent: int) -> np.ndarray:
+    def controller_log(self, generation: int, agent_index: int) -> np.ndarray:
         """The agent's Controller log: one uint8 bitmask per tick of its attempt."""
         with np.load(self._run_folder.controller_logs_path(generation)) as controller_logs:
-            return controller_logs[CONTROLLER_LOG_KEY_FORMAT.format(agent=agent)]
+            return controller_logs[CONTROLLER_LOG_KEY_FORMAT.format(agent=agent_index)]
 
     def _is_recorded(self, generation: int) -> bool:
         return self._run_folder.controller_logs_path(generation).is_file()

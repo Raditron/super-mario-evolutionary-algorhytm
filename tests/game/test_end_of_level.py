@@ -2,17 +2,16 @@
 castle walk and the timer counting down into the score play out with no input,
 then a new game starts."""
 
-from mario.constants.level import SCREEN_WIDTH_PIXELS, SCROLL_STOP_LEFT_X_PIXELS
+from mario.constants.level import SCREEN_WIDTH_PIXELS, SCROLL_STOP_LEFT_X_PIXELS, TILE_SIZE_PIXELS
 from mario.constants.scoring import STARTING_LIVES
 from mario.modes.play_session import PlaySession
 from mario.simulation.attempt_result import EndReason
 from mario.snapshots.world_snapshot import WorldSnapshot
-from tests.game.helpers import HOLD_LEFT
+from tests.game.helpers import CASTLE_STOPPER_X_PIXELS, HOLD_LEFT, PILOT_ENEMY_LOOK_AHEAD_PIXELS
 from tests.game.scripted_pilot import ScriptedPilot
 
-FLAGPOLE_X_PIXELS = 198 * 16
-CASTLE_STOPPER_X_PIXELS = 205 * 16
-CASTLE_RIGHT_X_PIXELS = 207 * 16
+FLAGPOLE_X_PIXELS = 198 * TILE_SIZE_PIXELS
+CASTLE_RIGHT_X_PIXELS = 207 * TILE_SIZE_PIXELS
 # 1-1's flag hangs left of the pole with its top at y = 48 (FlagpoleObject); the
 # slide ends once it is down at y = 170 ($AA, FlagpoleRoutine).
 FLAG_X_PIXELS = FLAGPOLE_X_PIXELS - 8
@@ -21,8 +20,6 @@ FLAG_BOTTOM_Y_PIXELS = 170
 # Holding the pole, Mario's sprite is 7 px left of its column, so his box 5 px (PutPlayerOnVine).
 MARIO_ON_THE_POLE_X_PIXELS = FLAGPOLE_X_PIXELS - 5
 POINTS_PER_TIME_UNIT_LEFT = 50
-# Jumping at enemies too, the pilot touches the pole in mid-air, well above its foot.
-PILOT_ENEMY_LOOK_AHEAD_PIXELS = 40
 
 
 def run_to_the_flagpole(session: PlaySession):

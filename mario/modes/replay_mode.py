@@ -16,7 +16,7 @@ from mario.recording.recorded_run import RecordedRun
 from mario.view.viewer import Viewer
 from mario.view.window import Window
 
-REPLAYING_MESSAGE = ("Replaying generation {row.generation}, best agent {row.agent} (fitness {row.fitness}): "
+REPLAYING_MESSAGE = ("Replaying generation {row.generation}, best agent {row.agent_index} (fitness {row.fitness}): "
                      "its attempt ended {row.end_reason} at furthest_x {row.furthest_x} "
                      "after {row.ticks_elapsed} ticks.")
 CANT_REPLAY_MESSAGE = "Can't replay: {problem}."
@@ -33,13 +33,12 @@ class ReplayMode:
         with a message, before any window opens, if the run folder can't give it."""
         recorded_run = RecordedRun(run_folder_path)
         try:
-            if generation is None:
-                generation = recorded_run.last_generation()
-            best_agent = recorded_run.best_agent(generation)
+            replayed_generation = recorded_run.last_generation() if generation is None else generation
+            best_agent = recorded_run.best_agent(replayed_generation)
         except LookupError as problem:
             raise SystemExit(CANT_REPLAY_MESSAGE.format(problem=problem.args[0])) from None
         print(REPLAYING_MESSAGE.format(row=best_agent))
-        session = ReplaySession(recorded_run.controller_log(generation, best_agent.agent),
+        session = ReplaySession(recorded_run.controller_log(replayed_generation, best_agent.agent_index),
                                 StaticLevel.load_world_1_1())
         return cls(session, Viewer.with_both_views(Window(), sprites_folder))
 

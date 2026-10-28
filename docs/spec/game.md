@@ -57,7 +57,9 @@ mario/
   snapshots/      WorldSnapshot + the shared-memory channel
   training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool, ChunkPlayer
   recording/      RunFolder, RunRecorder (training's GenerationRecorder feeds it),
-                  RecordedRun: a run folder read back for replay
+                  RecordedRun: a run folder read back for replay; ResultsRow:
+                  one row of results.csv, written and read back by RESULTS_COLUMNS;
+                  best_agent_index: the one best-agent rule both go by
   statistics/     charts and summary from run folders (only matplotlib importer)
   view/           Window, KeyboardControllerSource, SpriteRenderer, DebugRenderer,
                   HUD, Viewer (window + both views + HUD, with F1, shared by every

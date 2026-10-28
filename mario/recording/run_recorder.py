@@ -15,6 +15,8 @@ from pathlib import Path
 import numpy as np
 
 from mario.constants.recording import CONTROLLER_LOG_KEY_FORMAT, GENERATION_TIMES_COLUMNS, RESULTS_COLUMNS
+from mario.recording.best_agent import best_agent_index
+from mario.recording.results_row import ResultsRow
 from mario.recording.run_folder import RunFolder
 from mario.simulation.attempt_result import AttemptResult
 
@@ -50,15 +52,14 @@ class RunRecorder:
         Ctrl+C pressed meanwhile stops the run once the generation is complete."""
         with _ctrl_c_held_back():
             _append_rows(self._run_folder.results_path, [
-                (generation, agent, float(fitness), attempt_result.end_reason.value, attempt_result.furthest_x,
-                 attempt_result.ticks_elapsed, attempt_result.final_score, attempt_result.coins_collected)
-                for agent, (attempt_result, fitness) in enumerate(zip(attempt_results, fitnesses, strict=True))])
+                ResultsRow.of(generation, agent_index, fitness, attempt_result).csv_values()
+                for agent_index, (attempt_result, fitness) in enumerate(zip(attempt_results, fitnesses, strict=True))])
             _append_rows(self._run_folder.generation_times_path, [(generation, seconds)])
             self._run_folder.generation_path(generation).mkdir(parents=True)
             np.savez_compressed(self._run_folder.controller_logs_path(generation), **{
                 CONTROLLER_LOG_KEY_FORMAT.format(agent=agent): controller_log
                 for agent, controller_log in enumerate(controller_logs)})
-            np.save(self._run_folder.best_genome_path(generation), genomes[_best_agent(fitnesses)])
+            np.save(self._run_folder.best_genome_path(generation), genomes[best_agent_index(fitnesses)])
 
 
 @contextmanager
@@ -74,11 +75,6 @@ def _ctrl_c_held_back() -> Iterator[None]:
         signal.signal(signal.SIGINT, usual_handler)
     if ctrl_c_presses and callable(usual_handler):
         usual_handler(signal.SIGINT, ctrl_c_presses[0])
-
-
-def _best_agent(fitnesses: np.ndarray) -> int:
-    """The agent with the highest fitness; on a tie, the lowest index (argmax returns the first)."""
-    return int(np.argmax(fitnesses))
 
 
 def _append_rows(csv_path: Path, rows: list[tuple]) -> None:

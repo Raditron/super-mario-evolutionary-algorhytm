@@ -11,7 +11,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from mario.recording.recorded_run import RecordedRun, ResultsRow
+from mario.recording.recorded_run import RecordedRun
+from mario.recording.results_row import ResultsRow
 from mario.simulation.attempt_result import EndReason
 
 RESULTS_HEADER = ("generation", "agent", "fitness", "end_reason", "furthest_x", "ticks_elapsed",
@@ -71,7 +72,7 @@ def test_the_best_agent_has_the_highest_fitness_of_its_generation(tmp_path):
         (2, 2, 30.0, "stalled", 500, 380, 0, 0),
     ], {1: [[0]], 2: [[0], [0], [0]]})
     assert RecordedRun(run_folder).best_agent(2) == ResultsRow(
-        generation=2, agent=1, fitness=55.25, end_reason=EndReason.DIED_TO_ENEMY, furthest_x=812,
+        generation=2, agent_index=1, fitness=55.25, end_reason=EndReason.DIED_TO_ENEMY, furthest_x=812,
         ticks_elapsed=410, final_score=100, coins_collected=1)
 
 
@@ -81,7 +82,7 @@ def test_on_a_tie_the_best_agent_is_the_one_with_the_lowest_index(tmp_path):
         (1, 1, 7.0, "stalled", 70, 180, 0, 0),
         (1, 2, 7.0, "stalled", 70, 180, 0, 0),
     ], {1: [[0], [0], [0]]})
-    assert RecordedRun(run_folder).best_agent(1).agent == 1
+    assert RecordedRun(run_folder).best_agent(1).agent_index == 1
 
 
 def test_an_agents_controller_log_is_read_back_by_its_index(tmp_path):

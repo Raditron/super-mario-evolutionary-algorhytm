@@ -31,11 +31,14 @@ from mario.training.generation_recorder import GenerationRecorder
 from mario.training.run_config import RunSettings
 from mario.training.trainer import GenerationListener, GenerationReport, Trainer
 from mario.view.viewer import Viewer
+from tests.game.helpers import CASTLE_STOPPER_X_PIXELS, HOLD_NOTHING, PILOT_ENEMY_LOOK_AHEAD_PIXELS
+from tests.game.mario_with_a_frame_budget import FRAMES_SHOWN_PREFIX, NEUROEVOLUTION_IMPORTED_PREFIX
 from tests.game.random_buttons_algorithm import create_random_buttons_algorithm
 from tests.game.scripted_pilot import ScriptedPilot
 from tests.game.scripted_window import F1_PRESSED, NOTHING_PRESSED, ScriptedWindow, shows_the_sprite_view
 
 REPO_ROOT = Path(mario.__file__).parent.parent
+FRAME_BUDGET_SCRIPT = Path(__file__).parent / "mario_with_a_frame_budget.py"
 SEED = 28
 PLANNED_GENERATIONS = 3
 GENERATIONS_BEFORE_THE_STOP = 2
@@ -43,9 +46,6 @@ POPULATION_SIZE = 6
 WORKER_COUNT = 2
 RUN_NAME = "stopped"
 STARTED_AT = datetime(2026, 10, 28, 9, 30)
-CASTLE_STOPPER_X_PIXELS = 205 * 16
-# Jumping at enemies too, the pilot reaches the flagpole (tests/game/test_end_of_level.py).
-PILOT_ENEMY_LOOK_AHEAD_PIXELS = 40
 
 
 class StopAfter(GenerationListener):
@@ -83,7 +83,8 @@ def fonts():
 
 def best_agent_session(run_folder: Path, generation: int, level: StaticLevel) -> ReplaySession:
     recorded_run = RecordedRun(run_folder)
-    return ReplaySession(recorded_run.controller_log(generation, recorded_run.best_agent(generation).agent), level)
+    best_agent = recorded_run.best_agent(generation)
+    return ReplaySession(recorded_run.controller_log(generation, best_agent.agent_index), level)
 
 
 def replay_to_the_end(session: ReplaySession) -> None:
@@ -145,10 +146,10 @@ def test_a_replay_that_reached_the_flag_plays_out_the_end_of_the_level_as_play_m
         play.step(buttons)
     assert replay_snapshots == play_snapshots
     replay_to_the_end(replay)
-    last = replay.snapshot()
+    last_snapshot = replay.snapshot()
     assert replay.attempt.end_of_level.is_over
-    assert last.mario.x_pixels + last.mario.width_pixels == CASTLE_STOPPER_X_PIXELS
-    assert (last.hud.score, last.hud.time_left) == (replay.attempt.result().final_score, 0)
+    assert last_snapshot.mario.x_pixels + last_snapshot.mario.width_pixels == CASTLE_STOPPER_X_PIXELS
+    assert (last_snapshot.hud.score, last_snapshot.hud.time_left) == (replay.attempt.result().final_score, 0)
 
 
 def test_replay_starts_in_the_sprite_view_and_f1_switches_to_the_debug_view_and_back(
@@ -172,6 +173,15 @@ def test_the_replay_mode_shows_the_whole_recorded_attempt_until_the_viewer_quits
     assert len(window.frames_shown) == best_agent.ticks_elapsed + frames_after_the_end
     assert (session.attempt.end_reason, session.attempt.furthest_x) == (best_agent.end_reason, best_agent.furthest_x)
     assert window.is_closed
+
+
+def test_without_a_generation_the_replay_mode_replays_the_last_recorded_one(
+        fonts, stopped_run, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("mario.modes.replay_mode.Window", lambda: ScriptedWindow([]))
+    best_agent = RecordedRun(stopped_run).best_agent(GENERATIONS_BEFORE_THE_STOP)
+    ReplayMode.of_best_agent(stopped_run, None, tmp_path).run()
+    assert capsys.readouterr().out.startswith(
+        f"Replaying generation {GENERATIONS_BEFORE_THE_STOP}, best agent {best_agent.agent_index} ")
 
 
 def replay_command(*arguments: str) -> subprocess.CompletedProcess:
@@ -198,3 +208,37 @@ def test_replay_without_best_says_all_ghost_replay_is_not_built_yet(stopped_run)
     finished = replay_command(str(stopped_run))
     assert finished.returncode != 0
     assert "--best" in finished.stderr and "Traceback" not in finished.stderr
+
+
+def one_stalled_agent_run(runs_root: Path, level: StaticLevel) -> tuple[Path, int]:
+    """A one-generation, one-agent run folder whose agent pressed nothing until the stall rule ended
+    its attempt, written by the real RunRecorder; and that attempt's length in ticks."""
+    config_path = runs_root / "config.toml"
+    config_path.write_text(f'[run]\nname = "{RUN_NAME}"\n')
+    recorder = RunRecorder.start(runs_root, RUN_NAME, config_path, STARTED_AT)
+    attempt = Attempt(level, ends_on_stall=True)
+    while not attempt.is_over:
+        attempt.step(HOLD_NOTHING)
+    attempt_result = attempt.result()
+    controller_log = np.full(attempt_result.ticks_elapsed, HOLD_NOTHING, dtype=np.uint8)
+    recorder.record_generation(1, [attempt_result], [controller_log], np.array([1.0]), [np.zeros(1)], seconds=0.0)
+    return recorder.run_folder_path, attempt_result.ticks_elapsed
+
+
+def test_py_m_mario_replay_best_runs_to_the_viewer_quitting_with_an_empty_neuroevolution_package(
+        world_1_1, tmp_path):
+    """From a folder whose empty neuroevolution package shadows the user's, as while it is unwritten."""
+    working_folder = tmp_path / "working"
+    (working_folder / "neuroevolution").mkdir(parents=True)
+    (working_folder / "neuroevolution" / "__init__.py").write_text("")
+    run_folder, ticks_elapsed = one_stalled_agent_run(tmp_path, world_1_1)
+    frame_budget = ticks_elapsed + 3  # the whole attempt, then its last frame held
+    finished = subprocess.run(
+        [sys.executable, str(FRAME_BUDGET_SCRIPT), str(frame_budget), "replay", str(run_folder), "--best"],
+        cwd=working_folder, capture_output=True, text=True, timeout=60,
+        env={**os.environ, "SDL_VIDEODRIVER": "dummy",
+             "PYTHONPATH": os.pathsep.join([str(working_folder), str(REPO_ROOT)])})
+    assert finished.returncode == 0, finished.stderr
+    assert "Replaying generation 1, best agent 0 " in finished.stdout
+    assert f"{FRAMES_SHOWN_PREFIX}{frame_budget}" in finished.stdout
+    assert f"{NEUROEVOLUTION_IMPORTED_PREFIX}False" in finished.stdout
