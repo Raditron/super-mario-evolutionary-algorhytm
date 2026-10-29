@@ -36,11 +36,16 @@ Tiles are named by how they look: a brick or ? block doesn't show what it holds.
 
 ### Background scenery (16 × 16, one per tile, behind the tiles)
 
-Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A cloud or bush is several tiles, each drawn with the same picture. A hill's tile is drawn by its place in the hill, which its scenery neighbours give: with no hill on either side it is the peak, with none on its left the left slope, with none on its right the right slope, and otherwise fill. A slope's outer side is transparent, so the sky shows through and the hill's outline reads as a smooth slope.
+Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A bush is several tiles, each drawn with the same picture. A hill's tile is drawn by its place in the hill, which its scenery neighbours give: with no hill on either side it is the peak, with none on its left the left slope, with none on its right the right slope, and otherwise fill. A slope's outer side is transparent, so the sky shows through and the hill's outline reads as a smooth slope. A cloud's tile is drawn by its place in the cloud the same way: with cloud above it, it is the bottom row, otherwise the top row; with no cloud on its left the left end, with none on its right the right end, and otherwise the middle. The top row carries the puffs and the bottom row the flat underside, each end rounded and open to the sky, so a cloud of any width reads as one solid shape.
 
 | File | Size (px) | Drawn for |
 |---|---|---|
-| `cloud.png` | 16 × 16 | a cloud's tile |
+| `cloud_top_left.png` | 16 × 16 | a cloud's top-row tile with no cloud on its left |
+| `cloud_top_middle.png` | 16 × 16 | a cloud's top-row tile with cloud on both sides |
+| `cloud_top_right.png` | 16 × 16 | a cloud's top-row tile with no cloud on its right |
+| `cloud_bottom_left.png` | 16 × 16 | a cloud's bottom-row tile (cloud above it) with no cloud on its left |
+| `cloud_bottom_middle.png` | 16 × 16 | a cloud's bottom-row tile with cloud on both sides |
+| `cloud_bottom_right.png` | 16 × 16 | a cloud's bottom-row tile with no cloud on its right |
 | `hill_left_slope.png` | 16 × 16 | a hill's tile with no hill on its left |
 | `hill_right_slope.png` | 16 × 16 | a hill's tile with no hill on its right |
 | `hill_peak.png` | 16 × 16 | a hill's tile with no hill on either side: its top |

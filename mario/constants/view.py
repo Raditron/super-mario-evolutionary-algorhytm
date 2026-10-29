@@ -135,7 +135,13 @@ SPRITE_SIZES = {
     # the flag on the flagpole
     "flag": FLAG_SPRITE_SIZE,
     # background scenery; a hill by place: its slopes, its peak and the fill between
-    "cloud": TILE_SPRITE_SIZE,
+    # a cloud by place: its top and bottom rows' left end, middle and right end
+    "cloud_top_left": TILE_SPRITE_SIZE,
+    "cloud_top_middle": TILE_SPRITE_SIZE,
+    "cloud_top_right": TILE_SPRITE_SIZE,
+    "cloud_bottom_left": TILE_SPRITE_SIZE,
+    "cloud_bottom_middle": TILE_SPRITE_SIZE,
+    "cloud_bottom_right": TILE_SPRITE_SIZE,
     "hill_left_slope": TILE_SPRITE_SIZE,
     "hill_right_slope": TILE_SPRITE_SIZE,
     "hill_peak": TILE_SPRITE_SIZE,

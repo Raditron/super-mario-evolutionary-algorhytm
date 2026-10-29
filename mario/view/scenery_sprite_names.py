@@ -1,6 +1,6 @@
 """The picture a background scenery tile is drawn with, chosen from its scenery
-neighbours, so a hill of several tiles draws as one shape and not as the same
-picture repeated.
+neighbours, so a hill or a cloud of several tiles draws as one shape and not as
+the same picture repeated.
 
 A kind with a rule in SPRITE_NAME_RULES is drawn by place; every other kind with
 the one picture its SceneryKind's value names.
@@ -15,6 +15,12 @@ HILL_PEAK_SPRITE_NAME = "hill_peak"
 HILL_LEFT_SLOPE_SPRITE_NAME = "hill_left_slope"
 HILL_RIGHT_SLOPE_SPRITE_NAME = "hill_right_slope"
 HILL_FILL_SPRITE_NAME = "hill_fill"
+CLOUD_TOP_LEFT_SPRITE_NAME = "cloud_top_left"
+CLOUD_TOP_MIDDLE_SPRITE_NAME = "cloud_top_middle"
+CLOUD_TOP_RIGHT_SPRITE_NAME = "cloud_top_right"
+CLOUD_BOTTOM_LEFT_SPRITE_NAME = "cloud_bottom_left"
+CLOUD_BOTTOM_MIDDLE_SPRITE_NAME = "cloud_bottom_middle"
+CLOUD_BOTTOM_RIGHT_SPRITE_NAME = "cloud_bottom_right"
 
 
 @dataclass(frozen=True)
@@ -58,6 +64,26 @@ def _hill_sprite_name(neighbourhood: SceneryNeighbourhood) -> str:
     return HILL_FILL_SPRITE_NAME
 
 
+def _cloud_sprite_name(neighbourhood: SceneryNeighbourhood) -> str:
+    """A cloud is two rows of tiles, any number wide (layer 2 of
+    docs/research/world-1-1-layout.md): its top row carries the puffs, its bottom
+    row the flat underside, and each row's ends round off."""
+    cloud_on_left = neighbourhood.left is SceneryKind.CLOUD
+    cloud_on_right = neighbourhood.right is SceneryKind.CLOUD
+    if neighbourhood.above is SceneryKind.CLOUD:
+        if not cloud_on_left:
+            return CLOUD_BOTTOM_LEFT_SPRITE_NAME
+        if not cloud_on_right:
+            return CLOUD_BOTTOM_RIGHT_SPRITE_NAME
+        return CLOUD_BOTTOM_MIDDLE_SPRITE_NAME
+    if not cloud_on_left:
+        return CLOUD_TOP_LEFT_SPRITE_NAME
+    if not cloud_on_right:
+        return CLOUD_TOP_RIGHT_SPRITE_NAME
+    return CLOUD_TOP_MIDDLE_SPRITE_NAME
+
+
 SPRITE_NAME_RULES: dict[SceneryKind, Callable[[SceneryNeighbourhood], str]] = {
     SceneryKind.HILL: _hill_sprite_name,
+    SceneryKind.CLOUD: _cloud_sprite_name,
 }

@@ -1,27 +1,123 @@
 """The background scenery: one picture per tile, repeated across every tile of a kind,
 so each tiles seamlessly with itself; a hill's tiles by their place in the hill, the
-slopes open to the sky on their outer side, lit from the top-left."""
+slopes open to the sky on their outer side, and a cloud's by its place in the cloud,
+its puffs and rounded ends open to the sky; all lit from the top-left."""
 
 from sprite_art.palettes.scenery import SCENERY_PALETTE
 from sprite_art.sprite_drawing import SpriteDrawing
 
-CLOUD = SpriteDrawing("cloud", SCENERY_PALETTE, (
-    "...WWWWWWWWWW...",
-    ".WWWWWWWWWWWWWW.",
-    ".WWWWWWWWWWWWWW.",
+CLOUD_TOP_LEFT = SpriteDrawing("cloud_top_left", SCENERY_PALETTE, (
+    "................",
+    "................",
+    "................",
+    ".......WWWs.....",
+    ".....WWWWWWWs...",
+    "....WWWWWWWWWs..",
+    "....WWWWWWWWWs..",
+    "...WWWWWWWWWWWs.",
+    "...WWWWWWWWWWWWW",
+    "...WWWWWWWWWWWWW",
+    "...WWWWWWWWWWWWW",
+    "..WWWWWWWWWWWWWW",
+    "..WWWWWWWWWWWWWW",
+    ".WWWWWWWWWWWWWWW",
+    ".WWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+))
+
+CLOUD_TOP_MIDDLE = SpriteDrawing("cloud_top_middle", SCENERY_PALETTE, (
+    "................",
+    "................",
+    ".....WWWWs......",
+    "...WWWWWWWWs....",
+    "..WWWWWWWWWWs...",
+    "..WWWWWWWWWWs...",
+    ".WWWWWWWWWWWWs..",
+    ".WWWWWWWWWWWWs..",
     "WWWWWWWWWWWWWWWW",
     "WWWWWWWWWWWWWWWW",
     "WWWWWWWWWWWWWWWW",
     "WWWWWWWWWWWWWWWW",
     "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+))
+
+CLOUD_TOP_RIGHT = SpriteDrawing("cloud_top_right", SCENERY_PALETTE, (
+    "................",
+    "................",
+    "................",
+    "................",
+    ".....WWWs.......",
+    "...WWWWWWWs.....",
+    "..WWWWWWWWWs....",
+    "..WWWWWWWWWs....",
+    "WWWWWWWWWWWWs...",
+    "WWWWWWWWWWWWs...",
+    "WWWWWWWWWWWWs...",
+    "WWWWWWWWWWWWWs..",
+    "WWWWWWWWWWWWWs..",
+    "WWWWWWWWWWWWWWs.",
+    "WWWWWWWWWWWWWWs.",
+    "WWWWWWWWWWWWWWWs",
+))
+
+CLOUD_BOTTOM_LEFT = SpriteDrawing("cloud_bottom_left", SCENERY_PALETTE, (
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "SWWWWWWWWWWWWWWW",
+    "SWWWWWWWWWWWWWWW",
+    ".SWWWWWWWWWWWWWW",
+    ".SsWWWWWWWWWWWWW",
+    "..SssWWWWWWWWWWW",
+    "..SSSssWWWWWWWWW",
+    "...SSSSsssssssss",
+    ".....SSSSSSSSSSS",
+    ".......SSSSSSSSS",
+    "................",
+    "................",
+    "................",
+    "................",
+))
+
+CLOUD_BOTTOM_MIDDLE = SpriteDrawing("cloud_bottom_middle", SCENERY_PALETTE, (
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWW",
+    "ssssssssssssssss",
+    "SSSSSSSSSSSSSSSS",
+    "SSSSSSSSSSSSSSSS",
+    "................",
+    "................",
+    "................",
+    "................",
+))
+
+CLOUD_BOTTOM_RIGHT = SpriteDrawing("cloud_bottom_right", SCENERY_PALETTE, (
     "WWWWWWWWWWWWWWWs",
     "WWWWWWWWWWWWWWWs",
-    "WWWWWWWWWWWWWWss",
-    "WWWWWWWWWWWWWWss",
-    "sWWWWWWWWWWWWsss",
-    ".sWWWWWWWWWWsss.",
-    ".sssssssssssssS.",
-    "...SSSSSSSSSS...",
+    "WWWWWWWWWWWWWWWs",
+    "WWWWWWWWWWWWWWWS",
+    "WWWWWWWWWWWWWWsS",
+    "WWWWWWWWWWWWWWS.",
+    "WWWWWWWWWWWWWsS.",
+    "WWWWWWWWWWWssS..",
+    "WWWWWWWWWssSSS..",
+    "sssssssssSSSS...",
+    "SSSSSSSSSSS.....",
+    "SSSSSSSSS.......",
+    "................",
+    "................",
+    "................",
+    "................",
 ))
 
 HILL_LEFT_SLOPE = SpriteDrawing("hill_left_slope", SCENERY_PALETTE, (
@@ -206,5 +302,6 @@ CASTLE_DOOR = SpriteDrawing("castle_door", SCENERY_PALETTE, (
     "VcNNnNNnnNNnNNcv",
 ))
 
-SCENERY_DRAWINGS = (CLOUD, HILL_LEFT_SLOPE, HILL_RIGHT_SLOPE, HILL_PEAK, HILL_FILL, BUSH, CASTLE_BATTLEMENT, CASTLE_WINDOW, CASTLE_BRICK, CASTLE_DOOR_ARCH,
+SCENERY_DRAWINGS = (CLOUD_TOP_LEFT, CLOUD_TOP_MIDDLE, CLOUD_TOP_RIGHT, CLOUD_BOTTOM_LEFT, CLOUD_BOTTOM_MIDDLE,
+                    CLOUD_BOTTOM_RIGHT, HILL_LEFT_SLOPE, HILL_RIGHT_SLOPE, HILL_PEAK, HILL_FILL, BUSH, CASTLE_BATTLEMENT, CASTLE_WINDOW, CASTLE_BRICK, CASTLE_DOOR_ARCH,
                     CASTLE_DOOR)

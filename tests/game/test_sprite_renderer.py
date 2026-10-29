@@ -287,7 +287,7 @@ def test_a_flag_png_is_drawn_on_the_flag(tmp_path, scenery):
 
 def test_a_tile_or_scenery_png_is_drawn_on_every_tile_of_its_kind(tmp_path, world_1_1, scenery):
     write_png(tmp_path / "ground.png", (*PNG_COLOUR, 255))
-    write_png(tmp_path / "cloud.png", (0, 255, 255, 255))
+    write_png(tmp_path / "cloud_top_left.png", (0, 255, 255, 255))
     snapshot = WorldSnapshot.of(Attempt(world_1_1))
     screen = drawn(renderer_with(tmp_path, scenery), snapshot)
     assert {colour_at(screen, snapshot, *tile_centre(column, 14)) for column in range(16)} == {PNG_COLOUR}
@@ -302,6 +302,15 @@ def test_a_hill_tile_is_drawn_with_the_picture_its_place_in_the_hill_picks(tmp_p
     screen = drawn(renderer_with(tmp_path, scenery), snapshot)
     assert colour_at(screen, snapshot, *tile_centre(2, 10)) == PNG_COLOUR
     assert colour_at(screen, snapshot, *tile_centre(1, 11)) == HILL_COLOUR    # no hill_left_slope.png
+
+
+def test_a_cloud_tile_is_drawn_with_the_picture_its_place_in_the_cloud_picks(tmp_path, world_1_1, scenery):
+    """The opening screen's cloud is columns 8-10 of rows 3 and 4: (9, 4) is its bottom middle."""
+    write_png(tmp_path / "cloud_bottom_middle.png", (*PNG_COLOUR, 255))
+    snapshot = WorldSnapshot.of(Attempt(world_1_1))
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert colour_at(screen, snapshot, *tile_centre(9, 4)) == PNG_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(9, 3)) == CLOUD_COLOUR    # no cloud_top_middle.png
 
 
 def test_a_sprites_transparent_pixels_show_what_is_behind_it(tmp_path, scenery):
