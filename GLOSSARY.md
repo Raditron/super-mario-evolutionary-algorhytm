@@ -144,6 +144,14 @@ _Avoid_: Background, decoration, layer 2
 One of the pictures a thing's sprite shows as it moves: Mario's walking frames, skid, jump and crouch, and an enemy's two walking frames. The game picks it and the snapshot carries it; the Sprite view never keeps a clock of its own.
 _Avoid_: Sprite frame, animation step, tick (a tick is the game's time step)
 
+**HUD**:
+The status bar over the level, laid out as the original's on its 8 x 8 px text grid: the score, the coin count, the world and the time, and, while a generation is watched, a line about it under the ground line. Drawn the same in either view.
+_Avoid_: Status line, overlay, scoreboard
+
+**Glyph**:
+The 8 x 8 px picture of one character the HUD prints, filling its cell of the text grid; the HUD's own pixel font is made of them, and a character without one is printed in pygame's default font.
+_Avoid_: Character sprite, letter sprite, font tile
+
 **Debug view**:
 The level drawn as the game and AI treat it: hitboxes, and the game events and rewards being scored.
 _Avoid_: Hitbox mode, AI view

@@ -8,7 +8,9 @@ and blocky, every stroke 2 px wide upright and 1 px tall across, as on a stamped
 letters and digits are 6 px wide (M and W, 7) and 7 px tall, from the cell's top-left corner,
 all standing on the same baseline, the cell's seventh row; the cell's last row and column stay
 clear so neighbouring characters stand apart. Only the curved letters' corners are cut (D, O, R),
-which is also what tells the letter O from the square digit 0.
+which is also what tells the letter O from the square digit 0. The dash sits on the middle
+line; the coin count's cross is as tall as the digits beside it but drawn in single-pixel
+diagonals, square and lighter than any letter's stroke, so it reads as a times sign, not an X.
 """
 
 from sprite_art.palettes.hud import HUD_PALETTE
@@ -262,19 +264,19 @@ GLYPH_DASH = SpriteDrawing("glyph_dash", HUD_PALETTE, (
     "........",
 ))
 
-GLYPH_X = SpriteDrawing("glyph_x", HUD_PALETTE, (
-    "........",
-    "WW..WW..",
-    ".WWWW...",
-    "..WW....",
-    ".WWWW...",
-    "WW..WW..",
-    "........",
+GLYPH_CROSS = SpriteDrawing("glyph_cross", HUD_PALETTE, (
+    "W.....W.",
+    ".W...W..",
+    "..W.W...",
+    "...W....",
+    "..W.W...",
+    ".W...W..",
+    "W.....W.",
     "........",
 ))
 
 HUD_GLYPH_DRAWINGS = (GLYPH_A, GLYPH_D, GLYPH_E, GLYPH_I, GLYPH_L, GLYPH_M, GLYPH_O, GLYPH_R, GLYPH_T, GLYPH_W,
                       GLYPH_0, GLYPH_1, GLYPH_2, GLYPH_3, GLYPH_4, GLYPH_5, GLYPH_6, GLYPH_7, GLYPH_8, GLYPH_9,
-                      GLYPH_DASH, GLYPH_X)
+                      GLYPH_DASH, GLYPH_CROSS)
 
 HUD_DRAWINGS = (GOLD_COIN,) + HUD_GLYPH_DRAWINGS

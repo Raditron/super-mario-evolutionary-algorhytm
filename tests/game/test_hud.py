@@ -16,6 +16,7 @@ from mario.constants.view import (
     HUD_COIN_SPRITE_NAME,
     HUD_COINS_CELL,
     HUD_COINS_DIGITS,
+    HUD_GLYPH_DIGITS,
     HUD_GLYPH_SPRITE_NAMES,
     HUD_LABELS,
     HUD_SCORE_CELL,
@@ -130,9 +131,15 @@ STATUS_BAR_ROWS = {
 STATUS_BAR_NUMBERS = HudSnapshot(1200, 7, 399)
 
 
+GLYPH_COLOUR_FIRST_RED = 10
+GLYPH_COLOUR_RED_STEP = 8
+GLYPH_COLOUR_GREEN = 40
+GLYPH_COLOUR_BLUE = 90
+
+
 def glyph_colour(glyph_index: int) -> tuple[int, int, int]:
     """A colour of its own for each glyph, none of them the sky's or the HUD text's."""
-    return 10 + glyph_index * 8, 40, 90
+    return GLYPH_COLOUR_FIRST_RED + glyph_index * GLYPH_COLOUR_RED_STEP, GLYPH_COLOUR_GREEN, GLYPH_COLOUR_BLUE
 
 
 GLYPH_COLOURS = {character: glyph_colour(index) for index, character in enumerate(HUD_GLYPH_SPRITE_NAMES)}
@@ -165,6 +172,13 @@ MARIO_M_CELL = (3, 2)
 MARIO_A_CELL = (4, 2)
 
 
+def inked_shape(screen: pygame.Surface, cell: tuple[int, int]) -> set[tuple[int, int]]:
+    """The pixels of the cell in the HUD text's colour, relative to the cell's top-left corner."""
+    column, row = cell
+    return {(x - column * HUD_CELL_PIXELS, y - row * HUD_CELL_PIXELS) for x, y in cell_pixels(cell, 1)
+            if tuple(screen.get_at((x, y)))[:3] == HUD_TEXT_COLOUR}
+
+
 def test_a_character_whose_glyph_is_missing_is_printed_in_the_font_in_its_cell(fonts):
     screen = drawn(Hud(glyph_sprites(missing="M")), STATUS_BAR_NUMBERS)
     colours_in_cell = colours_at(screen, cell_pixels(MARIO_M_CELL, 1))
@@ -174,17 +188,13 @@ def test_a_character_whose_glyph_is_missing_is_printed_in_the_font_in_its_cell(f
 
 def test_the_font_prints_the_same_character_its_glyph_would_stand_for(fonts):
     """The fallback prints the missing character itself: an M looks unlike an A."""
-    m_in_the_font = drawn(Hud(glyph_sprites(missing="MA")), STATUS_BAR_NUMBERS)
-    m_cell, a_cell = cell_pixels(MARIO_M_CELL, 1), cell_pixels(MARIO_A_CELL, 1)
-    m_shape = {(x - MARIO_M_CELL[0] * HUD_CELL_PIXELS, y) for x, y in m_cell
-               if tuple(m_in_the_font.get_at((x, y)))[:3] == HUD_TEXT_COLOUR}
-    a_shape = {(x - MARIO_A_CELL[0] * HUD_CELL_PIXELS, y) for x, y in a_cell
-               if tuple(m_in_the_font.get_at((x, y)))[:3] == HUD_TEXT_COLOUR}
+    screen = drawn(Hud(glyph_sprites(missing="MA")), STATUS_BAR_NUMBERS)
+    m_shape, a_shape = inked_shape(screen, MARIO_M_CELL), inked_shape(screen, MARIO_A_CELL)
     assert m_shape and a_shape and m_shape != a_shape
 
 
 def test_every_character_the_hud_prints_has_a_glyph():
-    printed = "".join(HUD_LABELS.values()) + WORLD_NAME + HUD_COIN_CROSS + "0123456789"
+    printed = "".join(HUD_LABELS.values()) + WORLD_NAME + HUD_COIN_CROSS + HUD_GLYPH_DIGITS
     assert set(printed) <= HUD_GLYPH_SPRITE_NAMES.keys()
 
 

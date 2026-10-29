@@ -82,19 +82,6 @@ HUD_TEXT_COLOUR = (252, 252, 252)
 # in this colour at HUD_COIN_ICON_RECT_IN_CELL.
 HUD_COIN_SPRITE_NAME = "coin"
 HUD_COIN_ICON_COLOUR = (252, 152, 56)
-# Each character the HUD prints is its own 8 x 8 glyph sprite, filling its cell from its
-# top-left corner: the labels' letters, the digits, the world's dash and the coin's cross.
-# A character whose glyph is missing is printed in pygame's default font at HUD_FONT_SIZE,
-# unsmoothed and centred in its cell.
-HUD_GLYPH_LETTERS = "ADEILMORTW"
-HUD_GLYPH_DIGITS = "0123456789"
-HUD_GLYPH_SPRITE_NAME_PREFIX = "glyph_"
-HUD_GLYPH_SPRITE_NAMES = {
-    **{character: f"{HUD_GLYPH_SPRITE_NAME_PREFIX}{character.lower()}"
-       for character in HUD_GLYPH_LETTERS + HUD_GLYPH_DIGITS},
-    "-": f"{HUD_GLYPH_SPRITE_NAME_PREFIX}dash",
-    "x": f"{HUD_GLYPH_SPRITE_NAME_PREFIX}x",
-}
 HUD_FONT_SIZE = 14                        # pygame's default font, unsmoothed: digits about 8 px tall
 HUD_LABELS = {(3, 2): "MARIO", (18, 2): "WORLD", (25, 2): "TIME"}
 # The score shows at least 6 digits, right-aligned in 7 cells: the original
@@ -106,6 +93,23 @@ HUD_COIN_ICON_CELL = (11, 3)
 HUD_COIN_ICON_RECT_IN_CELL = (2, 1, 4, 6)  # x, y, width, height in px
 HUD_COIN_CROSS_CELL = (12, 3)
 HUD_COIN_CROSS = "x"
+# The dash in the world's name (WORLD_NAME, 1-1).
+HUD_WORLD_DASH = "-"
+# Each character the HUD prints is its own 8 x 8 glyph sprite, filling its cell from its
+# top-left corner: the labels' letters, the digits, the world's dash and the coin's cross.
+# A letter or digit's glyph is named the prefix plus the character in lower case; a symbol's,
+# the prefix plus a word for it, so it can never clash with a letter's.
+# A character whose glyph is missing is printed in pygame's default font at HUD_FONT_SIZE,
+# unsmoothed and centred in its cell.
+HUD_GLYPH_LETTERS = "".join(sorted(set("".join(HUD_LABELS.values()))))
+HUD_GLYPH_DIGITS = "0123456789"
+HUD_GLYPH_SPRITE_NAME_PREFIX = "glyph_"
+HUD_GLYPH_SYMBOL_WORDS = {HUD_WORLD_DASH: "dash", HUD_COIN_CROSS: "cross"}
+HUD_GLYPH_SPRITE_NAMES = {
+    **{character: f"{HUD_GLYPH_SPRITE_NAME_PREFIX}{character.lower()}"
+       for character in HUD_GLYPH_LETTERS + HUD_GLYPH_DIGITS},
+    **{symbol: f"{HUD_GLYPH_SPRITE_NAME_PREFIX}{word}" for symbol, word in HUD_GLYPH_SYMBOL_WORDS.items()},
+}
 # While a generation is watched, the HUD adds this line about it (spec section 8).
 GENERATION_LINE = "generation {generation} · alive {alive} / {population_size} · reached flag {reached_flag}"
 HUD_COINS_CELL = (13, 3)
