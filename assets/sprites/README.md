@@ -83,7 +83,7 @@ Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A hill's tile is dra
 
 ### Mario's animation frames
 
-Each of the five Mario sprites above has these frames, painted from one set of rows per size in its own palette; only big Mario has a crouch. He shows the standing sprite while he stands still (and while his power state changes). Walking or running, the three walking frames take turns, each for 7, 4 or 2 ticks as his speed on the ground grows; falling off a ledge, he keeps the one he had. On the ground, fast enough and facing against the way he moves, he skids; in the air he shows the jump frame; big Mario holding down shows the crouch.
+Each of the five Mario sprites above has these frames, painted from one set of rows per size in its own palette; only big Mario has a crouch. He shows the standing sprite while he stands still (and while his power state changes). Walking or running, the three walking frames take turns, 1, 2, 3, 1 …, each for 7, 4 or 2 ticks as his speed on the ground grows; falling off a ledge, he keeps the one he had. The walk is half a stride, and his arms swing as well as his legs: frame 1 is the stride, front arm swung forward and back arm trailing; frame 2 the back leg passing, front hand still forward; frame 3 the front foot reaching forward, arms at rest as when standing. On the ground, fast enough and facing against the way he moves, he skids; in the air he shows the jump frame; big Mario holding down shows the crouch.
 
 | File | Size (px) | Drawn for |
 |---|---|---|

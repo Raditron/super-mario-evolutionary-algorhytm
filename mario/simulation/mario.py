@@ -78,7 +78,7 @@ from mario.constants.physics import (
 from mario.controller.controller_state import LEFT, NO_DIRECTION, RIGHT, ControllerState
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.gravity import add_gravity
-from mario.simulation.mario_animation import MarioAnimation, MarioPose
+from mario.simulation.mario_animation import MarioAnimation, MarioPose, is_blinked_out
 from mario.simulation.power_state_change import PowerState, PowerStateChange
 from mario.simulation.size_change import MarioBody
 from mario.simulation.tile_body import TileBody, VerticalContact
@@ -341,10 +341,17 @@ class Mario(TileBody):
         self.wants_to_shoot_fireball = False
         self.animation.stand_through_power_state_change()
 
-    def animate(self) -> None:
+    def throw_fireball(self) -> None:
+        """His fireball went into play this tick: his walking frame's time starts again."""
+        self.animation.throw_fireball()
+
+    def animate(self, tick: int) -> None:
         """PlayerGfxHandler, once a tick after everything has moved: the frame he
-        shows. Falling off a ledge, he keeps the walking frame he had (ActionFalling)."""
-        if self.movement_state is MovementState.FALLING:
+        shows. Falling off a ledge, he keeps the walking frame he had (ActionFalling).
+        Blinking after being hurt, on a tick he isn't drawn, nothing is chosen."""
+        if is_blinked_out(self.is_invulnerable, tick):
+            self.animation.blink_out()
+        elif self.movement_state is MovementState.FALLING:
             self.animation.keep_walk_frame()
         else:
             self.animation.show(self._pose())

@@ -96,7 +96,7 @@ class Attempt:
         if self.end_of_level.is_walking_to_the_castle:
             self._move_mario(WALK_RIGHT)
         if self.end_of_level.mario_still_moves:
-            self.mario.animate()
+            self.mario.animate(self.ticks_elapsed)
         self.end_of_level.step()
 
     def result(self) -> AttemptResult:
@@ -128,7 +128,7 @@ class Attempt:
         self._collect_touched_item()
         self.blocks.step()
         self.level_timer.count_down()
-        self.mario.animate()
+        self.mario.animate(self.ticks_elapsed)
 
     def _touch_flagpole(self) -> None:
         self.flagpole_touch = FlagpoleTouch.of(self.mario, self.level_timer.time_left)
