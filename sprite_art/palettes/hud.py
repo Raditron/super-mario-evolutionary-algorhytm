@@ -1,4 +1,5 @@
-"""The HUD's coin icon: its colours (RGBA), and the key each is drawn with."""
+"""The HUD's coin icon: its colours (RGBA), and the key each is drawn with. Its font is
+drawn in the shared white (W), which is the HUD's text colour."""
 
 from sprite_art.palettes.shared import SHARED_KEYS
 
