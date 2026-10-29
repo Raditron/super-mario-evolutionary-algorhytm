@@ -145,12 +145,16 @@ The agent the view's camera tracks: the Mario furthest right in the level among 
 _Avoid_: Leader, focused agent, selected agent, best agent
 
 **Ghost**:
-Another agent still in his attempt, drawn see-through behind the followed agent while a generation is watched (in the Debug view, as his hitbox's outline); only the rightmost ones are drawn, and each vanishes when his attempt ends.
+Another agent still in his attempt, drawn see-through behind the followed agent while a generation is watched, live or in an all-ghost replay (in the Debug view, as his hitbox's outline); only the rightmost ones are drawn, and each vanishes when his attempt ends.
 _Avoid_: Shadow, clone, other player
 
 **Replay**:
 An attempt watched again, rebuilt tick by tick from its Controller log in a freshly loaded level, never by re-running its genome; it ends where the recorded attempt ended (after the end-of-level sequence, if it reached the flag).
 _Avoid_: Playback, rerun, re-evaluation
+
+**All-ghost replay**:
+The replay of every agent of one recorded generation at once, each from his Controller log, drawn as watch-live draws a generation: the followed agent, the ghosts, and how many agents are still in their attempt.
+_Avoid_: Generation replay, full replay, population playback
 
 **Headless mode**:
 Training with nothing drawn, so generations run as fast as the machine allows.
