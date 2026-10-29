@@ -146,7 +146,11 @@ SPRITE_SIZES = {
     "hill_right_slope": TILE_SPRITE_SIZE,
     "hill_peak": TILE_SPRITE_SIZE,
     "hill_fill": TILE_SPRITE_SIZE,
-    "bush": TILE_SPRITE_SIZE,
+    # a bush by place: its left end, middle and right end, or a one-tile bush
+    "bush_left_end": TILE_SPRITE_SIZE,
+    "bush_middle": TILE_SPRITE_SIZE,
+    "bush_right_end": TILE_SPRITE_SIZE,
+    "bush_single": TILE_SPRITE_SIZE,
     "castle_battlement": TILE_SPRITE_SIZE,
     "castle_window": TILE_SPRITE_SIZE,
     "castle_brick": TILE_SPRITE_SIZE,

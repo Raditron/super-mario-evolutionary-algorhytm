@@ -36,7 +36,7 @@ Tiles are named by how they look: a brick or ? block doesn't show what it holds.
 
 ### Background scenery (16 × 16, one per tile, behind the tiles)
 
-Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A bush is several tiles, each drawn with the same picture. A hill's tile is drawn by its place in the hill, which its scenery neighbours give: with no hill on either side it is the peak, with none on its left the left slope, with none on its right the right slope, and otherwise fill. A slope's outer side is transparent, so the sky shows through and the hill's outline reads as a smooth slope. A cloud's tile is drawn by its place in the cloud the same way: with cloud above it, it is the bottom row, otherwise the top row; with no cloud on its left the left end, with none on its right the right end, and otherwise the middle. The top row carries the puffs and the bottom row the flat underside, each end rounded and open to the sky, so a cloud of any width reads as one solid shape.
+Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A hill's tile is drawn by its place in the hill, which its scenery neighbours give: with no hill on either side it is the peak, with none on its left the left slope, with none on its right the right slope, and otherwise fill. A slope's outer side is transparent, so the sky shows through and the hill's outline reads as a smooth slope. A cloud's tile is drawn by its place in the cloud the same way: with cloud above it, it is the bottom row, otherwise the top row; with no cloud on its left the left end, with none on its right the right end, and otherwise the middle. The top row carries the puffs and the bottom row the flat underside, each end rounded and open to the sky, so a cloud of any width reads as one solid shape. A bush is one tile tall, and its tile is drawn by its place in the bush: with no bush on its left it is the left end, with none on its right the right end, and otherwise the middle; a one-tile bush, with none on either side (World 1-1 has one, against the castle), has a picture of its own, rounded on both sides. Each end is rounded and open to the sky, and the middle tiles seamlessly with itself and the ends.
 
 | File | Size (px) | Drawn for |
 |---|---|---|
@@ -50,7 +50,10 @@ Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A bush is several ti
 | `hill_right_slope.png` | 16 × 16 | a hill's tile with no hill on its right |
 | `hill_peak.png` | 16 × 16 | a hill's tile with no hill on either side: its top |
 | `hill_fill.png` | 16 × 16 | a hill's tile with hill on both sides |
-| `bush.png` | 16 × 16 | a bush's tile |
+| `bush_left_end.png` | 16 × 16 | a bush's tile with no bush on its left |
+| `bush_middle.png` | 16 × 16 | a bush's tile with bush on both sides |
+| `bush_right_end.png` | 16 × 16 | a bush's tile with no bush on its right |
+| `bush_single.png` | 16 × 16 | a one-tile bush: no bush on either side |
 | `castle_battlement.png` | 16 × 16 | the castle's battlements |
 | `castle_window.png` | 16 × 16 | the castle's windows |
 | `castle_brick.png` | 16 × 16 | the castle's wall |

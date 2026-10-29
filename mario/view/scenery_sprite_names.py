@@ -1,5 +1,5 @@
 """The picture a background scenery tile is drawn with, chosen from its scenery
-neighbours, so a hill or a cloud of several tiles draws as one shape and not as
+neighbours, so a hill, a cloud or a bush of several tiles draws as one shape and not as
 the same picture repeated.
 
 A kind with a rule in SPRITE_NAME_RULES is drawn by place; every other kind with
@@ -21,6 +21,10 @@ CLOUD_TOP_RIGHT_SPRITE_NAME = "cloud_top_right"
 CLOUD_BOTTOM_LEFT_SPRITE_NAME = "cloud_bottom_left"
 CLOUD_BOTTOM_MIDDLE_SPRITE_NAME = "cloud_bottom_middle"
 CLOUD_BOTTOM_RIGHT_SPRITE_NAME = "cloud_bottom_right"
+BUSH_LEFT_END_SPRITE_NAME = "bush_left_end"
+BUSH_MIDDLE_SPRITE_NAME = "bush_middle"
+BUSH_RIGHT_END_SPRITE_NAME = "bush_right_end"
+BUSH_SINGLE_SPRITE_NAME = "bush_single"
 
 
 @dataclass(frozen=True)
@@ -83,7 +87,23 @@ def _cloud_sprite_name(neighbourhood: SceneryNeighbourhood) -> str:
     return CLOUD_TOP_MIDDLE_SPRITE_NAME
 
 
+def _bush_sprite_name(neighbourhood: SceneryNeighbourhood) -> str:
+    """A bush is one row of tiles (layer 2 of docs/research/world-1-1-layout.md):
+    its ends round off, and a bush of one tile, as World 1-1 has against the
+    castle, is rounded on both sides."""
+    bush_on_left = neighbourhood.left is SceneryKind.BUSH
+    bush_on_right = neighbourhood.right is SceneryKind.BUSH
+    if not bush_on_left and not bush_on_right:
+        return BUSH_SINGLE_SPRITE_NAME
+    if not bush_on_left:
+        return BUSH_LEFT_END_SPRITE_NAME
+    if not bush_on_right:
+        return BUSH_RIGHT_END_SPRITE_NAME
+    return BUSH_MIDDLE_SPRITE_NAME
+
+
 SPRITE_NAME_RULES: dict[SceneryKind, Callable[[SceneryNeighbourhood], str]] = {
     SceneryKind.HILL: _hill_sprite_name,
     SceneryKind.CLOUD: _cloud_sprite_name,
+    SceneryKind.BUSH: _bush_sprite_name,
 }

@@ -313,6 +313,15 @@ def test_a_cloud_tile_is_drawn_with_the_picture_its_place_in_the_cloud_picks(tmp
     assert colour_at(screen, snapshot, *tile_centre(9, 3)) == CLOUD_COLOUR    # no cloud_top_middle.png
 
 
+def test_a_bush_tile_is_drawn_with_the_picture_its_place_in_the_bush_picks(tmp_path, world_1_1, scenery):
+    """The opening screen's bush is columns 11-15 of row 12: (11, 12) is its left end."""
+    write_png(tmp_path / "bush_left_end.png", (*PNG_COLOUR, 255))
+    snapshot = WorldSnapshot.of(Attempt(world_1_1))
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert colour_at(screen, snapshot, *tile_centre(11, 12)) == PNG_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(12, 12)) == BUSH_COLOUR    # no bush_middle.png
+
+
 def test_a_sprites_transparent_pixels_show_what_is_behind_it(tmp_path, scenery):
     write_png(tmp_path / "mario_small.png", (*PNG_COLOUR, 0))
     snapshot = sky_screen(SMALL_MARIO_BOX)

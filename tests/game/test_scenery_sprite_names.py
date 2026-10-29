@@ -1,7 +1,7 @@
 """The picture a background scenery tile is drawn with, chosen from its scenery
 neighbours: a hill's slopes, peak and fill by its place in the hill, a cloud's
-top and bottom rows' ends and middle by its place in the cloud, any other kind
-by its own name."""
+top and bottom rows' ends and middle by its place in the cloud, a bush's ends
+and middle by its place in the bush, any other kind by its own name."""
 
 import pytest
 
@@ -11,6 +11,7 @@ from mario.view.scenery_sprite_names import SPRITE_NAME_RULES, SceneryNeighbourh
 
 HILL = SceneryKind.HILL
 CLOUD = SceneryKind.CLOUD
+BUSH = SceneryKind.BUSH
 OPEN_SKY = None
 
 # World 1-1's big hill (layer 2 of docs/research/world-1-1-layout.md): its peak at
@@ -28,6 +29,15 @@ WIDE_CLOUD_SPRITE_NAMES_BY_ROW = {
     4: {27: "cloud_bottom_left", 28: "cloud_bottom_middle", 29: "cloud_bottom_middle", 30: "cloud_bottom_middle",
         31: "cloud_bottom_right"},
 }
+
+# World 1-1's bushes (layer 2), on row 12: the first, columns 11-15, and the one-tile
+# bush against the castle at column 207, with castle wall on its left and hill on its right.
+BUSH_ROW = 12
+FIRST_BUSH_SPRITE_NAMES = {11: "bush_left_end", 12: "bush_middle", 13: "bush_middle", 14: "bush_middle",
+                           15: "bush_right_end"}
+ONE_TILE_BUSH_SPRITE_NAMES = {207: "bush_single"}
+ROUNDED_ON_THE_LEFT_SPRITE_NAMES = {"bush_left_end", "bush_single"}
+ROUNDED_ON_THE_RIGHT_SPRITE_NAMES = {"bush_right_end", "bush_single"}
 
 
 @pytest.fixture(scope="module")
@@ -92,6 +102,23 @@ def test_open_sky_has_no_neighbourhood(scenery):
     assert SceneryNeighbourhood.around(scenery, 0, 0) is None
 
 
+def bush_tile(left: SceneryKind | None, right: SceneryKind | None) -> SceneryNeighbourhood:
+    return SceneryNeighbourhood(BUSH, left=left, right=right, above=OPEN_SKY, below=OPEN_SKY)
+
+
+@pytest.mark.parametrize("neighbourhood, sprite_name", [
+    pytest.param(bush_tile(left=OPEN_SKY, right=BUSH), "bush_left_end", id="no bush on the left: left end"),
+    pytest.param(bush_tile(left=BUSH, right=BUSH), "bush_middle", id="bush both sides: middle"),
+    pytest.param(bush_tile(left=BUSH, right=OPEN_SKY), "bush_right_end", id="no bush on the right: right end"),
+    pytest.param(bush_tile(left=OPEN_SKY, right=OPEN_SKY), "bush_single", id="no bush either side: one-tile bush"),
+    pytest.param(bush_tile(left=BUSH, right=HILL), "bush_right_end", id="a hill on the right is no bush: right end"),
+    pytest.param(bush_tile(left=SceneryKind.CASTLE_BRICK, right=HILL), "bush_single",
+                 id="castle wall and hill either side: one-tile bush"),
+])
+def test_a_bush_tiles_picture_is_chosen_by_its_bush_neighbours(neighbourhood, sprite_name):
+    assert scenery_sprite_name(neighbourhood) == sprite_name
+
+
 @pytest.mark.parametrize("row", BIG_HILL_SPRITE_NAMES_BY_ROW)
 def test_world_1_1s_big_hill_is_a_peak_over_slopes_and_fill(scenery, row):
     names = {column: scenery_sprite_name(SceneryNeighbourhood.around(scenery, column, row))
@@ -104,6 +131,28 @@ def test_world_1_1s_wide_cloud_is_a_puffy_top_over_a_flat_underside(scenery, row
     names = {column: scenery_sprite_name(SceneryNeighbourhood.around(scenery, column, row))
              for column in WIDE_CLOUD_SPRITE_NAMES_BY_ROW[row]}
     assert names == WIDE_CLOUD_SPRITE_NAMES_BY_ROW[row]
+
+
+@pytest.mark.parametrize("sprite_names", [
+    pytest.param(FIRST_BUSH_SPRITE_NAMES, id="the first bush: two ends and a middle"),
+    pytest.param(ONE_TILE_BUSH_SPRITE_NAMES, id="the one-tile bush against the castle"),
+])
+def test_world_1_1s_bushes_have_rounded_ends(scenery, sprite_names):
+    names = {column: scenery_sprite_name(SceneryNeighbourhood.around(scenery, column, BUSH_ROW))
+             for column in sprite_names}
+    assert names == sprite_names
+
+
+def test_every_bush_in_world_1_1_has_rounded_ends(scenery, world_1_1):
+    bush_tiles = [neighbourhood for column in range(world_1_1.width_tiles)
+                  if (neighbourhood := SceneryNeighbourhood.around(scenery, column, BUSH_ROW)) is not None
+                  and neighbourhood.kind is BUSH]
+    assert bush_tiles
+    for neighbourhood in bush_tiles:
+        if neighbourhood.left is not BUSH:
+            assert scenery_sprite_name(neighbourhood) in ROUNDED_ON_THE_LEFT_SPRITE_NAMES
+        if neighbourhood.right is not BUSH:
+            assert scenery_sprite_name(neighbourhood) in ROUNDED_ON_THE_RIGHT_SPRITE_NAMES
 
 
 def test_every_picture_world_1_1s_scenery_needs_is_a_sprite_the_view_knows(scenery, world_1_1):

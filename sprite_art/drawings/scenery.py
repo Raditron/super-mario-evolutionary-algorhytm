@@ -1,7 +1,8 @@
 """The background scenery: one picture per tile, repeated across every tile of a kind,
 so each tiles seamlessly with itself; a hill's tiles by their place in the hill, the
 slopes open to the sky on their outer side, and a cloud's by its place in the cloud,
-its puffs and rounded ends open to the sky; all lit from the top-left."""
+its puffs and rounded ends open to the sky, and a bush's by its place in the bush,
+its rounded ends open to the sky; all lit from the top-left."""
 
 from sprite_art.palettes.scenery import SCENERY_PALETTE
 from sprite_art.sprite_drawing import SpriteDrawing
@@ -196,23 +197,80 @@ HILL_FILL = SpriteDrawing("hill_fill", SCENERY_PALETTE, (
     "GGGGGGGGGGGGGGgG",
 ))
 
-BUSH = SpriteDrawing("bush", SCENERY_PALETTE, (
+BUSH_LEFT_END = SpriteDrawing("bush_left_end", SCENERY_PALETTE, (
     "................",
-    "..JJJJJ.........",
-    ".JJBBBBB........",
-    "JJBBBBBbb..JJJ..",
-    "JBBBBBBBb.JJBBB.",
-    "JBBBBBBBbJJBBBBb",
-    "BBBBBBBbbJBBBBJJ",
-    "JJBBBBJJJJJBBbBB",
-    "BBBbbJBBBBBBbBBB",
-    "BBBbbBBBBBBbbBBB",
-    "BBBbJBBBBBBbbBBB",
-    "bBbJJJBBBBBbJJJb",
-    "bbJJBBBBBJJJBBBb",
-    "bbJBBBBbbJBBBbbb",
-    "bbBBBBBbbBBBBbbb",
-    "bbbBBbbbbbBBbbbb",
+    "................",
+    "................",
+    "...............J",
+    "....JJJJB.JJJ.JJ",
+    "...JJJJBJJJJBBJJ",
+    "..JJJBBJJJJBBJJJ",
+    ".JJJBBBJJBBBBJJB",
+    ".JJBBBJJJBBBBJJB",
+    ".JJBBBJJBBBBBJBB",
+    ".JBBBBJBBBBJBBBB",
+    ".BBBJBBBBBBBbBBB",
+    ".bBBBbBBBBBBBBBB",
+    ".bbBbbbbBbbbbbbB",
+    ".bbbbbbbbbbbbbbb",
+    "...bbbbbbbbbbbbb",
+))
+
+BUSH_MIDDLE = SpriteDrawing("bush_middle", SCENERY_PALETTE, (
+    "................",
+    "................",
+    ".JJJJ...........",
+    "JJJJBBB........J",
+    "JJJBBBBB..JJJ.JJ",
+    "JBBBBBBBJJJJBBJJ",
+    "BBBBBBBJJJJBBJJJ",
+    "BBBBBBBJJBBBBJJB",
+    "BBBBBBJJJBBBBJJB",
+    "BBJBBBJJBBBBBJBB",
+    "BBBbBBJBBBBJBBBB",
+    "BBBBBBbBBBBBbBBB",
+    "BBBBBbbBBBBBBBBB",
+    "bbbbbbbbBbbbbbbB",
+    "bbbbbbbbbbbbbbbb",
+    "bbbbbbbbbbbbbbbb",
+))
+
+BUSH_RIGHT_END = SpriteDrawing("bush_right_end", SCENERY_PALETTE, (
+    "................",
+    "................",
+    ".JJJJ...........",
+    "JJJJBBB.........",
+    "JJJBBBBBJJJJB...",
+    "JBBBBBBJJJJBBB..",
+    "BBBBBBJJJBBBBBB.",
+    "BBBBBJJJBBBBBBbb",
+    "BBBBBJJBBBBBBBbb",
+    "BBJBBJJBBBJBBBbb",
+    "BBBbBJBBBBBbBBbb",
+    "BBBBBBBBBBBBBBbb",
+    "BBBBBbBBBBBBBbb.",
+    "bbbbbbbBbbbbbbb.",
+    "bbbbbbbbbbbbbbb.",
+    "bbbbbbbbbbbbb...",
+))
+
+BUSH_SINGLE = SpriteDrawing("bush_single", SCENERY_PALETTE, (
+    "................",
+    "................",
+    "................",
+    "................",
+    "...JJJJBBJJ.....",
+    "..JJJJBBBBJBB...",
+    ".JJJBBBBBBbBBB..",
+    ".JJBBBBBBbbBBBb.",
+    ".JJBBBBBBBbBJBb.",
+    ".JBBJBBBBBbBBbb.",
+    ".BBBBbBBBbbBBBb.",
+    ".BBBBBBBBbbBBbb.",
+    ".bBBbBBbbbBBBbb.",
+    ".bbbbbbbbBBbbbb.",
+    ".bbbbbbbbbbbbbb.",
+    "...bbbbbbbbbb...",
 ))
 
 CASTLE_BRICK = SpriteDrawing("castle_brick", SCENERY_PALETTE, (
@@ -303,5 +361,5 @@ CASTLE_DOOR = SpriteDrawing("castle_door", SCENERY_PALETTE, (
 ))
 
 SCENERY_DRAWINGS = (CLOUD_TOP_LEFT, CLOUD_TOP_MIDDLE, CLOUD_TOP_RIGHT, CLOUD_BOTTOM_LEFT, CLOUD_BOTTOM_MIDDLE,
-                    CLOUD_BOTTOM_RIGHT, HILL_LEFT_SLOPE, HILL_RIGHT_SLOPE, HILL_PEAK, HILL_FILL, BUSH, CASTLE_BATTLEMENT, CASTLE_WINDOW, CASTLE_BRICK, CASTLE_DOOR_ARCH,
+                    CLOUD_BOTTOM_RIGHT, HILL_LEFT_SLOPE, HILL_RIGHT_SLOPE, HILL_PEAK, HILL_FILL, BUSH_LEFT_END, BUSH_MIDDLE, BUSH_RIGHT_END, BUSH_SINGLE, CASTLE_BATTLEMENT, CASTLE_WINDOW, CASTLE_BRICK, CASTLE_DOOR_ARCH,
                     CASTLE_DOOR)
