@@ -143,4 +143,12 @@ Each of the five Mario sprites above has these frames, painted from one set of r
 | `fireball.png` | 8 × 8 | a flying fireball |
 | `fireball_explosion.png` | 16 × 16 | a fireball exploding |
 
+### The HUD
+
+The coin before the HUD's coin count is drawn in its 8 × 8 cell of the status bar's text grid, from the cell's top-left corner, over whichever view is shown. The level has no free-standing coins, so this is the only place it is drawn. While it is missing, the HUD draws an orange rectangle in its cell instead.
+
+| File | Size (px) | Drawn for |
+|---|---|---|
+| `coin.png` | 8 × 8 | the coin icon before the HUD's coin count |
+
 The sizes and names are `SPRITE_SIZES` in `mario/constants/view.py`; a test checks this page lists every one.
