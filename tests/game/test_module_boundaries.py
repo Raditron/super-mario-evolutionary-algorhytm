@@ -12,6 +12,9 @@ PACKAGE_ROOT = Path(mario.__file__).parent
 PYGAME_FREE_PACKAGES = ("simulation", "level", "controller", "training", "recording", "snapshots", "statistics")
 USERS_PACKAGE = "neuroevolution"
 THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE = PACKAGE_ROOT / "modes" / "train_mode.py"
+# Everything either replay loads, in the main process or in a worker (spec section 3).
+REPLAY_MODULES = ("mario.__main__", "mario.modes.replay_mode", "mario.modes.all_ghost_replay_mode",
+                  "mario.training.agent_worker_pool", "mario.training.controller_log_chunk_controller_source")
 PACKAGES_THAT_DEPEND_ON_THE_CONTROLLER = ("mario.simulation", "mario.training")
 THE_SIMULATION = ("mario.simulation",)
 # Recording knows only AttemptResults, Controller logs, floats and flat arrays (spec section 3).
@@ -61,6 +64,16 @@ def test_only_train_mode_imports_the_users_package():
     importers = [source_file for source_file in sorted(PACKAGE_ROOT.rglob("*.py"))
                  if USERS_PACKAGE in imported_module_names(source_file)]
     assert importers == [THE_ONE_IMPORTER_OF_THE_USERS_PACKAGE]
+
+
+def test_replay_never_imports_the_users_package(tmp_path):
+    """Not even by way of what it imports, with a neuroevolution package there to be found."""
+    (tmp_path / USERS_PACKAGE).mkdir()
+    (tmp_path / USERS_PACKAGE / "__init__.py").write_text("")
+    probe = (f"import sys\nsys.path.insert(0, {str(tmp_path)!r})\nfor name in {REPLAY_MODULES!r}: __import__(name)\n"
+             f"print({USERS_PACKAGE!r} in sys.modules)")
+    loaded = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, check=True)
+    assert loaded.stdout.splitlines()[-1] == "False"  # after pygame's greeting
 
 
 def test_the_controller_imports_neither_the_simulation_nor_training():

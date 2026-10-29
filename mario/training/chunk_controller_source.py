@@ -4,7 +4,7 @@ with what controls them (spec sections 9 and 11).
 The pool and its ChunkPlayer only ever ask a ChunkControllerSource for each
 agent's buttons, tick after tick; they never know what decides them. Training's
 is a brain built from the chunk's genomes (BrainChunkControllerSourceFactory);
-all-ghost replay (#30) is to give the pool a factory of its own, whose sources
+all-ghost replay (#30) gives the pool ControllerLogChunkControllerSourceFactory, whose sources
 play Controller logs back, with no algorithm built.
 """
 

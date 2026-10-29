@@ -1,4 +1,4 @@
-"""py -m mario play | train [config] [--watch] | replay <run-folder> [--generation N] --best | stats <run-folder> [more...]"""
+"""py -m mario play | train [config] [--watch] | replay <run-folder> [--generation N] [--best] | stats <run-folder> [more...]"""
 
 import argparse
 from datetime import datetime
@@ -15,8 +15,6 @@ DEFAULT_CONFIG_PATH = REPO_ROOT / DEFAULT_CONFIG_FILE_NAME
 RUNS_ROOT = REPO_ROOT / RUNS_FOLDER_NAME
 # The Sprite view's PNGs are in assets/sprites/ at the repo root.
 SPRITES_FOLDER = REPO_ROOT.joinpath(*SPRITES_FOLDER_PARTS)
-ALL_GHOST_REPLAY_NOT_BUILT_MESSAGE = ("Replaying every agent of a generation as ghosts isn't built yet (#30); "
-                                      "pass --best to replay its best agent.")
 
 
 def main(runs_root: Path = RUNS_ROOT) -> None:
@@ -29,7 +27,7 @@ def main(runs_root: Path = RUNS_ROOT) -> None:
                               help=f"the run's settings (default: {DEFAULT_CONFIG_FILE_NAME} at the repo root)")
     train_parser.add_argument("--watch", action="store_true",
                               help="show each generation live; closing the window stops the run")
-    replay_parser = commands.add_parser("replay", help="replay a recorded generation")
+    replay_parser = commands.add_parser("replay", help="replay a recorded generation, every agent as a ghost")
     replay_parser.add_argument("run_folder", type=Path, help="the run's folder, in runs/")
     replay_parser.add_argument("--generation", type=int, default=None,
                                help="the generation to replay (default: the last one recorded)")
@@ -44,10 +42,12 @@ def main(runs_root: Path = RUNS_ROOT) -> None:
         from mario.modes.train_mode import TrainMode
         TrainMode(arguments.config, runs_root, arguments.watch, SPRITES_FOLDER).run()
     elif arguments.command == "replay":
-        if not arguments.best:
-            raise SystemExit(ALL_GHOST_REPLAY_NOT_BUILT_MESSAGE)
-        from mario.modes.replay_mode import ReplayMode
-        ReplayMode.of_best_agent(arguments.run_folder, arguments.generation, SPRITES_FOLDER).run()
+        if arguments.best:
+            from mario.modes.replay_mode import ReplayMode
+            ReplayMode.of_best_agent(arguments.run_folder, arguments.generation, SPRITES_FOLDER).run()
+        else:
+            from mario.modes.all_ghost_replay_mode import AllGhostReplayMode
+            AllGhostReplayMode.of_generation(arguments.run_folder, arguments.generation, SPRITES_FOLDER).run()
     elif arguments.command == "stats":
         from mario.modes.stats_mode import StatsMode
         StatsMode(arguments.run_folders, runs_root, datetime.now()).run()

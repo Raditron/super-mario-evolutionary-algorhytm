@@ -206,12 +206,6 @@ def test_replay_of_a_folder_that_is_not_a_run_folder_exits_with_a_clear_message(
     assert "not a run folder" in finished.stderr and "Traceback" not in finished.stderr
 
 
-def test_replay_without_best_says_all_ghost_replay_is_not_built_yet(stopped_run):
-    finished = replay_command(str(stopped_run))
-    assert finished.returncode != 0
-    assert "--best" in finished.stderr and "Traceback" not in finished.stderr
-
-
 def one_stalled_agent_run(runs_root: Path, level: StaticLevel) -> tuple[Path, int]:
     """A one-generation, one-agent run folder whose agent pressed nothing until the stall rule ended
     its attempt, written by the real RunRecorder; and that attempt's length in ticks."""
