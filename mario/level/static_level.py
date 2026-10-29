@@ -1,4 +1,5 @@
-"""The shared, read-only World 1-1: the tile grid plus its block, pipe and enemy tables.
+"""The shared, read-only World 1-1: the tile grid plus its block, pipe and enemy
+tables, and the bonus room its warp pipe leads to.
 
 One StaticLevel is loaded per process and shared by every Attempt; nothing
 ever writes to it.
@@ -8,6 +9,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from mario.constants.level import (
+    BONUS_ROOM_WIDTH_TILES,
     GOOMBA_PAIR_FIRST_OFFSET_PIXELS,
     GOOMBA_PAIR_SECOND_OFFSET_PIXELS,
     TILE_SIZE_PIXELS,
@@ -18,6 +20,8 @@ from mario.level.tile_kind import BLOCK_TILE_KINDS, SOLID_TILE_KINDS, TILE_KIND_
 
 # The level data's grid layer with the solid and interactive tiles.
 LAYER_NAME = "layer_1"
+# The level data's table holding the bonus room.
+BONUS_ROOM_TABLE_NAME = "bonus_room"
 # An enemies entry of this kind places two Goombas relative to its data column.
 GOOMBA_PAIR_ENTRY_KIND = "goomba_pair"
 
@@ -59,13 +63,25 @@ class EnemySpawn:
     activation_x_pixels: int
 
 
+@dataclass(frozen=True)
+class BonusRoom:
+    """The underground coin room the warp pipe leads to: its own grid of one
+    screen, the exit pipe's mouth (its lower tile, which Mario walks into), and
+    the level page the exit pipe brings him back to."""
+    tiles: "StaticLevel"
+    exit_pipe_mouth_column: int
+    exit_pipe_mouth_row: int
+    return_page: int
+
+
 class StaticLevel:
     """Tile lookup and the level's tables. Columns and rows outside the grid
     are solid at the sides and open above and below (pits). flagpole_column is the
-    column of the flagpole, None in a level without one."""
+    column of the flagpole, None in a level without one; warp_pipe the pipe that
+    leads to the bonus room, None in a level without one (the bonus room itself)."""
 
     def __init__(self, layer_1_rows: list[str], pipes: tuple[Pipe, ...] = (),
-                 enemy_spawns: tuple[EnemySpawn, ...] = ()):
+                 enemy_spawns: tuple[EnemySpawn, ...] = (), bonus_room: BonusRoom | None = None):
         self.width_tiles = len(layer_1_rows[0])
         self.height_tiles = len(layer_1_rows)
         self._tile_rows = tuple(tuple(TILE_KIND_BY_CHARACTER[character] for character in row)
@@ -78,7 +94,9 @@ class StaticLevel:
                             for row, kinds in enumerate(self._tile_rows)
                             for column, kind in enumerate(kinds) if kind in BLOCK_TILE_KINDS)
         self.pipes = pipes
+        self.warp_pipe = next((pipe for pipe in pipes if pipe.leads_to is PipeDestination.BONUS_ROOM), None)
         self.enemy_spawns = enemy_spawns
+        self.bonus_room = bonus_room
         self.flagpole_column = next((column for column in range(self.width_tiles)
                                      if any(kinds[column] is TileKind.FLAGPOLE for kinds in self._tile_rows)),
                                     None)
@@ -92,7 +110,7 @@ class StaticLevel:
                       for entry in level_data["pipes"])
         enemy_spawns = tuple(spawn for entry in level_data["enemies"]
                              for spawn in _enemy_spawns_from_entry(entry))
-        return cls(layer_1_rows, pipes, enemy_spawns)
+        return cls(layer_1_rows, pipes, enemy_spawns, _bonus_room_from(level_data[BONUS_ROOM_TABLE_NAME]))
 
     def tile_kind(self, column: int, row: int) -> TileKind:
         if row < 0 or row >= self.height_tiles:
@@ -107,6 +125,11 @@ class StaticLevel:
         if column < 0 or column >= self.width_tiles:
             return True
         return self.solid_rows[row][column] == 1
+
+
+def _bonus_room_from(table: dict) -> BonusRoom:
+    return BonusRoom(StaticLevel(grid_layer_rows(table, LAYER_NAME, BONUS_ROOM_WIDTH_TILES)),
+                     table["exit_pipe_mouth_column"], table["exit_pipe_mouth_row"], table["return_page"])
 
 
 def _enemy_spawns_from_entry(entry: dict) -> tuple[EnemySpawn, ...]:

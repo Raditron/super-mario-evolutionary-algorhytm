@@ -5,6 +5,8 @@ from mario.constants.physics import SUBPIXEL_BITS
 LEVEL_FILE_NAME = "world_1_1.toml"
 LEVEL_WIDTH_TILES = 224
 LEVEL_HEIGHT_TILES = 15
+# The bonus room is one screen, as high as the level (#23).
+BONUS_ROOM_WIDTH_TILES = 16
 
 TILE_SIZE_PIXELS = 16
 TILE_PIXEL_BITS = 4                                          # 16 px = 1 << 4

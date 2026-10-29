@@ -17,6 +17,7 @@ class TileKind(StrEnum):
     PIPE = "pipe"
     FLAGPOLE = "flagpole"
     CASTLE_STOPPER = "castle_stopper"
+    COIN = "coin"
 
 
 # The level data's legend (mario/level/world_1_1.toml).
@@ -37,6 +38,10 @@ TILE_KIND_BY_CHARACTER = {
     "o": TileKind.FLAGPOLE,
     "|": TileKind.FLAGPOLE,
     "W": TileKind.CASTLE_STOPPER,
+    # the bonus room's
+    "$": TileKind.COIN,
+    "<": TileKind.PIPE,
+    "-": TileKind.PIPE,
 }
 
 # The hidden 1-UP block is solid only to a head coming from below; the flagpole

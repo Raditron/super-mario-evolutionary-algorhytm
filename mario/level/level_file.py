@@ -10,10 +10,11 @@ def read_level_data() -> dict:
     return tomllib.loads(Path(__file__).with_name(LEVEL_FILE_NAME).read_text())
 
 
-def grid_layer_rows(level_data: dict, layer_name: str) -> list[str]:
-    """One of the file's grid layers, row by row from the top, one character per tile."""
+def grid_layer_rows(level_data: dict, layer_name: str, width_tiles: int = LEVEL_WIDTH_TILES) -> list[str]:
+    """One of the file's grid layers, row by row from the top, one character per
+    tile: the level's, or, given its width, the bonus room's."""
     rows = level_data[layer_name].split()
-    if len(rows) != LEVEL_HEIGHT_TILES or any(len(row) != LEVEL_WIDTH_TILES for row in rows):
+    if len(rows) != LEVEL_HEIGHT_TILES or any(len(row) != width_tiles for row in rows):
         raise ValueError(f"{LEVEL_FILE_NAME}: {layer_name} must be "
-                         f"{LEVEL_WIDTH_TILES} x {LEVEL_HEIGHT_TILES} tiles")
+                         f"{width_tiles} x {LEVEL_HEIGHT_TILES} tiles")
     return rows

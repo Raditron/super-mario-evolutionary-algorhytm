@@ -46,3 +46,39 @@ def test_hidden_block_and_flagpole_are_not_solid_yet(world_1_1):
     assert not world_1_1.is_solid(64, 8)
     assert not world_1_1.is_solid(198, 5)
     assert world_1_1.is_solid(198, 12)
+
+
+# The bonus room, decoded for #23 (docs/research/world-1-1-layout.md, "The bonus room").
+BONUS_ROOM_WIDTH_TILES = 16
+BONUS_ROOM_COINS_BY_ROW = {5: range(5, 10), 7: range(4, 11), 9: range(4, 11)}
+
+
+def test_the_warp_pipe_is_pipe_57(world_1_1):
+    assert world_1_1.warp_pipe.left_column == 57
+
+
+def test_the_bonus_room_is_one_screen_holding_19_coins(world_1_1):
+    room = world_1_1.bonus_room.tiles
+    assert (room.width_tiles, room.height_tiles) == (BONUS_ROOM_WIDTH_TILES, LEVEL_HEIGHT_TILES)
+    coins = {(column, row) for row in range(room.height_tiles) for column in range(room.width_tiles)
+             if room.tile_kind(column, row) is TileKind.COIN}
+    assert coins == {(column, row) for row, columns in BONUS_ROOM_COINS_BY_ROW.items() for column in columns}
+    assert len(coins) == 19
+    assert not any(room.is_solid(column, row) for column, row in coins)
+
+
+def test_the_bonus_room_has_a_brick_wall_a_brick_block_under_a_brick_ceiling_and_a_floor(world_1_1):
+    room = world_1_1.bonus_room.tiles
+    assert all(room.tile_kind(0, row) is TileKind.BRICK for row in range(2, 13))
+    assert all(room.tile_kind(column, row) is TileKind.BRICK
+               for column in range(4, 11) for row in (2, 10, 11, 12))
+    assert all(room.tile_kind(column, row) is TileKind.GROUND for column in range(16) for row in (13, 14))
+    assert not any(room.is_solid(column, row) for column in (1, 2, 3, 11, 12) for row in range(13))
+
+
+def test_the_bonus_room_exit_pipe_has_its_mouth_at_13_12_and_leads_back_to_page_10(world_1_1):
+    room = world_1_1.bonus_room
+    assert (room.exit_pipe_mouth_column, room.exit_pipe_mouth_row) == (13, 12)
+    assert all(room.tiles.tile_kind(column, row) is TileKind.PIPE for column in (13, 14) for row in (11, 12))
+    assert all(room.tiles.tile_kind(15, row) is TileKind.PIPE for row in range(2, 13))
+    assert room.return_page == 10
