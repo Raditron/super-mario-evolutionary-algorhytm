@@ -132,7 +132,7 @@ def test_small_mario_only_bumps_a_plain_brick():
     (STARMAN_BRICK, []),
 ])
 def test_a_power_up_question_block_and_the_starman_brick_turn_used_when_hit(block, events):
-    """Their items come in later slices."""
+    """What their items do is tested with the items (test_power_ups.py, test_starman.py)."""
     attempt = Attempt(build_level(blocks={(MARIO_SPAWN_COLUMN, LOW_BLOCK_ROW): block}))
     jump_in_place(attempt)
     jump_in_place(attempt)

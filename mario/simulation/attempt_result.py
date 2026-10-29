@@ -35,6 +35,7 @@ class DefeatMethod(StrEnum):
     STOMP = "stomp"
     FIREBALL = "fireball"
     KICKED_SHELL = "kicked_shell"
+    STARMAN = "starman"
     BUMPED = "bumped"
 
 

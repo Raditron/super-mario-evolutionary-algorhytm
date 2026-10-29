@@ -94,6 +94,10 @@ _Avoid_: Power-up (except in the original's names, such as the power-up ? block)
 What a stomped Koopa becomes, or one a bumped block flips: a still shell until Mario touches it, which kicks it into a moving shell that defeats the enemies it hits and hurts Mario; a still shell left alone wakes back into a Koopa.
 _Avoid_: Koopa shell (as a separate thing from the Koopa), stunned Koopa, projectile
 
+**Invincible**:
+What a Starman makes Mario for a while, whatever his power state: every enemy he touches is defeated, shells too, and none can hurt him; a pit still ends his attempt.
+_Avoid_: Star power, invulnerable (the while after being hurt, when an enemy's touch does nothing)
+
 **Power state**:
 What Mario has become through the items he collected: small, big or fiery. Big or fiery, an enemy's touch makes him small instead of ending the attempt.
 _Avoid_: Status, form

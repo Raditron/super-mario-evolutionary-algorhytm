@@ -32,7 +32,7 @@ from mario.constants.physics import (
     REVIVED_KOOPA_SPEED,
     SHELL_REVIVAL_TICKS,
 )
-from mario.constants.scoring import KOOPA_FIREBALL_POINTS, SHELL_DEFEAT_STEPS_PAST_SHELL_CHAIN
+from mario.constants.scoring import KOOPA_KNOCK_OFF_POINTS, SHELL_DEFEAT_STEPS_PAST_SHELL_CHAIN
 from mario.level.static_level import EnemyKind, EnemySpawn
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.enemy import Enemy
@@ -48,7 +48,7 @@ class KoopaStage(Enum):
 
 class Koopa(Enemy):
     kind = EnemyKind.KOOPA
-    fireball_defeat_points = KOOPA_FIREBALL_POINTS
+    knock_off_points = KOOPA_KNOCK_OFF_POINTS
     hitbox_offset_y_pixels = KOOPA_HITBOX_OFFSET_Y_PIXELS
 
     def __init__(self, spawn: EnemySpawn):

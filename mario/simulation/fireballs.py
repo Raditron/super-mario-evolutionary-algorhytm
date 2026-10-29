@@ -65,7 +65,7 @@ class Fireballs:
                 fireball.explode()
                 enemy.defeat_by_fireball(self._mario.x)
                 self._events.append(GameEvent(tick, GameEventKind.DEFEATED_ENEMY, DefeatMethod.FIREBALL))
-                self._scoreboard.score_points(enemy.fireball_defeat_points, tick)
+                self._scoreboard.score_points(enemy.knock_off_points, tick)
 
     def _shoot(self, tick: int) -> None:
         slot = self._shot_count % FIREBALL_SLOTS

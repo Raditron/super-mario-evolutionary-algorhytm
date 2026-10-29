@@ -4,8 +4,8 @@ PlayerHeadCollision, BumpBlock and BrickShatter; docs/research/smb-physics-const
 
 Big (or fire) Mario breaks a plain brick, which leaves an empty tile; everything
 else, and every block small Mario hits, is bumped. A power-up ? block releases a
-Super Mushroom for small Mario and a fire flower for big Mario, and the hidden
-block a 1-UP mushroom (BumpBlock, SetupPowerUp).
+Super Mushroom for small Mario and a fire flower for big Mario, the Starman
+brick a Starman, and the hidden block a 1-UP mushroom (BumpBlock, SetupPowerUp).
 An enemy standing on a block while it bounces, or on a brick as it breaks, is
 defeated, or a Koopa flipped into its shell (HandleEToBGCollision); a mushroom
 there hops away from Mario. The
@@ -69,6 +69,7 @@ class Blocks:
             self._items.release(ItemKind.FIRE_FLOWER if mario_is_big else ItemKind.SUPER_MUSHROOM, column, row)
         elif kind is TileKind.STARMAN_BRICK:
             self._tiles.change_block(column, row, TileKind.USED_BLOCK)
+            self._items.release(ItemKind.STARMAN, column, row)
         elif kind is TileKind.MULTI_COIN_BRICK:
             self._hit_multi_coin_brick(column, row, tick)
         elif kind is TileKind.HIDDEN_ONE_UP_BLOCK:

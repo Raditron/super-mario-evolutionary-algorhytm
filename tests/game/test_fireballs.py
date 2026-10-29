@@ -83,7 +83,7 @@ GOOMBA_JUST_OFF_SCREEN_AS_THE_FIREBALL_ARRIVES = CHECKPOINT_SCREEN_LEFT_X - 6
 # A Goomba hit by a fireball scores 100 (ShellOrBlockDefeat, GoombaPoints). It is
 # lifted 2 px, then moves at 1 px/f away from Mario and rises at 3 px/f (SetStun),
 # and falls through everything out of the level (MoveDefeatedEnemy).
-GOOMBA_FIREBALL_POINTS = 100
+GOOMBA_KNOCK_OFF_POINTS = 100
 KNOCKED_SPEED_X = 1
 KNOCKED_SPEED_Y = -3
 # A fire flower on the ground a few columns right of Mario, for him to walk into.
@@ -251,7 +251,7 @@ def test_a_fireball_defeats_a_goomba_it_hits_for_100_points_and_explodes():
     shoot_at_a_goomba(attempt)
     tick = attempt.ticks_elapsed
     assert attempt.events[-2:] == [GameEvent(tick, GameEventKind.DEFEATED_ENEMY, DefeatMethod.FIREBALL),
-                                   GameEvent(tick, GameEventKind.SCORED_POINTS, GOOMBA_FIREBALL_POINTS)]
+                                   GameEvent(tick, GameEventKind.SCORED_POINTS, GOOMBA_KNOCK_OFF_POINTS)]
     assert [enemy.is_defeated for enemy in WorldSnapshot.of(attempt).enemies] == [True]
     assert [fireball.is_exploding for fireball in fireballs_in(attempt)] == [True]
 

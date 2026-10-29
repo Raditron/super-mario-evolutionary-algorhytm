@@ -153,3 +153,20 @@ ITEM_HITBOX_OFFSET_Y_PIXELS = 8
 # ENEMY_REMOVAL_RANGE_PIXELS left of the screen's left edge, or that far right of
 # the screen's right edge (ScreenRight_X_Pos, the screen's last pixel column).
 SCREEN_RIGHT_EDGE_OFFSET_PIXELS = SCREEN_WIDTH_PIXELS - 1
+
+# --- The Starman's tile probes (EnemyJump, ChkUnderEnemy, DoEnemySideCheck) and an
+# enemy's landing (EnemyLanding) ------------------------------------------------------------
+
+# No tile stops the Starman's box: only its probes act (EnemyJump), every enemy's.
+# Its foot probe is at sprite (8, 24), just under its box (ChkUnderEnemy); its side
+# probe, on the side it moves to only, at sprite (0, 20) moving left and (16, 20)
+# moving right (DoEnemySideCheck). It has no head probe.
+STARMAN_FOOT_PROBE_X_PIXELS = 8
+STARMAN_FOOT_PROBE_Y_PIXELS = 24
+STARMAN_LEFT_PROBE_X_PIXELS = 0
+STARMAN_RIGHT_PROBE_X_PIXELS = 16
+STARMAN_SIDE_PROBE_Y_PIXELS = 20
+# Landing, an enemy's sprite y is snapped to (y & $F0) + 8 (EnemyLanding, which
+# EnemyJump runs once the Starman's foot probe finds a tile): this far into the
+# 16 px tile row its sprite's top is in, which stands its box on the tile under it.
+ENEMY_LANDING_SPRITE_Y_IN_ROW_PIXELS = 8
