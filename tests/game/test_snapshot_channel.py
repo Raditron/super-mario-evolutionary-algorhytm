@@ -12,7 +12,7 @@ from mario.simulation.observation_builder import ObservationBuilder
 from mario.snapshots.live_chunk_publisher import LiveChunkPublisher
 from mario.snapshots.snapshot_channel import SnapshotChannel
 from mario.snapshots.world_snapshot import WorldSnapshot
-from tests.game.helpers import HOLD_NOTHING, HOLD_RIGHT
+from tests.game.helpers import HOLD_LEFT, HOLD_NOTHING, HOLD_RIGHT
 
 SLOT_COUNT = 3
 SLOT = 1
@@ -49,6 +49,19 @@ def test_the_snapshot_a_chunk_writes_into_its_slot_is_read_back_whole(channel, w
     assert published.followed_agent_index == FIRST_AGENT + 1
     assert published.followed_world == WorldSnapshot.of(attempts[1], observation_builder=ObservationBuilder(world_1_1))
     assert published.followed_world.observation is not None
+
+
+def test_the_slot_carries_which_way_each_agent_faces(channel, world_1_1: StaticLevel):
+    attempts = [Attempt(world_1_1, ends_on_stall=True) for _ in range(2)]
+    for _ in range(TICKS_TO_MOVE_A_FEW_PIXELS):
+        attempts[0].step(HOLD_LEFT)
+        attempts[1].step(HOLD_RIGHT)
+    publisher = LiveChunkPublisher(channel.writer.open(), SLOT, GENERATION, FIRST_AGENT,
+                                   ObservationBuilder(world_1_1))
+    publisher.tick_played(attempts)
+    published = channel.read_all()[SLOT]
+    assert [agent.faces_right for agent in published.agents] == [False, True]
+    assert published.followed_world.mario.faces_right
 
 
 def test_a_newer_snapshot_replaces_the_older_one_in_its_slot(channel, world_1_1: StaticLevel):

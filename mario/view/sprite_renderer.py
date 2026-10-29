@@ -2,7 +2,9 @@
 from assets/sprites/ at the original's size, over the background scenery.
 
 A watched generation's ghosts are their Mario sprites, translucent, under the
-followed agent's. A thing whose sprite is missing fills the sprite's place in its hitbox colour,
+followed agent's. Mario, a ghost and a walking enemy face the way they face:
+every sprite is drawn facing right, and mirrored for one facing left (a shell
+looks the same either way, so it isn't). A thing whose sprite is missing fills the sprite's place in its hitbox colour,
 so the view works with an empty folder and a PNG dropped in later shows with
 no code change (spec sections 8 and 12).
 """
@@ -167,7 +169,7 @@ class SpriteRenderer:
     def _draw_mario(self, mario: MarioSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         sprite_name = _mario_sprite_name(mario)
         self._draw_sprite(sprite_name, mario_colour(mario), _standing_on(_hitbox(mario), sprite_name),
-                          screen_left_x_pixels, screen)
+                          screen_left_x_pixels, screen, is_mirrored=not mario.faces_right)
 
     def _draw_ghost(self, ghost: AgentSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         """His Mario's sprite (or its place, filled), drawn at GHOST_OPACITY."""
@@ -175,18 +177,21 @@ class SpriteRenderer:
         sprite_name = _mario_sprite_name(mario)
         place = _standing_on(_hitbox(mario), sprite_name)
         ghost_surface = pygame.Surface(place.size, pygame.SRCALPHA)
-        self._draw_sprite(sprite_name, mario_colour(mario), place.move(-place.x, -place.y), 0, ghost_surface)
+        self._draw_sprite(sprite_name, mario_colour(mario), place.move(-place.x, -place.y), 0, ghost_surface,
+                          is_mirrored=not ghost.faces_right)
         ghost_surface.set_alpha(GHOST_OPACITY)
         screen.blit(ghost_surface, place.move(-screen_left_x_pixels, 0))
 
     def _draw_enemy(self, enemy: EnemySnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
-        """A shell, even a defeated one (the original flips it), is drawn as its shell."""
+        """A shell, even a defeated one (the original flips it), is drawn as its shell,
+        never mirrored: the original draws it symmetric (MirrorEnemyGfx)."""
         if enemy.is_shell:
             sprite_name, colour = SHELL_SPRITE_NAMES[enemy.kind], SHELL_COLOURS[enemy.kind]
         else:
             sprite_names = DEFEATED_ENEMY_SPRITE_NAMES if enemy.is_defeated else ENEMY_SPRITE_NAMES
             sprite_name, colour = sprite_names[enemy.kind], ENEMY_COLOURS[enemy.kind]
-        self._draw_sprite(sprite_name, colour, _standing_on(_hitbox(enemy), sprite_name), screen_left_x_pixels, screen)
+        self._draw_sprite(sprite_name, colour, _standing_on(_hitbox(enemy), sprite_name), screen_left_x_pixels, screen,
+                          is_mirrored=not enemy.is_shell and not enemy.faces_right)
 
     def _draw_item(self, item: ItemSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         sprite_name = ITEM_SPRITE_NAMES[item.kind]
@@ -210,12 +215,15 @@ class SpriteRenderer:
         self._draw_sprite(FLAG_SPRITE_NAME, FLAG_COLOUR, place, screen_left_x_pixels, screen)
 
     def _draw_sprite(self, sprite_name: str, hitbox_colour: tuple[int, int, int], place: pygame.Rect,
-                     screen_left_x_pixels: int, screen: pygame.Surface) -> None:
-        """The sprite in its place, given in level pixels; while it is missing, its place in the colour."""
+                     screen_left_x_pixels: int, screen: pygame.Surface, is_mirrored: bool = False) -> None:
+        """The sprite in its place, given in level pixels, mirrored left to right in that same
+        place for a thing facing left (DrawSpriteObject); while it is missing, its place in the colour."""
         place_on_screen = place.move(-screen_left_x_pixels, 0)
         sprite = self._sprites.sprite(sprite_name)
         if sprite is None:
             screen.fill(hitbox_colour, place_on_screen)
+        elif is_mirrored:
+            screen.blit(pygame.transform.flip(sprite, True, False), place_on_screen)
         else:
             screen.blit(sprite, place_on_screen)
 

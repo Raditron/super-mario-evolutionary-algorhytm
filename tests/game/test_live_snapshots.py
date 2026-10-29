@@ -39,7 +39,7 @@ def test_an_agent_whose_attempt_has_ended_is_no_longer_in_it(world_1_1: StaticLe
 
 
 def agent_at(agent_index: int, x_pixels: int, is_in_attempt: bool = True, reached_flag: bool = False) -> AgentSnapshot:
-    return AgentSnapshot(agent_index, MarioSnapshot(x_pixels, 0, 12, 14), True, Area.LEVEL, is_in_attempt, reached_flag)
+    return AgentSnapshot(agent_index, MarioSnapshot(x_pixels, 0, 12, 14), Area.LEVEL, is_in_attempt, reached_flag)
 
 
 def test_the_followed_agent_is_the_rightmost_still_in_his_attempt():

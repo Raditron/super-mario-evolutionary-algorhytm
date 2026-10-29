@@ -48,6 +48,8 @@ from mario.level.static_level import EnemyKind, StaticLevel
 from mario.level.tile_kind import TileKind
 from mario.simulation.attempt import Attempt
 from mario.snapshots.world_snapshot import (
+    AgentSnapshot,
+    Area,
     BouncingBlockSnapshot,
     EnemySnapshot,
     FireballSnapshot,
@@ -118,13 +120,14 @@ def sky_screen(mario_box: tuple[int, int, int, int] = (0, SCREEN_HEIGHT_PIXELS, 
                items: tuple[ItemSnapshot, ...] = (), fireballs: tuple[FireballSnapshot, ...] = (),
                tiles: VisibleTiles = VisibleTiles(0, ()), tick: int = 0,
                mario_is_invulnerable: bool = False, flag: FlagSnapshot | None = None,
-               mario_is_invincible: bool = False) -> WorldSnapshot:
+               mario_is_invincible: bool = False, mario_faces_right: bool = True,
+               ghosts: tuple[AgentSnapshot, ...] = ()) -> WorldSnapshot:
     """The level's start with only what is given on it; Mario out of sight below the screen unless placed."""
     return WorldSnapshot(tick=tick, screen_left_x_pixels=SKY_SCREEN_LEFT_X, tiles=tiles,
                          mario=MarioSnapshot(*mario_box, power_state, is_invulnerable=mario_is_invulnerable,
-                                             is_invincible=mario_is_invincible),
+                                             is_invincible=mario_is_invincible, faces_right=mario_faces_right),
                          enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
-                         items=items, fireballs=fireballs, flag=flag)
+                         items=items, fireballs=fireballs, flag=flag, ghosts=ghosts)
 
 
 def filled_box(screen: pygame.Surface, snapshot: WorldSnapshot,
@@ -174,14 +177,14 @@ def test_the_hidden_block_and_the_castle_stopper_are_not_drawn(tmp_path, world_1
     assert colour_at(drawn(renderer, castle_screen), castle_screen, *tile_centre(205, 12)) == CASTLE_BRICK_COLOUR
 
 
-def goomba(is_defeated: bool = False) -> EnemySnapshot:
+def goomba(is_defeated: bool = False, faces_right: bool = True) -> EnemySnapshot:
     return EnemySnapshot(EnemyKind.GOOMBA, THING_X, THING_Y, GOOMBA_HITBOX_WIDTH_PIXELS,
-                         GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated)
+                         GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated, faces_right=faces_right)
 
 
-def koopa(is_shell: bool = False, is_defeated: bool = False) -> EnemySnapshot:
+def koopa(is_shell: bool = False, is_defeated: bool = False, faces_right: bool = True) -> EnemySnapshot:
     return EnemySnapshot(EnemyKind.KOOPA, THING_X, THING_Y, GOOMBA_HITBOX_WIDTH_PIXELS,
-                         GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated, is_shell)
+                         GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated, is_shell, faces_right)
 
 
 def mushroom(is_emerging: bool = False, x: int = THING_X, y: int = THING_Y,
@@ -345,6 +348,78 @@ def test_a_pipe_tile_is_drawn_with_the_picture_its_place_in_the_pipe_picks(tmp_p
     assert colour_at(screen, snapshot, *tile_centre(28, 11)) == PNG_COLOUR
     assert colour_at(screen, snapshot, *tile_centre(29, 11)) == PIPE_COLOUR
     assert colour_at(screen, snapshot, *tile_centre(28, 12)) == PIPE_COLOUR
+
+
+# --- Facing: a sprite is drawn facing right, mirrored for a thing facing left (#56) --------
+
+OTHER_PNG_COLOUR = (0, 255, 255)
+GOOMBA_BOX = (THING_X, THING_Y, GOOMBA_HITBOX_WIDTH_PIXELS, GOOMBA_HITBOX_HEIGHT_PIXELS)
+
+
+def write_two_tone_png(path: Path, size: tuple[int, int]) -> None:
+    """A sprite whose left half is PNG_COLOUR and right half OTHER_PNG_COLOUR, so its mirror image shows."""
+    width, height = size
+    image = pygame.Surface(size, pygame.SRCALPHA)
+    image.fill((*PNG_COLOUR, 255), pygame.Rect(0, 0, width // 2, height))
+    image.fill((*OTHER_PNG_COLOUR, 255), pygame.Rect(width // 2, 0, width - width // 2, height))
+    pygame.image.save(image, str(path))
+
+
+def standing_place(box: tuple[int, int, int, int], sprite_name: str) -> tuple[int, int, int, int]:
+    """The sprite's place: on the box's bottom, centred across it."""
+    left_x, top_y, box_width, box_height = box
+    width, height = SPRITE_SIZES[sprite_name]
+    return left_x + box_width // 2 - width // 2, top_y + box_height - height, width, height
+
+
+def halves(box: tuple[int, int, int, int]) -> tuple[tuple[int, int, int, int], tuple[int, int, int, int]]:
+    left_x, top_y, width, height = box
+    return (left_x, top_y, width // 2, height), (left_x + width // 2, top_y, width - width // 2, height)
+
+
+# Each thing, its sprite, its box, and whether its sprite is drawn mirrored.
+THINGS_AND_WHETHER_THEY_ARE_MIRRORED = [
+    pytest.param(sky_screen(SMALL_MARIO_BOX), "mario_small", SMALL_MARIO_BOX, False, id="mario facing right"),
+    pytest.param(sky_screen(SMALL_MARIO_BOX, mario_faces_right=False), "mario_small", SMALL_MARIO_BOX, True,
+                 id="mario facing left"),
+    pytest.param(sky_screen(enemies=(goomba(),)), "goomba", GOOMBA_BOX, False, id="goomba walking right"),
+    pytest.param(sky_screen(enemies=(goomba(faces_right=False),)), "goomba", GOOMBA_BOX, True,
+                 id="goomba walking left"),
+    pytest.param(sky_screen(enemies=(koopa(faces_right=False),)), "koopa", GOOMBA_BOX, True,
+                 id="koopa walking left"),
+    pytest.param(sky_screen(enemies=(koopa(is_shell=True, faces_right=False),)), "koopa_shell", GOOMBA_BOX, False,
+                 id="shell moving left: not mirrored"),
+]
+
+
+@pytest.mark.parametrize("snapshot, sprite_name, box, is_mirrored", THINGS_AND_WHETHER_THEY_ARE_MIRRORED)
+def test_a_thing_facing_left_is_drawn_with_its_sprite_mirrored_in_the_same_place(
+        tmp_path, scenery, snapshot, sprite_name, box, is_mirrored):
+    write_two_tone_png(tmp_path / f"{sprite_name}.png", SPRITE_SIZES[sprite_name])
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    place = standing_place(box, sprite_name)
+    left_half, right_half = halves(place)
+    left_colour, right_colour = (OTHER_PNG_COLOUR, PNG_COLOUR) if is_mirrored else (PNG_COLOUR, OTHER_PNG_COLOUR)
+    assert filled_box(screen, snapshot, left_half) == {left_colour}
+    assert filled_box(screen, snapshot, right_half) == {right_colour}
+    assert border_colours(screen, snapshot, place) == {SKY_COLOUR}
+
+
+def test_a_ghost_facing_left_is_drawn_with_his_sprite_mirrored(tmp_path, scenery):
+    """Translucent, so his left half shows the blend his right half shows facing right."""
+    write_two_tone_png(tmp_path / "mario_small.png", SPRITE_SIZES["mario_small"])
+    renderer = renderer_with(tmp_path, scenery)
+    left_half, right_half = halves(standing_place(SMALL_MARIO_BOX, "mario_small"))
+
+    def ghost_drawn(faces_right: bool) -> tuple[pygame.Surface, WorldSnapshot]:
+        ghost = AgentSnapshot(1, MarioSnapshot(*SMALL_MARIO_BOX, faces_right=faces_right), Area.LEVEL, True, False)
+        snapshot = sky_screen(ghosts=(ghost,))
+        return drawn(renderer, snapshot), snapshot
+
+    facing_right, facing_left = ghost_drawn(faces_right=True), ghost_drawn(faces_right=False)
+    assert filled_box(*facing_left, left_half) == filled_box(*facing_right, right_half)
+    assert filled_box(*facing_left, right_half) == filled_box(*facing_right, left_half)
+    assert filled_box(*facing_left, left_half) != filled_box(*facing_left, right_half)
 
 
 def test_a_sprites_transparent_pixels_show_what_is_behind_it(tmp_path, scenery):

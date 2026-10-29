@@ -10,7 +10,8 @@ The PNGs here are painted from text drawings in `sprite_art/drawings/`, one pale
 - **Sizes:** the original's, in NES pixels, on the 16 px grid. A PNG of another size is scaled to the size below, so draw it at that size.
 - **Transparency:** transparent pixels show what is behind (the sky, the scenery, the tiles).
 - **Placement:** a sprite stands on the bottom of its thing's box, centred across it. Mario's 16 px wide sprite overhangs his 12 px box by 2 px on each side. A fireball's explosion is centred on the fireball.
-- **One picture per sprite:** no animation frames and no facing yet. Those, and the full sprite list, are for the texture-pass ticket (spec section 12).
+- **Facing right:** draw Mario and the enemies facing right. The Sprite view mirrors the picture, in the same place, for Mario, a ghost or an enemy facing left; an enemy faces the way it walks. A Koopa's shell is never mirrored, so draw it to look the same either way.
+- **One picture per sprite:** no animation frames yet. Those, and the full sprite list, are for the texture-pass ticket (spec section 12).
 
 ## The sprites
 

@@ -45,7 +45,7 @@ class BouncingBlockSnapshot:
 class MarioSnapshot:
     """Mario's hitbox, in level pixels (while he grows or shrinks, the box of the
     animation frame showing), his power state, whether he can't be hurt after
-    being hurt, and whether a Starman has made him invincible."""
+    being hurt, whether a Starman has made him invincible, and which way he faces."""
     x_pixels: int
     y_pixels: int
     width_pixels: int
@@ -53,18 +53,19 @@ class MarioSnapshot:
     power_state: PowerState = PowerState.SMALL
     is_invulnerable: bool = False
     is_invincible: bool = False
+    faces_right: bool = True
 
     @classmethod
     def of(cls, mario: Mario) -> "MarioSnapshot":
         hitbox = mario.hitbox()
         return cls(hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
-                   mario.power_state, mario.is_invulnerable, mario.is_invincible)
+                   mario.power_state, mario.is_invulnerable, mario.is_invincible, mario.facing_direction == RIGHT)
 
 
 @dataclass(frozen=True)
 class EnemySnapshot:
-    """One enemy's hitbox, in level pixels, whether it has been defeated, and
-    whether it is a Koopa's shell."""
+    """One enemy's hitbox, in level pixels, whether it has been defeated, whether
+    it is a Koopa's shell, and which way it faces: the way it walks."""
     kind: EnemyKind
     x_pixels: int
     y_pixels: int
@@ -72,12 +73,13 @@ class EnemySnapshot:
     height_pixels: int
     is_defeated: bool
     is_shell: bool = False
+    faces_right: bool = True
 
     @classmethod
     def of(cls, enemy: Enemy) -> "EnemySnapshot":
         hitbox = enemy.hitbox()
         return cls(enemy.kind, hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
-                   enemy.is_defeated, enemy.is_shell)
+                   enemy.is_defeated, enemy.is_shell, enemy.walks_right)
 
 
 @dataclass(frozen=True)
@@ -165,24 +167,24 @@ class Area(StrEnum):
 
 @dataclass(frozen=True)
 class AgentSnapshot:
-    """One agent of a watched generation on one tick: his Mario's hitbox and power
-    state, which way he faces, where he is, and whether he is still in his attempt
-    or has reached the flag.
-
-    Which way he faces is kept for the texture pass (spec section 12): until
-    Mario's sprites get a facing, neither view draws one, for the followed agent
-    or for a ghost, so a ghost is drawn just as the followed agent is."""
+    """One agent of a watched generation on one tick: his Mario's hitbox, power
+    state and facing, where he is, and whether he is still in his attempt or has
+    reached the flag."""
     agent_index: int                                  # his index within the generation
     mario: MarioSnapshot
-    faces_right: bool
     area: Area
     is_in_attempt: bool
     reached_flag: bool
 
     @classmethod
     def of(cls, agent_index: int, attempt: Attempt) -> "AgentSnapshot":
-        return cls(agent_index, MarioSnapshot.of(attempt.mario), attempt.mario.facing_direction == RIGHT, Area.LEVEL,
+        return cls(agent_index, MarioSnapshot.of(attempt.mario), Area.LEVEL,
                    not attempt.is_over, attempt.end_reason is EndReason.REACHED_FLAG)
+
+    @property
+    def faces_right(self) -> bool:
+        """Which way he faces, as his Mario does; the Sprite view draws his ghost so."""
+        return self.mario.faces_right
 
     @property
     def ranking_x_pixels(self) -> int:

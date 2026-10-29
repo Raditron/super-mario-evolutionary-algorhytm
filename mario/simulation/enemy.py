@@ -53,6 +53,12 @@ class Enemy(WalkingBody, ABC):
         return self._is_knocked_off
 
     @property
+    def walks_right(self) -> bool:
+        """Whether it is walking rightwards (the original's Enemy_MovingDir), the
+        way it faces; it spawns walking left."""
+        return self.velocity_x > 0
+
+    @property
     def is_shell(self) -> bool:
         """Whether it is (drawn as) a shell; only a Koopa ever is."""
         return False

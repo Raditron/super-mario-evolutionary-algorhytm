@@ -390,7 +390,7 @@ These facts were sourced from [D] while building the Sprite view, for the sizes 
 | The flag | Three 8 × 8 sprites: two side by side at the flag's position (triangle, skull), the third 8 px below the right one (triangle). Its place is **16 × 16 from the flag's position**, the same square as its box in the game. | [D] `FlagpoleGfxHandler` l. 13259-13286 |
 
 **Replica choices**:
-- **One picture per sprite:** the Sprite view draws each thing with one picture (small, big or fire Mario; a Goomba; a squashed Goomba). Crouching, the grow frames, walking frames and facing are drawing only, and wait for the texture pass (spec section 12).
+- **One picture per sprite:** the Sprite view draws each thing with one picture (small, big or fire Mario; a Goomba; a squashed Goomba). Crouching, the grow frames and walking frames are drawing only, and wait for the texture pass (spec section 12). Facing came with #56 (see below).
 
 ## Added during the build (#22)
 
@@ -443,6 +443,22 @@ These facts were sourced from [D] while building the Starman. Line numbers refer
 - **The 17th step:** as for the mushroom, it rises 16 px and sets off with its feet on the block's top; the original's last rise puts it 1 px higher. Its fall is then the same: it sinks into the block (about 5 px) until its speed byte reaches 1, when the foot probe lands it back on top.
 - **Its look:** both views draw an invincible Mario in one colour, `INVINCIBLE_MARIO_COLOUR` (the Sprite view's `mario_small_invincible` and `mario_big_invincible` sprites fall back to it), whatever his power state, as the star palette replaces fire Mario's. The palette cycling is left to the texture pass.
 - **Not reproduced:** the landing skip near the top and bottom of the screen (`SubtEnemyYPos`) and the side check's skip above sprite y `$20`: in 1-1 the Starman never comes within 6 px of the screen's top, lands on the ground before its sprite y reaches 194, and never rises above sprite y `$20`. A squashed Goomba (state `$04`, not d5) touched by an invincible Mario: the original would defeat it again (100 more points); the replica counts it as defeated already and lets it be, as its fireballs and shells do. It can only happen when Mario stomps a Goomba and collects the Starman within the 42 ticks it lies squashed.
+
+## Added during the build (#56)
+
+These facts were sourced from [D] while drawing Mario and the enemies facing the way they face. Line numbers refer to the same file.
+
+| Fact | Value | Source |
+|---|---|---|
+| The flip | Every two-tile row of a sprite is drawn by `DrawSpriteObject`, whose flip control `$03` is a direction (1 right, 2 left): with d1 set (left) it swaps the row's two tiles and sets the OAM horizontal-flip bit on both. The graphics face right; a thing facing left is drawn mirrored, in the same place. | [D] `DrawSpriteObject`/`NoHFlip`/`SetHFAt` l. 15000-15017 |
+| Mario's facing | `RenderPlayerSub` hands `PlayerFacingDir` to it as the flip control. | [D] `RenderPlayerSub` l. 14562-14575 |
+| An enemy's facing | `EnemyGfxHandler` hands `Enemy_MovingDir`, the way the enemy moves, to it as the flip control: an enemy faces the way it walks. | [D] `EnemyGfxHandler` l. 13614-13626 |
+| The Goomba | Its flip control is inverted on 8 frames of every 16 (`FrameCounter` d3 clear), unless it is defeated or time is stopped: its walk is its own picture mirrored back and forth, whichever way it moves. | [D] `CheckForGoomba`/`GmbaAnim` l. 13688-13705 |
+| Shells | For an enemy in state 2 or more (a Koopa's shell, still, moving or flipped), `MirrorEnemyGfx` rewrites the right column as the left one mirrored: the shell is symmetric, so which way it moves doesn't show. | [D] `CheckForESymmetry`/`MirrorEnemyGfx`/`EggExc` l. 13932-13981 |
+
+**Replica choices**:
+- **Facing by mirroring:** `MarioSnapshot.faces_right` is `Mario.facing_direction`, and `EnemySnapshot.faces_right` is the enemy's walking direction (`Enemy.walks_right`, the sign of its speed). The Sprite view draws every sprite facing right and mirrors it, in the same place, for a thing facing left; a ghost faces as his Mario does (`AgentSnapshot.faces_right`). A shell is never mirrored, since its picture is drawn symmetric as the original's is.
+- **The Goomba faces the way it walks:** its mirrored walk (above) is an animation, left to the walking frames (#57).
 
 ## Not covered or uncertain
 
