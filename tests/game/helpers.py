@@ -31,6 +31,8 @@ PIPE_PILOT_WALL_LOOK_AHEAD_PIXELS = 40
 # Standing on the warp pipe with his box's left edge here, both of Mario's foot
 # probes (sprite x + 3 and + 12) are on its top: sprite x 916 to 924.
 WARP_PIPE_ENTRY_HITBOX_X_PIXELS = range(918, 927)
+# ChangeAreaTimer = $30: Mario sinks 1 px a tick for 48 ticks, then the area changes.
+SINKING_TICKS = 48
 
 
 def build_level(pit_columns: range = range(0), hard_blocks: frozenset[tuple[int, int]] = frozenset(),
@@ -94,6 +96,16 @@ def walk_onto_the_warp_pipe(attempt: Attempt, hitbox_x_pixels: int = WARP_PIPE_E
     Mario stands on the warp pipe's top; then step him along it until he stands
     still with his box's left edge here."""
     walk_onto_pipe(attempt, attempt.level.warp_pipe, hitbox_x_pixels)
+
+
+def in_the_bonus_room(level: StaticLevel, **attempt_options) -> Attempt:
+    """An attempt in 1-1 (best without enemies) whose Mario has just arrived in the
+    bonus room: down on the warp pipe, then the sinking; his drop into the room is to come."""
+    attempt = Attempt(level, **attempt_options)
+    walk_onto_the_warp_pipe(attempt)
+    for _ in range(1 + SINKING_TICKS):
+        attempt.step(HOLD_DOWN)
+    return attempt
 
 
 def walk_onto_pipe(attempt: Attempt, pipe: Pipe, hitbox_x_pixels: int) -> None:

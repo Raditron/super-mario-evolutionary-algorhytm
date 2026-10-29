@@ -34,7 +34,7 @@ def sky_world() -> WorldSnapshot:
 
 
 def ghost(box: tuple[int, int, int, int] = GHOST_BOX) -> AgentSnapshot:
-    return AgentSnapshot(1, MarioSnapshot(*box), Area.LEVEL, True, False)
+    return AgentSnapshot(1, MarioSnapshot(*box), Area.LEVEL, True, False, box[0])
 
 
 def shown_frames(snapshot: WorldSnapshot, tmp_path, toggles_to_debug: bool = False) -> list[pygame.Surface]:

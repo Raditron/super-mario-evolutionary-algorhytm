@@ -22,7 +22,7 @@ the animation frame he shows (Mario.animate), on the flagpole and on his castle
 walk too.
 """
 
-from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS, SCROLL_STOP_LEFT_X_PIXELS
+from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS, SCROLL_STOP_LEFT_X_PIXELS, TILE_SIZE_PIXELS
 from mario.constants.scoring import ITEM_POINTS
 from mario.constants.warp_pipe import (
     BONUS_ROOM_START_SPRITE_X_PIXELS,
@@ -105,6 +105,14 @@ class Attempt:
     def is_mario_controlled(self) -> bool:
         """False while a pipe transition moves him."""
         return self._pipe_transition is None
+
+    @property
+    def level_x_pixels(self) -> int:
+        """Where Mario is along the level: his x there, and in the bonus room, whose
+        x's are its own, the warp pipe's."""
+        if self.area is Area.BONUS_ROOM:
+            return self.level.warp_pipe.left_column * TILE_SIZE_PIXELS
+        return self.mario.pixel_x
 
     def step(self, buttons: int) -> None:
         if self.is_over:

@@ -415,7 +415,7 @@ def test_a_ghost_facing_left_is_drawn_with_his_sprite_mirrored(tmp_path, scenery
     left_half, right_half = halves(standing_place(SMALL_MARIO_BOX, "mario_small"))
 
     def ghost_drawn(faces_right: bool) -> tuple[pygame.Surface, WorldSnapshot]:
-        ghost = AgentSnapshot(1, MarioSnapshot(*SMALL_MARIO_BOX, faces_right=faces_right), Area.LEVEL, True, False)
+        ghost = AgentSnapshot(1, MarioSnapshot(*SMALL_MARIO_BOX, faces_right=faces_right), Area.LEVEL, True, False, SMALL_MARIO_BOX[0])
         snapshot = sky_screen(ghosts=(ghost,))
         return drawn(renderer, snapshot), snapshot
 
@@ -519,7 +519,7 @@ def test_a_ghost_is_drawn_with_the_frame_his_mario_shows(tmp_path, scenery):
     place = standing_place(SMALL_MARIO_BOX, "mario_small")
 
     def ghost_colours(pose: MarioPose) -> set[tuple[int, int, int]]:
-        ghost = AgentSnapshot(1, MarioSnapshot(*SMALL_MARIO_BOX, pose=pose), Area.LEVEL, True, False)
+        ghost = AgentSnapshot(1, MarioSnapshot(*SMALL_MARIO_BOX, pose=pose), Area.LEVEL, True, False, SMALL_MARIO_BOX[0])
         snapshot = sky_screen(ghosts=(ghost,))
         return filled_box(drawn(renderer, snapshot), snapshot, place)
 

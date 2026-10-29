@@ -15,13 +15,16 @@ from mario.simulation.area import Area
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import EndReason, GameEvent, GameEventKind
 from mario.simulation.observation_builder import ObservationBuilder
+from mario.snapshots.world_snapshot import AgentSnapshot, WorldSnapshot
 from tests.game.helpers import (
     HOLD_DOWN,
     HOLD_LEFT,
     HOLD_NOTHING,
     HOLD_RIGHT,
     HOLD_RIGHT_JUMP,
+    SINKING_TICKS,
     WARP_PIPE_ENTRY_HITBOX_X_PIXELS,
+    in_the_bonus_room,
     walk_onto_pipe,
     walk_onto_the_warp_pipe,
     without_enemies,
@@ -29,8 +32,6 @@ from tests.game.helpers import (
 
 HOLD_LEFT_JUMP = ControllerState.bitmask(left=True, jump=True)
 HOLD_DOWN_RIGHT = ControllerState.bitmask(down=True, right=True)
-# ChangeAreaTimer = $30: Mario sinks 1 px a tick for 48 ticks, then the area changes.
-SINKING_TICKS = 48
 # In the room his sprite starts at PlayerStarting_X_Pos[1], PlayerStarting_Y_Pos[1],
 # and he falls uncontrolled until its top is 48 px down (PlayerEntrance).
 BONUS_ROOM_START_SPRITE = (0x18, 0x20)
@@ -48,14 +49,6 @@ def on_the_warp_pipe(level: StaticLevel, hitbox_x_pixels: int = WARP_PIPE_ENTRY_
                      **attempt_options) -> Attempt:
     attempt = Attempt(level, **attempt_options)
     walk_onto_the_warp_pipe(attempt, hitbox_x_pixels)
-    return attempt
-
-
-def in_the_bonus_room(level: StaticLevel, **attempt_options) -> Attempt:
-    """Just arrived: the sinking is over, the drop into the room not yet begun."""
-    attempt = on_the_warp_pipe(level, **attempt_options)
-    for _ in range(1 + SINKING_TICKS):
-        attempt.step(HOLD_DOWN)
     return attempt
 
 
@@ -172,6 +165,9 @@ OBSERVATION_ROWS = 12
 # a coin over it are in his window.
 ROOM_BRICK_IN_THE_WINDOW = (4, 10)
 ROOM_COIN_IN_THE_WINDOW = (4, 9)
+# The followed-agent rule counts a Mario in the bonus room as at the warp pipe's column.
+WARP_PIPE_COLUMN = 57
+TILE_PIXELS = 16
 
 
 def walk_into_the_exit_pipe(attempt: Attempt) -> None:
@@ -340,6 +336,43 @@ def test_a_coin_shows_as_empty_and_a_broken_room_brick_as_empty_too(level):
     assert grid[row - OBSERVATION_TOP_ROW, column + 1 - first_column] == 1
     coin_column, coin_row = ROOM_COIN_IN_THE_WINDOW
     assert grid[coin_row - OBSERVATION_TOP_ROW, coin_column - first_column] == 0
+
+
+def test_in_the_bonus_room_the_world_snapshot_shows_the_rooms_tiles_on_its_fixed_screen(level):
+    attempt = in_the_bonus_room(level)
+    wait_for_control(attempt)
+    for _ in range(WATCHED_TICKS):
+        attempt.step(HOLD_RIGHT)
+    snapshot = WorldSnapshot.of(attempt)
+    room = level.bonus_room.tiles
+    assert snapshot.area is Area.BONUS_ROOM
+    assert (snapshot.screen_left_x_pixels, snapshot.tiles.first_column) == (0, 0)
+    assert all(kind is room.tile_kind(column, row)
+               for row, kinds in enumerate(snapshot.tiles.rows) for column, kind in enumerate(kinds))
+    assert snapshot.flag is None
+
+
+def test_in_the_level_the_world_snapshot_is_of_the_level(level):
+    snapshot = WorldSnapshot.of(Attempt(level))
+    assert snapshot.area is Area.LEVEL
+    assert snapshot.flag is not None
+
+
+def test_mario_shows_as_in_a_pipe_while_a_pipe_transition_moves_him(level):
+    """So the views draw him behind the tiles, as the original does."""
+    attempt = on_the_warp_pipe(level)
+    assert not WorldSnapshot.of(attempt).mario.is_in_pipe
+    attempt.step(HOLD_DOWN)
+    assert WorldSnapshot.of(attempt).mario.is_in_pipe
+    assert AgentSnapshot.of(0, attempt).mario.is_in_pipe
+    wait_for_control(attempt)
+    assert not WorldSnapshot.of(attempt).mario.is_in_pipe
+
+
+def test_an_agent_in_the_bonus_room_ranks_as_if_at_the_warp_pipes_column(level):
+    agent = AgentSnapshot.of(0, in_the_bonus_room(level))
+    assert agent.area is Area.BONUS_ROOM
+    assert agent.ranking_x_pixels == WARP_PIPE_COLUMN * TILE_PIXELS
 
 
 def ticks_until_it_stalls_standing_still(attempt: Attempt) -> int:
