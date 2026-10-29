@@ -93,6 +93,8 @@ class StaticLevel:
         self.blocks = tuple(Block(column, row, kind)
                             for row, kinds in enumerate(self._tile_rows)
                             for column, kind in enumerate(kinds) if kind in BLOCK_TILE_KINDS)
+        self.coins = tuple((column, row) for row, kinds in enumerate(self._tile_rows)
+                           for column, kind in enumerate(kinds) if kind is TileKind.COIN)
         self.pipes = pipes
         self.warp_pipe = next((pipe for pipe in pipes if pipe.leads_to is PipeDestination.BONUS_ROOM), None)
         self.enemy_spawns = enemy_spawns

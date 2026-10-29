@@ -4,7 +4,7 @@ import copy
 
 from mario.constants.level import LEVEL_HEIGHT_TILES, TILE_SIZE_PIXELS
 from mario.controller.controller_state import ControllerState
-from mario.level.static_level import EnemyKind, EnemySpawn, StaticLevel
+from mario.level.static_level import EnemyKind, EnemySpawn, Pipe, StaticLevel
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.mario import Mario
@@ -22,6 +22,15 @@ HOLD_RIGHT = ControllerState.bitmask(right=True)
 HOLD_LEFT = ControllerState.bitmask(left=True)
 HOLD_RIGHT_RUN = ControllerState.bitmask(right=True, run=True)
 HOLD_JUMP = ControllerState.bitmask(jump=True)
+HOLD_DOWN = ControllerState.bitmask(down=True)
+HOLD_RIGHT_JUMP = ControllerState.bitmask(right=True, jump=True)
+
+PIPE_WIDTH_PIXELS = 2 * TILE_SIZE_PIXELS
+# Walking right from 1-1's start and jumping at a wall this close ahead, Mario lands on the warp pipe.
+PIPE_PILOT_WALL_LOOK_AHEAD_PIXELS = 40
+# Standing on the warp pipe with his box's left edge here, both of Mario's foot
+# probes (sprite x + 3 and + 12) are on its top: sprite x 916 to 924.
+WARP_PIPE_ENTRY_HITBOX_X_PIXELS = range(918, 927)
 
 
 def build_level(pit_columns: range = range(0), hard_blocks: frozenset[tuple[int, int]] = frozenset(),
@@ -78,6 +87,46 @@ def fire_mario_attempt(level: StaticLevel, **attempt_options) -> Attempt:
     while attempt.mario.is_changing_power_state:
         attempt.step(HOLD_NOTHING)
     return attempt
+
+
+def walk_onto_the_warp_pipe(attempt: Attempt, hitbox_x_pixels: int = WARP_PIPE_ENTRY_HITBOX_X_PIXELS.start) -> None:
+    """From 1-1's start (best without enemies), walk right, jumping at walls, until
+    Mario stands on the warp pipe's top; then step him along it until he stands
+    still with his box's left edge here."""
+    walk_onto_pipe(attempt, attempt.level.warp_pipe, hitbox_x_pixels)
+
+
+def walk_onto_pipe(attempt: Attempt, pipe: Pipe, hitbox_x_pixels: int) -> None:
+    """walk_onto_the_warp_pipe, onto the given pipe."""
+    jump_held_last_tick = False
+    while not _stands_on_top_of(attempt.mario, pipe):
+        if attempt.mario.is_on_ground:
+            jump = not jump_held_last_tick and _wall_ahead(attempt)
+        else:
+            jump = jump_held_last_tick
+        jump_held_last_tick = jump
+        attempt.step(HOLD_RIGHT_JUMP if jump else HOLD_RIGHT)
+    while attempt.mario.pixel_x != hitbox_x_pixels or attempt.mario.whole_speed_x != 0:
+        if attempt.mario.pixel_x < hitbox_x_pixels:
+            attempt.step(HOLD_RIGHT)
+        elif attempt.mario.pixel_x > hitbox_x_pixels:
+            attempt.step(HOLD_LEFT)
+        else:
+            attempt.step(HOLD_NOTHING)
+
+
+def _stands_on_top_of(mario: Mario, pipe: Pipe) -> bool:
+    pipe_left_x_pixels = pipe.left_column * TILE_SIZE_PIXELS
+    return (mario.is_on_ground and mario.hitbox().bottom_y_pixels == pipe.top_row * TILE_SIZE_PIXELS
+            and pipe_left_x_pixels <= mario.pixel_x < pipe_left_x_pixels + PIPE_WIDTH_PIXELS)
+
+
+def _wall_ahead(attempt: Attempt) -> bool:
+    hitbox = attempt.mario.hitbox()
+    rows = range(hitbox.y_pixels // TILE_SIZE_PIXELS, (hitbox.bottom_y_pixels - 1) // TILE_SIZE_PIXELS + 1)
+    columns = range(hitbox.right_x_pixels // TILE_SIZE_PIXELS,
+                    (hitbox.right_x_pixels + PIPE_PILOT_WALL_LOOK_AHEAD_PIXELS) // TILE_SIZE_PIXELS + 1)
+    return any(attempt.tiles.is_solid(column, row) for column in columns for row in rows)
 
 
 def step_mario(mario: Mario, level: StaticLevel, buttons: int, ticks: int = 1) -> None:

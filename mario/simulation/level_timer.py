@@ -15,6 +15,11 @@ class LevelTimer:
     def has_run_out(self) -> bool:
         return self.time_left == 0
 
+    def restart_unit(self) -> None:
+        """A new area clears the original's frame timers (ClrTimersLoop), so the
+        next tick counted takes a unit off."""
+        self._ticks_into_unit = LEVEL_TIMER_TICKS_PER_UNIT - 1
+
     def count_down(self) -> None:
         """One tick passes."""
         self._ticks_into_unit += 1
