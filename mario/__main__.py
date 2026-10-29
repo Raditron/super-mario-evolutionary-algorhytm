@@ -1,4 +1,4 @@
-"""py -m mario play | train [config] | replay <run-folder> [--generation N] --best | stats <run-folder> [more...]"""
+"""py -m mario play | train [config] [--watch] | replay <run-folder> [--generation N] --best | stats <run-folder> [more...]"""
 
 import argparse
 from datetime import datetime
@@ -24,9 +24,11 @@ def main(runs_root: Path = RUNS_ROOT) -> None:
     parser = argparse.ArgumentParser(prog="py -m mario", description="Mario World 1-1 neuroevolution")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("play", help="play World 1-1 with the keyboard")
-    train_parser = commands.add_parser("train", help="train one run headless")
+    train_parser = commands.add_parser("train", help="train one run, headless unless watched")
     train_parser.add_argument("config", nargs="?", type=Path, default=DEFAULT_CONFIG_PATH,
                               help=f"the run's settings (default: {DEFAULT_CONFIG_FILE_NAME} at the repo root)")
+    train_parser.add_argument("--watch", action="store_true",
+                              help="show each generation live; closing the window stops the run")
     replay_parser = commands.add_parser("replay", help="replay a recorded generation")
     replay_parser.add_argument("run_folder", type=Path, help="the run's folder, in runs/")
     replay_parser.add_argument("--generation", type=int, default=None,
@@ -40,7 +42,7 @@ def main(runs_root: Path = RUNS_ROOT) -> None:
         PlayMode.with_keyboard(SPRITES_FOLDER).run()
     elif arguments.command == "train":
         from mario.modes.train_mode import TrainMode
-        TrainMode(arguments.config, runs_root).run()
+        TrainMode(arguments.config, runs_root, arguments.watch, SPRITES_FOLDER).run()
     elif arguments.command == "replay":
         if not arguments.best:
             raise SystemExit(ALL_GHOST_REPLAY_NOT_BUILT_MESSAGE)

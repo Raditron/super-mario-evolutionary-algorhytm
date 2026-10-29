@@ -49,9 +49,16 @@ class Viewer:
         return window_events.quit_requested
 
     def show(self, snapshot: WorldSnapshot) -> None:
-        """Draw the snapshot in the view shown, with the HUD on top, then wait for the next frame."""
+        """Draw the snapshot in the view shown, with the HUD on top (and the generation's
+        line, while one is watched), then wait for the next frame."""
         self._views.draw(snapshot, self._window.screen)
         self._hud.draw(snapshot.hud, self._window.screen)
+        if snapshot.generation_progress is not None:
+            self._hud.draw_generation_progress(snapshot.generation_progress, self._window.screen)
+        self._window.present()
+
+    def show_again(self) -> None:
+        """Show the frame already drawn once more (blank before the first), then wait for the next frame."""
         self._window.present()
 
     def close(self) -> None:

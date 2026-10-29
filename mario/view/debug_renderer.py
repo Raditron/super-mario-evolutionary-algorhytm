@@ -1,6 +1,6 @@
 """The Debug view: the level as the game treats it, as coloured, filled hitboxes
 (the flag on the flagpole too), with the followed agent's Observation over it and
-the recent game events."""
+the recent game events. A watched generation's ghosts are their hitboxes' outlines."""
 
 import pygame
 
@@ -11,10 +11,11 @@ from mario.constants.view import (
     EXPLODING_FIREBALL_COLOUR,
     FIREBALL_COLOUR,
     FLAG_COLOUR,
+    GHOST_OUTLINE_WIDTH_PIXELS,
     INVULNERABLE_MARIO_DRAWN_EVERY_TICKS,
     SKY_COLOUR,
 )
-from mario.snapshots.world_snapshot import EnemySnapshot, FireballSnapshot, ItemSnapshot, WorldSnapshot
+from mario.snapshots.world_snapshot import AgentSnapshot, EnemySnapshot, FireballSnapshot, ItemSnapshot, WorldSnapshot
 from mario.view.debug_text import DebugText
 from mario.view.game_event_feed import GameEventFeed
 from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, MARIO_COLOURS, SHELL_COLOURS, TILE_COLOURS
@@ -46,6 +47,8 @@ class DebugRenderer:
             self._draw_enemy(enemy, snapshot.screen_left_x_pixels, screen)
         for fireball in snapshot.fireballs:
             self._draw_fireball(fireball, snapshot.screen_left_x_pixels, screen)
+        for ghost in snapshot.ghosts:
+            self._draw_ghost(ghost, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
         if not mario.is_invulnerable or snapshot.tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0:
             _fill_level_box(screen, MARIO_COLOURS[mario.power_state], snapshot.screen_left_x_pixels,
@@ -79,6 +82,14 @@ class DebugRenderer:
                         enemy.x_pixels, drawn_top_y_pixels, enemy.width_pixels, drawn_height_pixels)
 
     @staticmethod
+    def _draw_ghost(ghost: AgentSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
+        mario = ghost.mario
+        pygame.draw.rect(screen, MARIO_COLOURS[mario.power_state],
+                         _level_box_on_screen(screen_left_x_pixels, mario.x_pixels, mario.y_pixels,
+                                              mario.width_pixels, mario.height_pixels),
+                         GHOST_OUTLINE_WIDTH_PIXELS)
+
+    @staticmethod
     def _draw_fireball(fireball: FireballSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         colour = EXPLODING_FIREBALL_COLOUR if fireball.is_exploding else FIREBALL_COLOUR
         _fill_level_box(screen, colour, screen_left_x_pixels,
@@ -93,4 +104,11 @@ class DebugRenderer:
 def _fill_level_box(screen: pygame.Surface, colour: tuple[int, int, int], screen_left_x_pixels: int,
                     level_x_pixels: int, y_pixels: int, width_pixels: int, height_pixels: int) -> None:
     """Fill a box given in level pixels, shifted onto the screen."""
-    screen.fill(colour, pygame.Rect(level_x_pixels - screen_left_x_pixels, y_pixels, width_pixels, height_pixels))
+    screen.fill(colour, _level_box_on_screen(screen_left_x_pixels, level_x_pixels, y_pixels,
+                                             width_pixels, height_pixels))
+
+
+def _level_box_on_screen(screen_left_x_pixels: int, level_x_pixels: int, y_pixels: int,
+                         width_pixels: int, height_pixels: int) -> pygame.Rect:
+    """A box given in level pixels, shifted onto the screen."""
+    return pygame.Rect(level_x_pixels - screen_left_x_pixels, y_pixels, width_pixels, height_pixels)

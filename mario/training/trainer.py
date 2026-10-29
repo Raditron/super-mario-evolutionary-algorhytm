@@ -58,7 +58,7 @@ class Trainer:
             raise ValueError(f"the algorithm gave {len(genomes)} genomes for a population of "
                              f"{self._run_settings.population_size}")
         started_at = time.perf_counter()
-        played_attempts = self._worker_pool.play(genomes)
+        played_attempts = self._worker_pool.play(genomes, generation)
         fitnesses = np.array([self._algorithm.fitness(played_attempt.attempt_result)
                               for played_attempt in played_attempts], dtype=np.float64)
         return GenerationReport(generation, genomes, played_attempts, fitnesses, time.perf_counter() - started_at)

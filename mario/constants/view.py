@@ -86,6 +86,8 @@ HUD_COIN_ICON_CELL = (11, 3)
 HUD_COIN_ICON_RECT_IN_CELL = (2, 1, 4, 6)  # x, y, width, height in px
 HUD_COIN_CROSS_CELL = (12, 3)
 HUD_COIN_CROSS = "x"
+# While a generation is watched, the HUD adds this line about it (spec section 8).
+GENERATION_LINE = "generation {generation} · alive {alive} / {population_size} · reached flag {reached_flag}"
 HUD_COINS_CELL = (13, 3)
 HUD_COINS_DIGITS = 2
 HUD_WORLD_CELL = (19, 3)
@@ -160,3 +162,15 @@ HILL_COLOUR = (0, 120, 0)
 BUSH_COLOUR = (128, 208, 16)
 CASTLE_BRICK_COLOUR = (172, 80, 36)
 CASTLE_OPENING_COLOUR = (0, 0, 0)        # its windows and door
+
+# --- Watch-live: the other agents as ghosts, and the generation's line in the HUD (#29) ---------
+
+# At most this many agents besides the followed one are drawn, the rightmost ones.
+GHOST_DRAW_LIMIT = 100
+# The Sprite view draws a ghost at this opacity (0 transparent to 255 opaque);
+# the Debug view draws its hitbox's outline, this many pixels wide.
+GHOST_OPACITY = 96
+GHOST_OUTLINE_WIDTH_PIXELS = 1
+# The HUD's GENERATION_LINE, under the level's ground line.
+GENERATION_LINE_TOP_LEFT = (8, 216)
+GENERATION_LINE_FONT_SIZE = 12            # pygame's default font: the longest line fits the screen

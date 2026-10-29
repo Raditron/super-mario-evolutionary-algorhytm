@@ -1,7 +1,8 @@
 """The Sprite view: the level as humans see it, every thing drawn with its sprite
 from assets/sprites/ at the original's size, over the background scenery.
 
-A thing whose sprite is missing fills the sprite's place in its hitbox colour,
+A watched generation's ghosts are their Mario sprites, translucent, under the
+followed agent's. A thing whose sprite is missing fills the sprite's place in its hitbox colour,
 so the view works with an empty folder and a PNG dropped in later shows with
 no code change (spec sections 8 and 12).
 """
@@ -17,6 +18,7 @@ from mario.constants.view import (
     EXPLODING_FIREBALL_COLOUR,
     FIREBALL_COLOUR,
     FLAG_COLOUR,
+    GHOST_OPACITY,
     HILL_COLOUR,
     INVULNERABLE_MARIO_DRAWN_EVERY_TICKS,
     SKY_COLOUR,
@@ -26,6 +28,7 @@ from mario.level.background_scenery import BackgroundScenery, SceneryKind
 from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.snapshots.world_snapshot import (
+    AgentSnapshot,
     EnemySnapshot,
     FireballSnapshot,
     FlagSnapshot,
@@ -118,6 +121,8 @@ class SpriteRenderer:
             self._draw_enemy(enemy, snapshot.screen_left_x_pixels, screen)
         for fireball in snapshot.fireballs:
             self._draw_fireball(fireball, snapshot.screen_left_x_pixels, screen)
+        for ghost in snapshot.ghosts:
+            self._draw_ghost(ghost, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
         if not mario.is_invulnerable or snapshot.tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0:
             self._draw_mario(mario, snapshot.screen_left_x_pixels, screen)
@@ -153,6 +158,17 @@ class SpriteRenderer:
         box = _hitbox(mario)
         self._draw_sprite(sprite_name, MARIO_COLOURS[mario.power_state], _standing_on(box, sprite_name),
                           screen_left_x_pixels, screen)
+
+    def _draw_ghost(self, ghost: AgentSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
+        """His Mario's sprite (or its place, filled), drawn at GHOST_OPACITY."""
+        mario = ghost.mario
+        sprite_name = MARIO_SPRITE_NAMES[mario.power_state]
+        place = _standing_on(_hitbox(mario), sprite_name)
+        ghost_surface = pygame.Surface(place.size, pygame.SRCALPHA)
+        self._draw_sprite(sprite_name, MARIO_COLOURS[mario.power_state], place.move(-place.x, -place.y), 0,
+                          ghost_surface)
+        ghost_surface.set_alpha(GHOST_OPACITY)
+        screen.blit(ghost_surface, place.move(-screen_left_x_pixels, 0))
 
     def _draw_enemy(self, enemy: EnemySnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         """A shell, even a defeated one (the original flips it), is drawn as its shell."""

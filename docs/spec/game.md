@@ -55,8 +55,16 @@ mario/
                   ObservationBuilder (no pygame)
   controller/     Controller bitmask, ControllerSource, ControllerLogSource,
                   BrainControllerSource (no pygame)
-  snapshots/      WorldSnapshot + the shared-memory channel
-  training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool, ChunkPlayer
+  snapshots/      WorldSnapshot (with AgentSnapshot, GenerationProgress), the
+                  followed-agent rule and ChunkSnapshot, the shared-memory
+                  SnapshotChannel, and LiveChunkPublisher: a watched worker's
+                  pacing and publishing (no pygame)
+  training/       NeuroevolutionAlgorithm, Trainer, AgentWorkerPool, ChunkPlayer,
+                  ChunkControllerSourceFactory (the pool's one seam with what
+                  presses its agents' buttons; training's is
+                  BrainChunkControllerSourceFactory), PlayWatcher (what the pool
+                  hands the main process to while a watched generation plays)
+                  and ViewerClosed
   recording/      RunFolder, RunRecorder (training's GenerationRecorder feeds it),
                   RecordedRun: a run folder read back for replay; ResultsRow:
                   one row of results.csv, written and read back by RESULTS_COLUMNS;
@@ -68,9 +76,9 @@ mario/
                   matplotlib's Agg canvas (only matplotlib importer)
   view/           Window, KeyboardControllerSource, SpriteRenderer, DebugRenderer,
                   HUD, Viewer (window + both views + HUD, with F1, shared by every
-                  mode that draws), followed-agent camera (only pygame importer)
-  modes/          PlayMode (+ PlaySession), TrainMode, ReplayMode (+ ReplaySession),
-                  StatsMode
+                  mode that draws), FollowedAgentCamera (only pygame importer)
+  modes/          PlayMode (+ PlaySession), TrainMode, WatchLive (watch-live's
+                  window, a PlayWatcher), ReplayMode (+ ReplaySession), StatsMode
 neuroevolution/   the user's package; exposes create_algorithm(settings)
 assets/sprites/   textures, added last (section 12)
 tests/game/       the game's pytest suite
@@ -97,7 +105,7 @@ config.toml       the run settings the user edits (section 10)
 - **Deterministic.** The simulation has no RNG and no floats. The same Controller log always gives the same attempt, bit for bit, and replays rely on this.
 - **Where buttons come from** is the only difference between modes, through one `ControllerSource` interface:
   - `KeyboardControllerSource`: play
-  - `BrainControllerSource`: train. It turns a brain's (agents × 5) bools for one tick into each agent's bitmask; training's `ChunkPlayer` runs the lock-step over a chunk: Observations → `brain.decide` → step every agent.
+  - `BrainControllerSource`: train. It turns a brain's (agents × 5) bools for one tick into each agent's bitmask; training's `ChunkPlayer` runs the lock-step over a chunk, asking the chunk's `ChunkControllerSource` for every agent's buttons each tick (in training, `BrainChunkControllerSource`: Observations → `brain.decide` → `BrainControllerSource`) and stepping every agent (section 9).
   - `ControllerLogSource`: replay
 
 ### Physics (#2, #8)
@@ -233,7 +241,7 @@ class Brain(Protocol):
 
 **One generation:**
 1. Send genomes to the worker pool.
-2. Each worker runs its chunk in lock-step with `build_brain` and `ChunkPlayer` (which reads the brain's buttons through `BrainControllerSource`).
+2. Each worker runs its chunk in lock-step with `ChunkPlayer`, the buttons coming from the chunk's `BrainChunkControllerSource`: a brain from `build_brain`, its answers read through `BrainControllerSource`.
 3. `AttemptResult`s and Controller logs come back.
 4. `fitness` is called on each result.
 5. Record the generation (section 10).
@@ -241,8 +249,10 @@ class Brain(Protocol):
 
 **Worker pool (#4):**
 - a persistent `multiprocessing` pool with the spawn context, created once per run
-- `TRAINING_WORKER_COUNT = 8`, 2 chunks per worker
+- headless: `TRAINING_WORKER_COUNT = 8` workers, `CHUNKS_PER_WORKER = 2` chunks per worker, so a worker that finishes a chunk of short attempts early picks up another
+- watched (section 11): one process per chunk, 8 × 2 = 16. A watched chunk plays at the game's own speed, so a worker's second chunk would wait the whole of its first chunk's real time, and a generation would last about twice its longest attempt; with every chunk at once it lasts about as long as its longest attempt. The chunks are the same either way, so the results are too.
 - BLAS pinned to 1 thread per worker
+- **The pool's one seam with what presses the buttons** is `ChunkControllerSourceFactory` (`training/chunk_controller_source.py`): picklable, sent to each worker as it starts, started there once (`start_in_worker`), then asked for each chunk's `ChunkControllerSource`, which gives every agent of the chunk his buttons, tick after tick. `AgentWorkerPool.play` takes what controls each agent in agent order, whatever the factory takes. Training's factory is `BrainChunkControllerSourceFactory`: it builds the algorithm in each worker through `create_algorithm`, and a brain per chunk from its genomes. The pool, `ChunkPlayer` and the snapshot pipeline never know which factory they have.
 
 **Speed bar:** 100 generations × 1000 agents in under ~2 h on the user's 4-core / 8-thread laptop. #4 measured ≈ 13–21 min on a reduced game. The full scope adds per-tick work, so the training build re-measures it (section 14).
 
@@ -284,7 +294,13 @@ runs/YYYY-MM-DD_HH-MM_<run-name>/
   - The window draws the latest snapshot.
   - Without `--watch`, nothing is written and training runs at full speed. The budget at real time is about 25–40 s per generation.
   - *Suggested shape:* each worker publishes full detail for its own rightmost living agent, and the window uses the overall rightmost.
-- **All-ghost replay** reuses the same worker + snapshot pipeline, with `ControllerLogSource` in place of the brain.
+  - **As built (#29):**
+    - Watched, the pool starts one process per chunk (`TRAINING_WORKER_COUNT` × `CHUNKS_PER_WORKER`), so every chunk plays at once and a generation lasts about as long as its longest attempt. The chunks are the very ones a headless run plays, so every brain gets the same rows and results are identical.
+    - Each chunk has its own slot in a `SnapshotChannel` (one lock per slot, `SNAPSHOT_SLOT_BYTES` each). After every tick, the chunk's `LiveChunkPublisher` waits for that tick's moment (`WATCHED_TICKS_PER_SECOND`, paced from the chunk's start), then writes a `ChunkSnapshot`: an `AgentSnapshot` per agent plus the `WorldSnapshot` of the chunk's own followed agent.
+    - While the workers play, `AgentWorkerPool.play` hands the main process to its `PlayWatcher`, `WatchLive`. That shows the `FollowedAgentCamera`'s `WorldSnapshot` in the shared `Viewer`, with the ghosts and the HUD line, at 60 fps. The window opens when the first generation starts to play.
+    - Closing the window (or `Esc`) raises `ViewerClosed`. The pool's workers are stopped and the generation being played is never recorded, so the run folder keeps only complete generations; `train` says so and exits normally.
+    - The followed-agent rule ranks agents by `AgentSnapshot.ranking_x_pixels`. That property is the one seam for the bonus room: until #23 adds it, `Area` has only `LEVEL`, and #23 makes an agent there rank as column 57.
+- **All-ghost replay** reuses the same worker + snapshot pipeline, with `ControllerLogSource` in place of the brain: it gives `AgentWorkerPool` a `ChunkControllerSourceFactory` of its own (section 9), whose sources play each agent's Controller log back, and the generation's Controller logs in place of its genomes. That factory builds no algorithm, so replay never imports `neuroevolution`. `LiveChunkPublisher` reads only the chunk's Attempts, and `WatchLive` reads only snapshots, so neither cares where the buttons come from.
 - **Best-agent replay** and **play** are one Mario each and run in the main process (built in #28):
   - The best agent is read from `results.csv` (highest fitness, lowest index on a tie), and its Controller log from `controller_logs.npz`. A generation counts as recorded once its folder holds its Controller logs (the last thing written of it), so a run stopped early replays from its last complete generation.
   - The recorded attempts are training attempts, so the replay's Attempt has the **stall rule on**, as they had. It ends where the recorded attempt ended; one that reached the flag then plays out the end of the level through `step_end_of_level`, as play mode does.

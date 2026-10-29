@@ -27,6 +27,7 @@ from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import EndReason
 from mario.training.agent_worker_pool import AgentWorkerPool
 from mario.training.algorithm_factory import AlgorithmFactory
+from mario.training.brain_chunk_controller_source import BrainChunkControllerSourceFactory
 from mario.training.generation_recorder import GenerationRecorder
 from mario.training.run_config import RunSettings
 from mario.training.trainer import GenerationListener, GenerationReport, Trainer
@@ -68,7 +69,8 @@ def stopped_run(tmp_path_factory) -> Path:
     run_settings = RunSettings(name=RUN_NAME, seed=SEED, generations=PLANNED_GENERATIONS,
                                population_size=POPULATION_SIZE)
     algorithm_factory = AlgorithmFactory(create_random_buttons_algorithm, {})
-    with pytest.raises(KeyboardInterrupt), AgentWorkerPool(algorithm_factory, WORKER_COUNT) as worker_pool:
+    with (pytest.raises(KeyboardInterrupt),
+          AgentWorkerPool(BrainChunkControllerSourceFactory(algorithm_factory), WORKER_COUNT) as worker_pool):
         Trainer(algorithm_factory.create(), worker_pool, run_settings,
                 [GenerationRecorder(recorder), StopAfter(GENERATIONS_BEFORE_THE_STOP)]).run()
     return recorder.run_folder_path

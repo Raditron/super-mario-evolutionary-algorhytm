@@ -36,6 +36,7 @@ from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import AttemptResult
 from mario.training.agent_worker_pool import AgentWorkerPool
 from mario.training.algorithm_factory import AlgorithmFactory
+from mario.training.brain_chunk_controller_source import BrainChunkControllerSourceFactory
 from mario.training.neuroevolution_algorithm import Brain, NeuroevolutionAlgorithm
 from mario.training.run_config import RunSettings
 from mario.training.trainer import GenerationListener, GenerationReport, Trainer
@@ -128,7 +129,7 @@ def time_workload(name: str, algorithm_factory: AlgorithmFactory) -> None:
     timer = GenerationTimer()
     run_settings = RunSettings(name=name, seed=BENCHMARK_SEED, generations=TIMED_GENERATIONS,
                                population_size=BENCHMARK_POPULATION_SIZE)
-    with AgentWorkerPool(algorithm_factory) as worker_pool:
+    with AgentWorkerPool(BrainChunkControllerSourceFactory(algorithm_factory)) as worker_pool:
         Trainer(algorithm_factory.create(), worker_pool, run_settings, [timer]).run()
     seconds_per_generation = statistics.median(timer.seconds)
     agent_ticks_per_second = sum(timer.agent_ticks) / sum(timer.seconds)

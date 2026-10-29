@@ -1,13 +1,19 @@
 """The HUD: score, coins, world and time, laid out as the original's status bar.
 
 The original prints its status bar on the NES's 8 x 8 px text grid, one
-character per cell; this draws each character centred in its cell.
+character per cell; this draws each character centred in its cell. While a
+generation is watched (watch-live, all-ghost replay), a line about it is added
+under the level's ground line, in a smaller font: it is longer than the screen
+has cells.
 """
 
 import pygame
 
 from mario.constants.level import WORLD_NAME
 from mario.constants.view import (
+    GENERATION_LINE,
+    GENERATION_LINE_FONT_SIZE,
+    GENERATION_LINE_TOP_LEFT,
     HUD_CELL_PIXELS,
     HUD_COIN_CROSS,
     HUD_COIN_CROSS_CELL,
@@ -26,14 +32,20 @@ from mario.constants.view import (
     HUD_TIME_DIGITS,
     HUD_WORLD_CELL,
 )
-from mario.snapshots.world_snapshot import HudSnapshot
+from mario.snapshots.world_snapshot import GenerationProgress, HudSnapshot
 
 Cell = tuple[int, int]
+
+
+def generation_line(progress: GenerationProgress) -> str:
+    return GENERATION_LINE.format(generation=progress.generation, alive=progress.alive,
+                                  population_size=progress.population_size, reached_flag=progress.reached_flag)
 
 
 class Hud:
     def __init__(self):
         self._font = pygame.font.Font(None, HUD_FONT_SIZE)
+        self._generation_line_font = pygame.font.Font(None, GENERATION_LINE_FONT_SIZE)
         self._glyphs: dict[str, pygame.Surface] = {}
 
     def draw(self, hud: HudSnapshot, screen: pygame.Surface) -> None:
@@ -46,6 +58,10 @@ class Hud:
         self._draw_text(f"{hud.coins:0{HUD_COINS_DIGITS}d}", HUD_COINS_CELL, screen)
         self._draw_text(WORLD_NAME, HUD_WORLD_CELL, screen)
         self._draw_text(f"{hud.time_left:0{HUD_TIME_DIGITS}d}", HUD_TIME_CELL, screen)
+
+    def draw_generation_progress(self, progress: GenerationProgress, screen: pygame.Surface) -> None:
+        screen.blit(self._generation_line_font.render(generation_line(progress), False, HUD_TEXT_COLOUR),
+                    GENERATION_LINE_TOP_LEFT)
 
     def _draw_text(self, text: str, first_cell: Cell, screen: pygame.Surface) -> None:
         first_column, row = first_cell
