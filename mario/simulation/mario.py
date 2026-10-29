@@ -7,7 +7,8 @@ disassembly routine it comes from (docs/research/smb-physics-constants.md).
 Big (and fire) Mario moves exactly as small Mario does; only his box differs:
 taller, or small Mario's while he crouches. Changing his power state (growing,
 shrinking or catching fire: PowerStateChange) stops him and the whole game for
-a while; after shrinking he can't be hurt for a while. Growing or standing up can put his box inside a solid
+a while; after shrinking he can't be hurt for a while. A Starman makes him
+invincible for a while. Growing or standing up can put his box inside a solid
 tile, which his head and side probes then get him out of, as in the original.
 """
 
@@ -60,6 +61,7 @@ from mario.constants.physics import (
     SLOW_JUMP_RISING_GRAVITY,
     SLOW_JUMP_SPEED,
     SLOW_JUMP_SPEED_LIMIT,
+    STARMAN_INVINCIBLE_TICKS,
     STOMP_BOUNCE_SPEED,
     SUBPIXEL_BITS,
     SUBPIXEL_FRACTION_MASK,
@@ -137,6 +139,7 @@ class Mario(TileBody):
         self.is_dead = False                         # an enemy's touch killed him
         self._power_state_change: PowerStateChange | None = None
         self._invulnerable_ticks_left = 0            # InjuryTimer
+        self._invincible_ticks_left = 0              # StarInvincibleTimer
         self._run_held_last_tick = False
         # set each tick: fire Mario pressed run afresh while able to shoot (ProcFireball_Bubble)
         self.wants_to_shoot_fireball = False
@@ -192,12 +195,20 @@ class Mario(TileBody):
         """Whether an enemy's touch can't hurt him: from being hurt until a while after he has shrunk."""
         return self._invulnerable_ticks_left > 0
 
+    @property
+    def is_invincible(self) -> bool:
+        """Whether he is invincible, for a while after collecting a Starman: every
+        enemy he touches is defeated, and none can hurt him."""
+        return self._invincible_ticks_left > 0
+
     def step(self, controller: ControllerState, tiles: AttemptTiles) -> None:
         self.head_hit_tile = None
         if self.running_timer > 0:
             self.running_timer -= 1
         if self._invulnerable_ticks_left > 0:
             self._invulnerable_ticks_left -= 1
+        if self._invincible_ticks_left > 0:
+            self._invincible_ticks_left -= 1
         self._update_crouching(controller)
         self.held_direction = controller.direction
         if controller.down and self.is_on_ground:
@@ -265,6 +276,11 @@ class Mario(TileBody):
             self.grow()
         elif not self.is_fiery:
             self._catch_fire()
+
+    def become_invincible(self) -> None:
+        """He collected a Starman (HandlePowerUpCollision): invincible from now, for
+        a while, whatever his power state, which it leaves alone."""
+        self._invincible_ticks_left = STARMAN_INVINCIBLE_TICKS
 
     def grow(self) -> None:
         """Small, he collected a Super Mushroom or a fire flower. SetPRout puts him

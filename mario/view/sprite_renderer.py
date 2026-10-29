@@ -38,7 +38,7 @@ from mario.snapshots.world_snapshot import (
     PowerState,
     WorldSnapshot,
 )
-from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, MARIO_COLOURS, SHELL_COLOURS, TILE_COLOURS
+from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, SHELL_COLOURS, TILE_COLOURS, mario_colour
 from mario.view.sprite_library import SpriteLibrary
 
 # Tiles by how they look: a brick or ? block doesn't show what it holds. Tiles
@@ -74,6 +74,13 @@ MARIO_SPRITE_NAMES = {
     PowerState.FIERY: "mario_fiery",
 }
 
+# Invincible, by size: the star palette shows over fire Mario's colours too.
+INVINCIBLE_MARIO_SPRITE_NAMES = {
+    PowerState.SMALL: "mario_small_invincible",
+    PowerState.BIG: "mario_big_invincible",
+    PowerState.FIERY: "mario_big_invincible",
+}
+
 ENEMY_SPRITE_NAMES = {
     EnemyKind.GOOMBA: "goomba",
     EnemyKind.KOOPA: "koopa",
@@ -91,6 +98,7 @@ ITEM_SPRITE_NAMES = {
     ItemKind.SUPER_MUSHROOM: "super_mushroom",
     ItemKind.ONE_UP_MUSHROOM: "one_up_mushroom",
     ItemKind.FIRE_FLOWER: "fire_flower",
+    ItemKind.STARMAN: "starman",
 }
 
 FIREBALL_SPRITE_NAME = "fireball"
@@ -154,19 +162,17 @@ class SpriteRenderer:
                                   snapshot.screen_left_x_pixels, screen)
 
     def _draw_mario(self, mario: MarioSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
-        sprite_name = MARIO_SPRITE_NAMES[mario.power_state]
-        box = _hitbox(mario)
-        self._draw_sprite(sprite_name, MARIO_COLOURS[mario.power_state], _standing_on(box, sprite_name),
+        sprite_name = _mario_sprite_name(mario)
+        self._draw_sprite(sprite_name, mario_colour(mario), _standing_on(_hitbox(mario), sprite_name),
                           screen_left_x_pixels, screen)
 
     def _draw_ghost(self, ghost: AgentSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         """His Mario's sprite (or its place, filled), drawn at GHOST_OPACITY."""
         mario = ghost.mario
-        sprite_name = MARIO_SPRITE_NAMES[mario.power_state]
+        sprite_name = _mario_sprite_name(mario)
         place = _standing_on(_hitbox(mario), sprite_name)
         ghost_surface = pygame.Surface(place.size, pygame.SRCALPHA)
-        self._draw_sprite(sprite_name, MARIO_COLOURS[mario.power_state], place.move(-place.x, -place.y), 0,
-                          ghost_surface)
+        self._draw_sprite(sprite_name, mario_colour(mario), place.move(-place.x, -place.y), 0, ghost_surface)
         ghost_surface.set_alpha(GHOST_OPACITY)
         screen.blit(ghost_surface, place.move(-screen_left_x_pixels, 0))
 
@@ -209,6 +215,11 @@ class SpriteRenderer:
             screen.fill(hitbox_colour, place_on_screen)
         else:
             screen.blit(sprite, place_on_screen)
+
+
+def _mario_sprite_name(mario: MarioSnapshot) -> str:
+    sprite_names = INVINCIBLE_MARIO_SPRITE_NAMES if mario.is_invincible else MARIO_SPRITE_NAMES
+    return sprite_names[mario.power_state]
 
 
 def _hitbox(thing: MarioSnapshot | EnemySnapshot | ItemSnapshot | FireballSnapshot) -> pygame.Rect:

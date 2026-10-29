@@ -22,10 +22,11 @@ SHELL_DEFEAT_STEPS_PAST_SHELL_CHAIN = 4
 
 # An enemy defeated by bumping the block under it (GiveOEPoints).
 BUMPED_ENEMY_POINTS = 100
-# A Goomba defeated by a fireball (ShellOrBlockDefeat, GoombaPoints: floatey number
-# $01); a Koopa, walking or in its shell, like most other enemies (floatey number $02).
-GOOMBA_FIREBALL_POINTS = 100
-KOOPA_FIREBALL_POINTS = 200
+# A Goomba knocked off by a fireball or by an invincible Mario's touch
+# (ShellOrBlockDefeat, GoombaPoints: floatey number $01); a Koopa, walking or in
+# its shell, like most other enemies (floatey number $02).
+GOOMBA_KNOCK_OFF_POINTS = 100
+KOOPA_KNOCK_OFF_POINTS = 200
 
 # An item collected (HandlePowerUpCollision: floatey number $06). The 1-UP
 # mushroom gives a life instead (floatey number $0B).

@@ -31,6 +31,9 @@ CASTLE_STOPPER_COLOUR = (60, 60, 60)
 FLAG_COLOUR = (60, 188, 60)
 MARIO_COLOUR = (216, 40, 0)                  # small or big
 FIRE_MARIO_COLOUR = (252, 252, 252)
+# A Starman's invincibility overrides his power state's colour, as the original's
+# cycling star palette does (CyclePlayerPalette), small, big or fiery.
+INVINCIBLE_MARIO_COLOUR = (184, 248, 24)
 GOOMBA_COLOUR = (136, 76, 0)
 KOOPA_COLOUR = (88, 216, 84)
 KOOPA_SHELL_COLOUR = (16, 112, 72)           # still or moving
@@ -40,6 +43,7 @@ DEFEATED_ENEMY_DRAWN_HEIGHT_PIXELS = 8
 SUPER_MUSHROOM_COLOUR = (252, 116, 180)
 ONE_UP_MUSHROOM_COLOUR = (0, 200, 120)
 FIRE_FLOWER_COLOUR = (252, 160, 68)
+STARMAN_COLOUR = (248, 184, 0)
 FIREBALL_COLOUR = (252, 216, 0)
 EXPLODING_FIREBALL_COLOUR = (252, 100, 0)
 # While he can't be hurt, Mario is drawn only on ticks that are a multiple of this
@@ -143,6 +147,9 @@ SPRITE_SIZES = {
     "mario_small": SMALL_MARIO_SPRITE_SIZE,
     "mario_big": BIG_MARIO_SPRITE_SIZE,
     "mario_fiery": BIG_MARIO_SPRITE_SIZE,
+    # Mario invincible, by size: the star palette shows over fire Mario's colours too
+    "mario_small_invincible": SMALL_MARIO_SPRITE_SIZE,
+    "mario_big_invincible": BIG_MARIO_SPRITE_SIZE,
     # enemies
     "goomba": GOOMBA_SPRITE_SIZE,
     "goomba_defeated": DEFEATED_GOOMBA_SPRITE_SIZE,
@@ -152,6 +159,7 @@ SPRITE_SIZES = {
     "super_mushroom": ITEM_SPRITE_SIZE,
     "one_up_mushroom": ITEM_SPRITE_SIZE,
     "fire_flower": ITEM_SPRITE_SIZE,
+    "starman": ITEM_SPRITE_SIZE,
     # Mario's fireballs
     "fireball": FIREBALL_SPRITE_SIZE,
     "fireball_explosion": FIREBALL_EXPLOSION_SPRITE_SIZE,

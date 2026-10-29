@@ -154,6 +154,9 @@ class Attempt:
         for points in outcome.points_per_kick:
             self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.KICKED_SHELL))
             self.scoreboard.score_points_if_any(points, self.ticks_elapsed)
+        for points in outcome.points_per_starman_defeat:
+            self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.DEFEATED_ENEMY, DefeatMethod.STARMAN))
+            self.scoreboard.score_points(points, self.ticks_elapsed)
         if outcome.mario_took_damage:
             self.events.append(GameEvent(self.ticks_elapsed, GameEventKind.TOOK_DAMAGE))
         self._died_to_enemy = outcome.mario_died
@@ -170,13 +173,16 @@ class Attempt:
 
     def _collect(self, item: Item) -> None:
         """HandlePowerUpCollision: the 1-UP gives a life; a Super Mushroom or a fire
-        flower scores and powers Mario up."""
+        flower scores and powers Mario up; a Starman scores and makes him invincible."""
         if item.kind is ItemKind.ONE_UP_MUSHROOM:
             self.scoreboard.collect_one_up(self.ticks_elapsed)
             return
         self.events.append(GameEvent(self.ticks_elapsed, item.collected_event_kind))
         self.scoreboard.score_points(ITEM_POINTS, self.ticks_elapsed)
-        self.mario.power_up()
+        if item.kind is ItemKind.STARMAN:
+            self.mario.become_invincible()
+        else:
+            self.mario.power_up()
 
     def _reason_to_end(self) -> EndReason | None:
         if self.flagpole_touch is not None:

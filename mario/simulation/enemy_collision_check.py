@@ -1,6 +1,10 @@
 """The Mario-vs-enemy check (the original's PlayerEnemyCollision), run every other tick.
 
-Touching a still shell kicks it, from any side (HandlePECollisions). Touching any
+While a Starman makes Mario invincible, every enemy he touches is defeated,
+shells too, and he is never hurt nor stomps (EColl, ShellOrBlockDefeat); this
+comes before the rule below that a touch counts once.
+
+Otherwise, touching a still shell kicks it, from any side (HandlePECollisions). Touching any
 other enemy while moving down at 1 px/f or more stomps it, and so does any touch
 on a tick he has already stomped one. Any other touch hurts him
 (ChkForPlayerInjury, ForceInjury): it kills small Mario and makes big Mario
@@ -33,10 +37,12 @@ def is_enemy_check_tick(tick: int) -> bool:
 @dataclass(frozen=True)
 class EnemyCollisionOutcome:
     """What one tick's check found: the points each stomp and each shell kick
-    scored, in order (None beyond the score table), and whether an enemy hurt big
-    Mario or killed small Mario."""
+    scored, in order (None beyond the score table), the points each enemy an
+    invincible Mario defeated scored, and whether an enemy hurt big Mario or killed
+    small Mario."""
     points_per_stomp: tuple[int | None, ...] = ()
     points_per_kick: tuple[int | None, ...] = ()
+    points_per_starman_defeat: tuple[int, ...] = ()
     mario_took_damage: bool = False
     mario_died: bool = False
 
@@ -56,6 +62,8 @@ class EnemyCollisionCheck:
         return self._check(mario, enemies)
 
     def _check(self, mario: Mario, enemies: list[Enemy]) -> EnemyCollisionOutcome:
+        if mario.is_invincible:
+            return EnemyCollisionOutcome(points_per_starman_defeat=self._defeat_touched_enemies(mario, enemies))
         self._stomp_chain.start_tick()
         points_per_stomp = []
         points_per_kick = []
@@ -72,10 +80,25 @@ class EnemyCollisionCheck:
                                              mario_took_damage=not mario.is_dead, mario_died=mario.is_dead)
         return EnemyCollisionOutcome(tuple(points_per_stomp), tuple(points_per_kick))
 
+    def _defeat_touched_enemies(self, mario: Mario, enemies: list[Enemy]) -> tuple[int, ...]:
+        """Invincible, he defeats every enemy he touches; the points each scored."""
+        points_per_defeat = []
+        for enemy in enemies:
+            if not enemy.is_defeated and self._touches(mario, enemy):
+                enemy.defeat_by_starman(mario.x)
+                points_per_defeat.append(enemy.knock_off_points)
+        return tuple(points_per_defeat)
+
+    def _touches(self, mario: Mario, enemy: Enemy) -> bool:
+        """Whether they touch; once they are apart, a later touch is a new one."""
+        if enemy.hitbox().overlaps(mario.hitbox()):
+            return True
+        self._enemies_touching_mario.discard(enemy)
+        return False
+
     def _is_new_touch(self, mario: Mario, enemy: Enemy) -> bool:
         """Whether they touch now but didn't at the last check."""
-        if not enemy.hitbox().overlaps(mario.hitbox()):
-            self._enemies_touching_mario.discard(enemy)
+        if not self._touches(mario, enemy):
             return False
         if enemy in self._enemies_touching_mario:
             return False

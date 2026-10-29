@@ -32,11 +32,13 @@ from mario.constants.view import (
     GOOMBA_COLOUR,
     GROUND_COLOUR,
     HILL_COLOUR,
+    INVINCIBLE_MARIO_COLOUR,
     KOOPA_COLOUR,
     KOOPA_SHELL_COLOUR,
     MARIO_COLOUR,
     SKY_COLOUR,
     SPRITE_SIZES,
+    STARMAN_COLOUR,
     SUPER_MUSHROOM_COLOUR,
     USED_BLOCK_COLOUR,
 )
@@ -114,10 +116,12 @@ def sky_screen(mario_box: tuple[int, int, int, int] = (0, SCREEN_HEIGHT_PIXELS, 
                power_state: PowerState = PowerState.SMALL, enemies: tuple[EnemySnapshot, ...] = (),
                items: tuple[ItemSnapshot, ...] = (), fireballs: tuple[FireballSnapshot, ...] = (),
                tiles: VisibleTiles = VisibleTiles(0, ()), tick: int = 0,
-               mario_is_invulnerable: bool = False, flag: FlagSnapshot | None = None) -> WorldSnapshot:
+               mario_is_invulnerable: bool = False, flag: FlagSnapshot | None = None,
+               mario_is_invincible: bool = False) -> WorldSnapshot:
     """The level's start with only what is given on it; Mario out of sight below the screen unless placed."""
     return WorldSnapshot(tick=tick, screen_left_x_pixels=SKY_SCREEN_LEFT_X, tiles=tiles,
-                         mario=MarioSnapshot(*mario_box, power_state, is_invulnerable=mario_is_invulnerable),
+                         mario=MarioSnapshot(*mario_box, power_state, is_invulnerable=mario_is_invulnerable,
+                                             is_invincible=mario_is_invincible),
                          enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
                          items=items, fireballs=fireballs, flag=flag)
 
@@ -179,9 +183,9 @@ def koopa(is_shell: bool = False, is_defeated: bool = False) -> EnemySnapshot:
                          GOOMBA_HITBOX_HEIGHT_PIXELS, is_defeated, is_shell)
 
 
-def mushroom(is_emerging: bool = False, x: int = THING_X, y: int = THING_Y) -> ItemSnapshot:
-    return ItemSnapshot(ItemKind.SUPER_MUSHROOM, x, y, ITEM_HITBOX_WIDTH_PIXELS, ITEM_HITBOX_HEIGHT_PIXELS,
-                        is_emerging)
+def mushroom(is_emerging: bool = False, x: int = THING_X, y: int = THING_Y,
+             kind: ItemKind = ItemKind.SUPER_MUSHROOM) -> ItemSnapshot:
+    return ItemSnapshot(kind, x, y, ITEM_HITBOX_WIDTH_PIXELS, ITEM_HITBOX_HEIGHT_PIXELS, is_emerging)
 
 
 def fireball(is_exploding: bool) -> FireballSnapshot:
@@ -198,6 +202,10 @@ THINGS_AND_THEIR_SPRITES_PLACES = [
                  (MARIO_SPRITE_LEFT_X, MARIO_SPRITE_TOP_Y, 16, 32), id="big Mario"),
     pytest.param(sky_screen(BIG_MARIO_BOX, PowerState.FIERY), FIRE_MARIO_COLOUR,
                  (MARIO_SPRITE_LEFT_X, MARIO_SPRITE_TOP_Y, 16, 32), id="fire Mario"),
+    pytest.param(sky_screen(SMALL_MARIO_BOX, mario_is_invincible=True), INVINCIBLE_MARIO_COLOUR,
+                 (MARIO_SPRITE_LEFT_X, MARIO_FEET_Y - 16, 16, 16), id="invincible small Mario"),
+    pytest.param(sky_screen(BIG_MARIO_BOX, PowerState.FIERY, mario_is_invincible=True), INVINCIBLE_MARIO_COLOUR,
+                 (MARIO_SPRITE_LEFT_X, MARIO_SPRITE_TOP_Y, 16, 32), id="invincible fire Mario"),
     pytest.param(sky_screen(enemies=(goomba(),)), GOOMBA_COLOUR, (THING_X, THING_Y, 16, 16), id="Goomba"),
     pytest.param(sky_screen(enemies=(goomba(is_defeated=True),)), GOOMBA_COLOUR,
                  (THING_X, THING_Y + 8, 16, 8), id="squashed Goomba"),
@@ -210,6 +218,8 @@ THINGS_AND_THEIR_SPRITES_PLACES = [
                  (THING_X, THING_Y, 16, 16), id="defeated Koopa"),
     pytest.param(sky_screen(items=(mushroom(),)), SUPER_MUSHROOM_COLOUR, (THING_X, THING_Y, 16, 16),
                  id="Super Mushroom"),
+    pytest.param(sky_screen(items=(mushroom(kind=ItemKind.STARMAN),)), STARMAN_COLOUR, (THING_X, THING_Y, 16, 16),
+                 id="Starman"),
     pytest.param(sky_screen(fireballs=(fireball(is_exploding=False),)), FIREBALL_COLOUR,
                  (THING_X, THING_Y, 8, 8), id="fireball"),
     pytest.param(sky_screen(fireballs=(fireball(is_exploding=True),)), EXPLODING_FIREBALL_COLOUR,

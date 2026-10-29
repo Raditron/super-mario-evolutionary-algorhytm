@@ -44,19 +44,21 @@ class BouncingBlockSnapshot:
 @dataclass(frozen=True)
 class MarioSnapshot:
     """Mario's hitbox, in level pixels (while he grows or shrinks, the box of the
-    animation frame showing), his power state, and whether he can't be hurt."""
+    animation frame showing), his power state, whether he can't be hurt after
+    being hurt, and whether a Starman has made him invincible."""
     x_pixels: int
     y_pixels: int
     width_pixels: int
     height_pixels: int
     power_state: PowerState = PowerState.SMALL
     is_invulnerable: bool = False
+    is_invincible: bool = False
 
     @classmethod
     def of(cls, mario: Mario) -> "MarioSnapshot":
         hitbox = mario.hitbox()
         return cls(hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
-                   mario.power_state, mario.is_invulnerable)
+                   mario.power_state, mario.is_invulnerable, mario.is_invincible)
 
 
 @dataclass(frozen=True)

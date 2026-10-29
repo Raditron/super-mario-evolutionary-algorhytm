@@ -1,6 +1,6 @@
 """The Debug view draws Goombas as coloured hitboxes, a squashed one flattened (#17),
-the flag on the flagpole (#24), and over them the followed agent's Observation and
-the recent game events (#25)."""
+the flag on the flagpole (#24), an invincible Mario in his own colour (#21), and
+over them the followed agent's Observation and the recent game events (#25)."""
 
 import pygame
 import pytest
@@ -37,6 +37,7 @@ from mario.constants.view import (
     FIRE_FLOWER_COLOUR,
     FIRE_MARIO_COLOUR,
     GOOMBA_COLOUR,
+    INVINCIBLE_MARIO_COLOUR,
     KOOPA_COLOUR,
     KOOPA_SHELL_COLOUR,
     MARIO_COLOUR,
@@ -45,6 +46,7 @@ from mario.constants.view import (
     OBSERVATION_STATE_TEXT_TOP_LEFT,
     ONE_UP_MUSHROOM_COLOUR,
     SKY_COLOUR,
+    STARMAN_COLOUR,
     SUPER_MUSHROOM_COLOUR,
     USED_BLOCK_COLOUR,
 )
@@ -92,12 +94,14 @@ def snapshot_with(enemies: tuple[EnemySnapshot, ...] = (), observation: Observat
                   flag: FlagSnapshot | None = None,
                   tiles: VisibleTiles = VisibleTiles(0, ()), tick: int = 0,
                   mario_is_invulnerable: bool = False,
-                  mario_power_state: PowerState = PowerState.SMALL) -> WorldSnapshot:
+                  mario_power_state: PowerState = PowerState.SMALL,
+                  mario_is_invincible: bool = False) -> WorldSnapshot:
     """A screen with no tiles, Mario at its left, and what is given."""
     return WorldSnapshot(tick=tick, screen_left_x_pixels=SCREEN_LEFT_X, tiles=tiles,
                          mario=MarioSnapshot(SCREEN_LEFT_X, MARIO_Y_PIXELS, SMALL_MARIO_HITBOX_WIDTH_PIXELS,
                                              SMALL_MARIO_HITBOX_HEIGHT_PIXELS, mario_power_state,
-                                             is_invulnerable=mario_is_invulnerable),
+                                             is_invulnerable=mario_is_invulnerable,
+                                             is_invincible=mario_is_invincible),
                          enemies=enemies, hud=HudSnapshot(0, 0, LEVEL_TIMER_START_UNITS),
                          items=items, fireballs=fireballs, flag=flag, observation=observation,
                          recent_events=recent_events)
@@ -180,7 +184,8 @@ def mushroom_snapshot(kind: ItemKind, is_emerging: bool = False) -> ItemSnapshot
 
 @pytest.mark.parametrize("kind, colour", [(ItemKind.SUPER_MUSHROOM, SUPER_MUSHROOM_COLOUR),
                                           (ItemKind.ONE_UP_MUSHROOM, ONE_UP_MUSHROOM_COLOUR),
-                                          (ItemKind.FIRE_FLOWER, FIRE_FLOWER_COLOUR)])
+                                          (ItemKind.FIRE_FLOWER, FIRE_FLOWER_COLOUR),
+                                          (ItemKind.STARMAN, STARMAN_COLOUR)])
 def test_an_item_is_drawn_as_its_hitbox_in_its_kinds_colour(kind, colour):
     screen = drawn(snapshot_with(items=(mushroom_snapshot(kind),)))
     assert colour_at(screen, GOOMBA_X, GOOMBA_Y) == colour
@@ -207,6 +212,12 @@ def test_a_mushroom_rising_out_of_its_block_is_drawn_behind_it():
 def test_mario_is_drawn_in_his_power_states_colour(power_state, colour):
     screen = drawn(snapshot_with(mario_power_state=power_state))
     assert colour_at(screen, SCREEN_LEFT_X, MARIO_Y_PIXELS) == colour
+
+
+@pytest.mark.parametrize("power_state", list(PowerState))
+def test_an_invincible_mario_is_drawn_in_the_invincible_colour_whatever_his_power_state(power_state):
+    screen = drawn(snapshot_with(mario_power_state=power_state, mario_is_invincible=True))
+    assert colour_at(screen, SCREEN_LEFT_X, MARIO_Y_PIXELS) == INVINCIBLE_MARIO_COLOUR
 
 
 @pytest.mark.parametrize("is_exploding, colour", [(False, FIREBALL_COLOUR), (True, EXPLODING_FIREBALL_COLOUR)])

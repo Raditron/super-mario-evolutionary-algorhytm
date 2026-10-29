@@ -18,7 +18,7 @@ from mario.constants.view import (
 from mario.snapshots.world_snapshot import AgentSnapshot, EnemySnapshot, FireballSnapshot, ItemSnapshot, WorldSnapshot
 from mario.view.debug_text import DebugText
 from mario.view.game_event_feed import GameEventFeed
-from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, MARIO_COLOURS, SHELL_COLOURS, TILE_COLOURS
+from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, SHELL_COLOURS, TILE_COLOURS, mario_colour
 from mario.view.observation_overlay import ObservationOverlay
 
 
@@ -51,7 +51,7 @@ class DebugRenderer:
             self._draw_ghost(ghost, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
         if not mario.is_invulnerable or snapshot.tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0:
-            _fill_level_box(screen, MARIO_COLOURS[mario.power_state], snapshot.screen_left_x_pixels,
+            _fill_level_box(screen, mario_colour(mario), snapshot.screen_left_x_pixels,
                             mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels)
         if snapshot.observation is not None:
             self._observation_overlay.draw(snapshot.observation, snapshot.screen_left_x_pixels, screen)
@@ -84,7 +84,7 @@ class DebugRenderer:
     @staticmethod
     def _draw_ghost(ghost: AgentSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         mario = ghost.mario
-        pygame.draw.rect(screen, MARIO_COLOURS[mario.power_state],
+        pygame.draw.rect(screen, mario_colour(mario),
                          _level_box_on_screen(screen_left_x_pixels, mario.x_pixels, mario.y_pixels,
                                               mario.width_pixels, mario.height_pixels),
                          GHOST_OUTLINE_WIDTH_PIXELS)

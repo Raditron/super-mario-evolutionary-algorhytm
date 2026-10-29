@@ -47,13 +47,15 @@ Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A cloud, hill or bus
 | `castle_door_arch.png` | 16 × 16 | the arch over the castle's door |
 | `castle_door.png` | 16 × 16 | the castle's door |
 
-### Mario, by power state
+### Mario, by power state, and invincible
 
 | File | Size (px) | Drawn for |
 |---|---|---|
 | `mario_small.png` | 16 × 16 | small Mario |
 | `mario_big.png` | 16 × 32 | big Mario |
 | `mario_fiery.png` | 16 × 32 | fire Mario |
+| `mario_small_invincible.png` | 16 × 16 | small Mario while a Starman makes him invincible |
+| `mario_big_invincible.png` | 16 × 32 | big or fire Mario while a Starman makes him invincible (the star's colours show over fire Mario's) |
 
 ### Enemies
 
@@ -71,6 +73,7 @@ Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A cloud, hill or bus
 | `super_mushroom.png` | 16 × 16 | the Super Mushroom |
 | `one_up_mushroom.png` | 16 × 16 | the 1-UP mushroom |
 | `fire_flower.png` | 16 × 16 | the fire flower |
+| `starman.png` | 16 × 16 | the Starman |
 
 ### Mario's fireballs
 

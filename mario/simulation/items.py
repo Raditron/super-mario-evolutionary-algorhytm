@@ -17,9 +17,10 @@ from mario.simulation.item import Item
 from mario.simulation.item_kind import ItemKind
 from mario.simulation.mushroom import Mushroom, OneUpMushroom, SuperMushroom
 from mario.simulation.playfield import Playfield
+from mario.simulation.starman import Starman
 
 ITEM_CLASS_BY_KIND: dict[ItemKind, type[Item]] = {
-    item_class.kind: item_class for item_class in (SuperMushroom, OneUpMushroom, FireFlower)
+    item_class.kind: item_class for item_class in (SuperMushroom, OneUpMushroom, FireFlower, Starman)
 }
 
 

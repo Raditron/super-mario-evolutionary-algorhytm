@@ -1,8 +1,9 @@
 """What every walking enemy shares.
 
 An enemy spawns at its fixed spawn position and starts walking left; it walks
-as every WalkingBody does. One defeated by a bumped block, a fireball or a moving
-shell jumps up away from Mario and falls through everything, out of the level.
+as every WalkingBody does. One defeated by a bumped block, a fireball, a moving
+shell or an invincible Mario's touch jumps up away from Mario and falls through
+everything, out of the level.
 """
 
 from abc import ABC, abstractmethod
@@ -20,6 +21,7 @@ from mario.constants.physics import (
     ENEMY_TERMINAL_FALL_SPEED,
     FIREBALL_DEFEAT_SPEED_Y,
     SHELL_DEFEAT_SPEED_Y,
+    STARMAN_DEFEAT_SPEED_Y,
     SUBPIXELS_PER_PIXEL,
 )
 from mario.level.static_level import EnemyKind, EnemySpawn
@@ -32,8 +34,9 @@ class Enemy(WalkingBody, ABC):
     """An enemy's position is the top-left corner of its hitbox."""
 
     kind: EnemyKind
-    # What defeating it with a fireball scores (ShellOrBlockDefeat).
-    fireball_defeat_points: int
+    # What knocking it off with a fireball or an invincible Mario's touch scores
+    # (ShellOrBlockDefeat).
+    knock_off_points: int
 
     def __init__(self, spawn: EnemySpawn, width_pixels: int, height_pixels: int, walk_speed: int):
         """The enemy starts at its spawn x, a little above the tile it rests on."""
@@ -101,6 +104,10 @@ class Enemy(WalkingBody, ABC):
     def defeat_by_shell(self, mario_x: int) -> None:
         """A moving shell hit it (ShellCollisions, ShellOrBlockDefeat, ChkToStunEnemies)."""
         self._knock_off(mario_x, SHELL_DEFEAT_SPEED_Y)
+
+    def defeat_by_starman(self, mario_x: int) -> None:
+        """An invincible Mario touched it (EColl, ShellOrBlockDefeat, ChkToStunEnemies)."""
+        self._knock_off(mario_x, STARMAN_DEFEAT_SPEED_Y)
 
     def _knock_off(self, mario_x: int, velocity_y: int) -> None:
         """Lifted, it jumps away from Mario, and from then on falls through everything."""

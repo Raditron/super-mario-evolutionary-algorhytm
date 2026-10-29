@@ -120,6 +120,8 @@ BUMP_DEFEAT_SPEED_Y = -4 * NES_Y_SPEED_UNIT
 FIREBALL_DEFEAT_SPEED_Y = BUMPED_ENEMY_SPEED_Y
 # So does one a moving shell defeats (ShellCollisions, ShellOrBlockDefeat).
 SHELL_DEFEAT_SPEED_Y = BUMPED_ENEMY_SPEED_Y
+# And one an invincible Mario touches (EColl, ShellOrBlockDefeat).
+STARMAN_DEFEAT_SPEED_Y = BUMPED_ENEMY_SPEED_Y
 MUSHROOM_SPEED = 16 * NES_X_SPEED_UNIT                       # 1.0 px/f, starts moving right
 # An item rises out of its block 1 px every 4 ticks for 16 px, and a mushroom
 # sets off one step (4 ticks) after that (GrowThePowerUp). Mario can touch it
@@ -127,10 +129,18 @@ MUSHROOM_SPEED = 16 * NES_X_SPEED_UNIT                       # 1.0 px/f, starts 
 ITEM_EMERGE_PIXELS = 16
 ITEM_EMERGE_TICKS_PER_PIXEL = 4
 ITEM_TOUCHABLE_RISE_PIXELS = 5
+# Out of its block, the Starman sets off right at 1 px/f, like a mushroom
+# (GrowThePowerUp), and falls with its own gravity up to 3 px/f (MoveJ_EnemyVertically).
+# Landing, it jumps again at -3 px/f (EnemyJump). It looks for a landing only while its
+# speed's whole part is at least STARMAN_LANDS_FROM_FALL_SPEED or at most
+# STARMAN_LANDS_FROM_RISE_SPEED (Enemy_Y_Speed + 2 >= 3, unsigned): not while it
+# rises slowly, hangs at the top of a bounce, or has only just started to fall.
 STARMAN_SPEED = 16 * NES_X_SPEED_UNIT
 STARMAN_GRAVITY = 0x1C * NES_GRAVITY_UNIT
 STARMAN_BOUNCE_SPEED = -3 * NES_Y_SPEED_UNIT
 STARMAN_TERMINAL_FALL_SPEED = 3 * NES_Y_SPEED_UNIT
+STARMAN_LANDS_FROM_FALL_SPEED = 1 * NES_Y_SPEED_UNIT
+STARMAN_LANDS_FROM_RISE_SPEED = -3 * NES_Y_SPEED_UNIT
 ENEMY_GRAVITY = 0x3D * NES_GRAVITY_UNIT                      # also mushrooms and defeated enemies
 ENEMY_TERMINAL_FALL_SPEED = 3 * NES_Y_SPEED_UNIT
 
@@ -168,6 +178,15 @@ BRICK_BREAK_SPEED = -2 * NES_Y_SPEED_UNIT
 # STOMPED_GOOMBA_TICKS, the replica always takes the longest the interval clock allows.
 INJURY_INVULNERABLE_INTERVAL_TICKS = 8
 INJURY_INVULNERABLE_TICKS = INJURY_INVULNERABLE_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
+
+# --- The Starman (StarInvincibleTimer) -------------------------------------------------------
+
+# Collecting a Starman makes Mario invincible for $23 interval ticks
+# (HandlePowerUpCollision); the timer counts down as InjuryTimer does, and not
+# during a freeze. Like STOMPED_GOOMBA_TICKS, the replica always takes the longest
+# the interval clock allows.
+STARMAN_INVINCIBLE_INTERVAL_TICKS = 0x23
+STARMAN_INVINCIBLE_TICKS = STARMAN_INVINCIBLE_INTERVAL_TICKS * INTERVAL_TIMER_TICKS
 
 # --- Fireballs (ProcFireball_Bubble, FireballObjCore, FireballBGCollision) ---------------------
 

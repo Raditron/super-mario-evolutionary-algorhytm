@@ -7,3 +7,4 @@ class ItemKind(StrEnum):
     SUPER_MUSHROOM = "super_mushroom"
     ONE_UP_MUSHROOM = "one_up_mushroom"
     FIRE_FLOWER = "fire_flower"
+    STARMAN = "starman"
