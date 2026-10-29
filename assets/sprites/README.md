@@ -2,6 +2,8 @@
 
 The Sprite view (`F1` toggles it with the Debug view) draws every thing from a PNG in this folder. **A PNG that isn't here is drawn as a box of the sprite's size in that thing's hitbox colour**, so the view works with this folder empty, and adding a texture never touches the code: save the PNG under its name below and start the game again.
 
+The PNGs here are painted from text drawings in `sprite_art/drawings/`, one palette per group in `sprite_art/palettes/`: change a drawing, then run `py -m sprite_art` to repaint them all. A test fails while a PNG differs from its drawing.
+
 ## The rules
 
 - **File names:** one PNG per sprite, named after what it shows, in lower-case `snake_case`, plus `_<state>` for another look of the same thing (`goomba_defeated.png`). Exactly the names below are read. Any other file in this folder is ignored.

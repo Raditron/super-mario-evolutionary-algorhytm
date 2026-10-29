@@ -1,0 +1,68 @@
+"""Mario, drawn as a knight: his colours (RGBA) by power state, and the key each is drawn with.
+Every palette gives a colour to the same keys, so one set of rows serves them all."""
+
+from sprite_art.palettes.shared import SHARED_KEYS
+
+STEEL = (164, 172, 188, 255)
+STEEL_DARK = (92, 100, 124, 255)
+STEEL_LIGHT = (228, 232, 240, 255)
+
+PLUME_RED = (220, 40, 56, 255)
+PLUME_RED_DARK = (136, 16, 40, 255)
+
+TABARD_GREEN = (40, 148, 88, 255)
+TABARD_GREEN_DARK = (16, 88, 56, 255)
+TRIM_GOLD = (240, 192, 56, 255)
+EMBLEM_GOLD = (252, 220, 96, 255)
+
+BOOT_LEATHER = (124, 72, 40, 255)
+BOOT_LEATHER_DARK = (72, 40, 24, 255)
+
+FIERY_TABARD = (244, 236, 224, 255)
+FIERY_TABARD_SHADE = (196, 180, 172, 255)
+FIERY_CRIMSON = (192, 24, 40, 255)
+FLAME_ORANGE = (252, 140, 24, 255)
+FLAME_YELLOW = (252, 220, 64, 255)
+
+RADIANT_GOLD = (248, 200, 48, 255)
+RADIANT_GOLD_DARK = (196, 128, 24, 255)
+RADIANT_GOLD_LIGHT = (252, 244, 176, 255)
+RADIANT_WHITE = (255, 255, 236, 255)
+RADIANT_AMBER = (232, 152, 32, 255)
+
+MARIO_PALETTE = SHARED_KEYS | {
+    "L": STEEL_LIGHT,
+    "H": STEEL,
+    "h": STEEL_DARK,
+    "P": PLUME_RED,
+    "p": PLUME_RED_DARK,
+    "T": TABARD_GREEN,
+    "t": TABARD_GREEN_DARK,
+    "G": TRIM_GOLD,
+    "E": EMBLEM_GOLD,
+    "B": BOOT_LEATHER,
+    "b": BOOT_LEATHER_DARK,
+}
+
+MARIO_FIERY_PALETTE = MARIO_PALETTE | {
+    "P": FLAME_YELLOW,
+    "p": FLAME_ORANGE,
+    "T": FIERY_TABARD,
+    "t": FIERY_TABARD_SHADE,
+    "G": FIERY_CRIMSON,
+    "E": FIERY_CRIMSON,
+}
+
+MARIO_INVINCIBLE_PALETTE = SHARED_KEYS | {
+    "L": RADIANT_GOLD_LIGHT,
+    "H": RADIANT_GOLD,
+    "h": RADIANT_GOLD_DARK,
+    "P": RADIANT_WHITE,
+    "p": RADIANT_GOLD_LIGHT,
+    "T": RADIANT_WHITE,
+    "t": RADIANT_GOLD_LIGHT,
+    "G": RADIANT_AMBER,
+    "E": RADIANT_AMBER,
+    "B": RADIANT_AMBER,
+    "b": RADIANT_GOLD_DARK,
+}
