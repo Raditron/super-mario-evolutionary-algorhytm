@@ -322,6 +322,18 @@ def test_a_bush_tile_is_drawn_with_the_picture_its_place_in_the_bush_picks(tmp_p
     assert colour_at(screen, snapshot, *tile_centre(12, 12)) == BUSH_COLOUR    # no bush_middle.png
 
 
+def test_a_castle_tile_is_drawn_with_the_picture_its_place_in_the_castle_picks(tmp_path, world_1_1, scenery):
+    """Under the tower, (204, 10) is the wall top; the wall's left edge at (202, 11)
+    and the battlement's right corner merlon at (206, 10) have no PNG, so they fill in
+    the castle's colour."""
+    write_png(tmp_path / "castle_wall_top.png", (*PNG_COLOUR, 255))
+    snapshot = level_screen(world_1_1, first_column=SCROLL_STOP_COLUMN)
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert colour_at(screen, snapshot, *tile_centre(204, 10)) == PNG_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(202, 11)) == CASTLE_BRICK_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(206, 10)) == CASTLE_BRICK_COLOUR
+
+
 def test_a_sprites_transparent_pixels_show_what_is_behind_it(tmp_path, scenery):
     write_png(tmp_path / "mario_small.png", (*PNG_COLOUR, 0))
     snapshot = sky_screen(SMALL_MARIO_BOX)

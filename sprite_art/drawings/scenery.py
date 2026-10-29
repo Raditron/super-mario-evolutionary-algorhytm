@@ -2,7 +2,8 @@
 so each tiles seamlessly with itself; a hill's tiles by their place in the hill, the
 slopes open to the sky on their outer side, and a cloud's by its place in the cloud,
 its puffs and rounded ends open to the sky, and a bush's by its place in the bush,
-its rounded ends open to the sky; all lit from the top-left."""
+its rounded ends open to the sky, and the castle's wall, windows and battlements by
+their place in the castle, its edges a clean outline; all lit from the top-left."""
 
 from sprite_art.palettes.scenery import SCENERY_PALETTE
 from sprite_art.sprite_drawing import SpriteDrawing
@@ -360,6 +361,109 @@ CASTLE_DOOR = SpriteDrawing("castle_door", SCENERY_PALETTE, (
     "VcNNnNNnnNNnNNcv",
 ))
 
+# The castle's edges: its left side lit along its whole height, its right side a
+# shaded line of mortar, so every course of bricks ends on the same clean outline.
+CASTLE_BRICK_LEFT_EDGE = SpriteDrawing("castle_brick_left_edge", SCENERY_PALETTE, (
+    "VVVVVVVVVVVVVVVc",
+    "VCCCCCCCCCCCCCvc",
+    "VCCCCvCCCCCCCCvc",
+    "VCCCCCCCCCCCCCvc",
+    "VCCCCCCCCCCvCCvc",
+    "VCCCCCCCCCCCCCvc",
+    "Vvvvvvvvvvvvvvvc",
+    "Vccccccccccccccc",
+    "VVVVVVVcVVVVVVVV",
+    "VCCCCCvcVCCCCCCC",
+    "VCCCCCvcVCCCCCCC",
+    "VCvCCCvcVCCCCCCC",
+    "VCCCCCvcVCCCCvCC",
+    "VCCCCCvcVCCCCCCC",
+    "VvvvvvvcVvvvvvvv",
+    "Vccccccccccccccc",
+))
+
+CASTLE_BRICK_RIGHT_EDGE = SpriteDrawing("castle_brick_right_edge", SCENERY_PALETTE, (
+    CASTLE_BRICK.rows[:8] + (
+        "VVVVVVVcVVVVVVVc",
+        "CCCCCCvcVCCCCCvc",
+        "CCCCCCvcVCCCCCvc",
+        "CCvCCCvcVCCCCCvc",
+        "CCCCCCvcVCCvCCvc",
+        "CCCCCCvcVCCCCCvc",
+        "vvvvvvvcVvvvvvvc",
+        "cccccccccccccccc",
+    )
+))
+
+CASTLE_WINDOW_LEFT_EDGE = SpriteDrawing("castle_window_left_edge", SCENERY_PALETTE, (
+    "VVVVVVVVVVVVVVVc",
+    "VCCCCCccccCCCCvc",
+    "VCCCCcOOOOcCCCvc",
+    "VCCCcOOOOOOcCCvc",
+    "VCCCcOOOOOocCCvc",
+    "VCCCcOOOOOocCCvc",
+    "VvvvcOOOOOocvvvc",
+    "VccccOOOOOoccccc",
+    "VVVVcOOOOOocVVVV",
+    "VCCCcOOOOOocCCCC",
+    "VCCCcOOOOOocCCCC",
+    "VCvCcOOOOOocCCCC",
+    "VCCCcoooooocCCCC",
+    "VCCVVVVVVVVVVCCC",
+    "Vvvccccccccccvvv",
+    "Vccccccccccccccc",
+))
+
+CASTLE_WINDOW_RIGHT_EDGE = SpriteDrawing("castle_window_right_edge", SCENERY_PALETTE, (
+    CASTLE_WINDOW.rows[:8] + (
+        "VVVVcOOOOOocVVVc",
+        "CCCCcOOOOOocCCvc",
+        "CCCCcOOOOOocCCvc",
+        "CCvCcOOOOOocCCvc",
+        "CCCCcoooooocCCvc",
+        "CCCVVVVVVVVVVCvc",
+        "vvvccccccccccvvc",
+        "cccccccccccccccc",
+    )
+))
+
+# A battlement's ends: a corner merlon, wider than the others, flush with the edge.
+CASTLE_BATTLEMENT_LEFT_END = SpriteDrawing("castle_battlement_left_end", SCENERY_PALETTE, (
+    "VVVVVVVVVVVV....",
+    "VCCCCCCCCCCv....",
+    "VCCCvCCCCCCv....",
+    "VCCCCCCCCCCv....",
+    "VCCCCCCCvCCv....",
+    "VCCCCCCCCCCvcVVV",
+    "Vvvvvvvvvvvvcvvv",
+    "Vccccccccccccccc",
+) + CASTLE_BRICK_LEFT_EDGE.rows[8:])
+
+CASTLE_BATTLEMENT_RIGHT_END = SpriteDrawing("castle_battlement_right_end", SCENERY_PALETTE, (
+    "....VVVVVVVVVVVc",
+    "....VCCCCCCCCCvc",
+    "....VCCCCvCCCCvc",
+    "....VCCCCCCCCCvc",
+    "....VCCCCCCvCCvc",
+    "VVVcVCCCCCCCCCvc",
+    "vvvcvvvvvvvvvvvc",
+    "cccccccccccccccc",
+) + CASTLE_BRICK_RIGHT_EDGE.rows[8:])
+
+# Under the tower: no merlons and no sky, a course of stone the tower stands on,
+# then the walkway's ledge running on at the battlement's height.
+CASTLE_WALL_TOP = SpriteDrawing("castle_wall_top", SCENERY_PALETTE, (
+    "VVVVVVVVVVVVVVVc",
+    "VCCCCvCCCCCCCCvc",
+    "VCCCCCCCCCCvCCvc",
+    "Vvvvvvvvvvvvvvvc",
+    "cccccccccccccccc",
+    "VVVVVVVVVVVVVVVV",
+    "vvvvvvvvvvvvvvvv",
+    "cccccccccccccccc",
+) + CASTLE_BRICK.rows[8:])
+
 SCENERY_DRAWINGS = (CLOUD_TOP_LEFT, CLOUD_TOP_MIDDLE, CLOUD_TOP_RIGHT, CLOUD_BOTTOM_LEFT, CLOUD_BOTTOM_MIDDLE,
                     CLOUD_BOTTOM_RIGHT, HILL_LEFT_SLOPE, HILL_RIGHT_SLOPE, HILL_PEAK, HILL_FILL, BUSH_LEFT_END, BUSH_MIDDLE, BUSH_RIGHT_END, BUSH_SINGLE, CASTLE_BATTLEMENT, CASTLE_WINDOW, CASTLE_BRICK, CASTLE_DOOR_ARCH,
-                    CASTLE_DOOR)
+                    CASTLE_DOOR, CASTLE_BRICK_LEFT_EDGE, CASTLE_BRICK_RIGHT_EDGE, CASTLE_WINDOW_LEFT_EDGE,
+                    CASTLE_WINDOW_RIGHT_EDGE, CASTLE_BATTLEMENT_LEFT_END, CASTLE_BATTLEMENT_RIGHT_END, CASTLE_WALL_TOP)

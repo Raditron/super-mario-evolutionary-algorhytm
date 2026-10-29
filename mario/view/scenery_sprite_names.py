@@ -1,5 +1,5 @@
 """The picture a background scenery tile is drawn with, chosen from its scenery
-neighbours, so a hill, a cloud or a bush of several tiles draws as one shape and not as
+neighbours, so a hill, a cloud, a bush or the castle of several tiles draws as one shape and not as
 the same picture repeated.
 
 A kind with a rule in SPRITE_NAME_RULES is drawn by place; every other kind with
@@ -25,6 +25,20 @@ BUSH_LEFT_END_SPRITE_NAME = "bush_left_end"
 BUSH_MIDDLE_SPRITE_NAME = "bush_middle"
 BUSH_RIGHT_END_SPRITE_NAME = "bush_right_end"
 BUSH_SINGLE_SPRITE_NAME = "bush_single"
+CASTLE_BRICK_SPRITE_NAME = "castle_brick"
+CASTLE_BRICK_LEFT_EDGE_SPRITE_NAME = "castle_brick_left_edge"
+CASTLE_BRICK_RIGHT_EDGE_SPRITE_NAME = "castle_brick_right_edge"
+CASTLE_WINDOW_SPRITE_NAME = "castle_window"
+CASTLE_WINDOW_LEFT_EDGE_SPRITE_NAME = "castle_window_left_edge"
+CASTLE_WINDOW_RIGHT_EDGE_SPRITE_NAME = "castle_window_right_edge"
+CASTLE_BATTLEMENT_SPRITE_NAME = "castle_battlement"
+CASTLE_BATTLEMENT_LEFT_END_SPRITE_NAME = "castle_battlement_left_end"
+CASTLE_BATTLEMENT_RIGHT_END_SPRITE_NAME = "castle_battlement_right_end"
+CASTLE_WALL_TOP_SPRITE_NAME = "castle_wall_top"
+
+# Every part of the castle: a tile's side with none of these beside it is the castle's edge.
+CASTLE_KINDS = frozenset({SceneryKind.CASTLE_BATTLEMENT, SceneryKind.CASTLE_WINDOW, SceneryKind.CASTLE_BRICK,
+                          SceneryKind.CASTLE_DOOR_ARCH, SceneryKind.CASTLE_DOOR})
 
 
 @dataclass(frozen=True)
@@ -102,8 +116,42 @@ def _bush_sprite_name(neighbourhood: SceneryNeighbourhood) -> str:
     return BUSH_MIDDLE_SPRITE_NAME
 
 
+def _castle_brick_sprite_name(neighbourhood: SceneryNeighbourhood) -> str:
+    return _castle_wall_sprite_name(neighbourhood, CASTLE_BRICK_LEFT_EDGE_SPRITE_NAME,
+                                    CASTLE_BRICK_RIGHT_EDGE_SPRITE_NAME, CASTLE_BRICK_SPRITE_NAME)
+
+
+def _castle_window_sprite_name(neighbourhood: SceneryNeighbourhood) -> str:
+    """World 1-1's two windows are the tower's sides (layer 2 of docs/research/world-1-1-layout.md)."""
+    return _castle_wall_sprite_name(neighbourhood, CASTLE_WINDOW_LEFT_EDGE_SPRITE_NAME,
+                                    CASTLE_WINDOW_RIGHT_EDGE_SPRITE_NAME, CASTLE_WINDOW_SPRITE_NAME)
+
+
+def _castle_battlement_sprite_name(neighbourhood: SceneryNeighbourhood) -> str:
+    """The front wall's battlement under the tower (castle above it) is the solid
+    wall top the tower rises from; elsewhere a battlement's ends are corner merlons."""
+    if neighbourhood.above in CASTLE_KINDS:
+        return CASTLE_WALL_TOP_SPRITE_NAME
+    return _castle_wall_sprite_name(neighbourhood, CASTLE_BATTLEMENT_LEFT_END_SPRITE_NAME,
+                                    CASTLE_BATTLEMENT_RIGHT_END_SPRITE_NAME, CASTLE_BATTLEMENT_SPRITE_NAME)
+
+
+def _castle_wall_sprite_name(neighbourhood: SceneryNeighbourhood, left_edge_sprite_name: str,
+                             right_edge_sprite_name: str, inner_sprite_name: str) -> str:
+    """A castle tile with no castle on its left is the castle's left edge, with
+    none on its right its right edge, so the castle has a clean outline on both sides."""
+    if neighbourhood.left not in CASTLE_KINDS:
+        return left_edge_sprite_name
+    if neighbourhood.right not in CASTLE_KINDS:
+        return right_edge_sprite_name
+    return inner_sprite_name
+
+
 SPRITE_NAME_RULES: dict[SceneryKind, Callable[[SceneryNeighbourhood], str]] = {
     SceneryKind.HILL: _hill_sprite_name,
     SceneryKind.CLOUD: _cloud_sprite_name,
     SceneryKind.BUSH: _bush_sprite_name,
+    SceneryKind.CASTLE_BRICK: _castle_brick_sprite_name,
+    SceneryKind.CASTLE_WINDOW: _castle_window_sprite_name,
+    SceneryKind.CASTLE_BATTLEMENT: _castle_battlement_sprite_name,
 }

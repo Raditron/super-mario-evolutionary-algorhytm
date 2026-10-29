@@ -1,13 +1,19 @@
 """The picture a background scenery tile is drawn with, chosen from its scenery
 neighbours: a hill's slopes, peak and fill by its place in the hill, a cloud's
 top and bottom rows' ends and middle by its place in the cloud, a bush's ends
-and middle by its place in the bush, any other kind by its own name."""
+and middle by its place in the bush, the castle's edges, corner merlons and wall
+top by its place in the castle, any other kind by its own name."""
 
 import pytest
 
 from mario.constants.view import SPRITE_SIZES
 from mario.level.background_scenery import BackgroundScenery, SceneryKind
-from mario.view.scenery_sprite_names import SPRITE_NAME_RULES, SceneryNeighbourhood, scenery_sprite_name
+from mario.view.scenery_sprite_names import (
+    CASTLE_KINDS,
+    SPRITE_NAME_RULES,
+    SceneryNeighbourhood,
+    scenery_sprite_name,
+)
 
 HILL = SceneryKind.HILL
 CLOUD = SceneryKind.CLOUD
@@ -38,6 +44,27 @@ FIRST_BUSH_SPRITE_NAMES = {11: "bush_left_end", 12: "bush_middle", 13: "bush_mid
 ONE_TILE_BUSH_SPRITE_NAMES = {207: "bush_single"}
 ROUNDED_ON_THE_LEFT_SPRITE_NAMES = {"bush_left_end", "bush_single"}
 ROUNDED_ON_THE_RIGHT_SPRITE_NAMES = {"bush_right_end", "bush_single"}
+
+BRICK = SceneryKind.CASTLE_BRICK
+WINDOW = SceneryKind.CASTLE_WINDOW
+BATTLEMENT = SceneryKind.CASTLE_BATTLEMENT
+
+# World 1-1's castle (layer 2), columns 202-206 of rows 8-12: the tower's battlement
+# and windowed wall on top of the front wall's battlement, wall, door arch and door.
+CASTLE_COLUMNS = range(202, 207)
+CASTLE_SPRITE_NAMES_BY_ROW = {
+    8: {203: "castle_battlement_left_end", 204: "castle_battlement", 205: "castle_battlement_right_end"},
+    9: {203: "castle_window_left_edge", 204: "castle_brick", 205: "castle_window_right_edge"},
+    10: {202: "castle_battlement_left_end", 203: "castle_wall_top", 204: "castle_wall_top", 205: "castle_wall_top",
+         206: "castle_battlement_right_end"},
+    11: {202: "castle_brick_left_edge", 203: "castle_brick", 204: "castle_door_arch", 205: "castle_brick",
+         206: "castle_brick_right_edge"},
+    12: {202: "castle_brick_left_edge", 203: "castle_brick", 204: "castle_door", 205: "castle_brick",
+         206: "castle_brick_right_edge"},
+}
+OUTLINED_ON_THE_LEFT_SPRITE_NAMES = {"castle_brick_left_edge", "castle_window_left_edge", "castle_battlement_left_end"}
+OUTLINED_ON_THE_RIGHT_SPRITE_NAMES = {"castle_brick_right_edge", "castle_window_right_edge",
+                                      "castle_battlement_right_end"}
 
 
 @pytest.fixture(scope="module")
@@ -119,6 +146,41 @@ def test_a_bush_tiles_picture_is_chosen_by_its_bush_neighbours(neighbourhood, sp
     assert scenery_sprite_name(neighbourhood) == sprite_name
 
 
+def castle_tile(kind: SceneryKind, left: SceneryKind | None, right: SceneryKind | None,
+                above: SceneryKind | None = OPEN_SKY) -> SceneryNeighbourhood:
+    return SceneryNeighbourhood(kind, left=left, right=right, above=above, below=BRICK)
+
+
+@pytest.mark.parametrize("neighbourhood, sprite_name", [
+    pytest.param(castle_tile(BRICK, left=OPEN_SKY, right=BRICK), "castle_brick_left_edge",
+                 id="wall with no castle on the left: left edge"),
+    pytest.param(castle_tile(BRICK, left=BRICK, right=SceneryKind.CASTLE_DOOR), "castle_brick",
+                 id="wall with castle both sides: wall"),
+    pytest.param(castle_tile(BRICK, left=BRICK, right=OPEN_SKY), "castle_brick_right_edge",
+                 id="wall with no castle on the right: right edge"),
+    pytest.param(castle_tile(BRICK, left=BRICK, right=BUSH), "castle_brick_right_edge",
+                 id="a bush on the right is no castle: right edge"),
+    pytest.param(castle_tile(WINDOW, left=OPEN_SKY, right=BRICK), "castle_window_left_edge",
+                 id="window with no castle on the left: left edge"),
+    pytest.param(castle_tile(WINDOW, left=BRICK, right=BRICK), "castle_window",
+                 id="window with castle both sides: window"),
+    pytest.param(castle_tile(WINDOW, left=BRICK, right=OPEN_SKY), "castle_window_right_edge",
+                 id="window with no castle on the right: right edge"),
+    pytest.param(castle_tile(BATTLEMENT, left=OPEN_SKY, right=BATTLEMENT), "castle_battlement_left_end",
+                 id="battlement with no castle on the left: left corner merlon"),
+    pytest.param(castle_tile(BATTLEMENT, left=BATTLEMENT, right=BATTLEMENT), "castle_battlement",
+                 id="battlement with castle both sides: battlement"),
+    pytest.param(castle_tile(BATTLEMENT, left=BATTLEMENT, right=OPEN_SKY), "castle_battlement_right_end",
+                 id="battlement with no castle on the right: right corner merlon"),
+    pytest.param(castle_tile(BATTLEMENT, left=BATTLEMENT, right=BATTLEMENT, above=WINDOW), "castle_wall_top",
+                 id="battlement under the tower's window: wall top"),
+    pytest.param(castle_tile(BATTLEMENT, left=OPEN_SKY, right=BATTLEMENT, above=BRICK), "castle_wall_top",
+                 id="castle above outranks an edge: wall top"),
+])
+def test_a_castle_tiles_picture_is_chosen_by_its_place_in_the_castle(neighbourhood, sprite_name):
+    assert scenery_sprite_name(neighbourhood) == sprite_name
+
+
 @pytest.mark.parametrize("row", BIG_HILL_SPRITE_NAMES_BY_ROW)
 def test_world_1_1s_big_hill_is_a_peak_over_slopes_and_fill(scenery, row):
     names = {column: scenery_sprite_name(SceneryNeighbourhood.around(scenery, column, row))
@@ -153,6 +215,24 @@ def test_every_bush_in_world_1_1_has_rounded_ends(scenery, world_1_1):
             assert scenery_sprite_name(neighbourhood) in ROUNDED_ON_THE_LEFT_SPRITE_NAMES
         if neighbourhood.right is not BUSH:
             assert scenery_sprite_name(neighbourhood) in ROUNDED_ON_THE_RIGHT_SPRITE_NAMES
+
+
+@pytest.mark.parametrize("row", CASTLE_SPRITE_NAMES_BY_ROW)
+def test_world_1_1s_castle_has_clean_edges_and_its_tower_rises_from_a_solid_wall_top(scenery, row):
+    names = {column: scenery_sprite_name(neighbourhood) for column in CASTLE_COLUMNS
+             if (neighbourhood := SceneryNeighbourhood.around(scenery, column, row)) is not None}
+    assert names == CASTLE_SPRITE_NAMES_BY_ROW[row]
+
+
+def test_every_castle_tile_on_the_castles_edge_is_outlined_on_that_side(scenery):
+    castle_tiles = [neighbourhood for row in CASTLE_SPRITE_NAMES_BY_ROW for column in CASTLE_COLUMNS
+                    if (neighbourhood := SceneryNeighbourhood.around(scenery, column, row)) is not None]
+    assert castle_tiles
+    for neighbourhood in castle_tiles:
+        if neighbourhood.left not in CASTLE_KINDS:
+            assert scenery_sprite_name(neighbourhood) in OUTLINED_ON_THE_LEFT_SPRITE_NAMES
+        if neighbourhood.right not in CASTLE_KINDS:
+            assert scenery_sprite_name(neighbourhood) in OUTLINED_ON_THE_RIGHT_SPRITE_NAMES
 
 
 def test_every_picture_world_1_1s_scenery_needs_is_a_sprite_the_view_knows(scenery, world_1_1):

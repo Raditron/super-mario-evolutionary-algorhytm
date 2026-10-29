@@ -36,7 +36,7 @@ Tiles are named by how they look: a brick or ? block doesn't show what it holds.
 
 ### Background scenery (16 × 16, one per tile, behind the tiles)
 
-Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A hill's tile is drawn by its place in the hill, which its scenery neighbours give: with no hill on either side it is the peak, with none on its left the left slope, with none on its right the right slope, and otherwise fill. A slope's outer side is transparent, so the sky shows through and the hill's outline reads as a smooth slope. A cloud's tile is drawn by its place in the cloud the same way: with cloud above it, it is the bottom row, otherwise the top row; with no cloud on its left the left end, with none on its right the right end, and otherwise the middle. The top row carries the puffs and the bottom row the flat underside, each end rounded and open to the sky, so a cloud of any width reads as one solid shape. A bush is one tile tall, and its tile is drawn by its place in the bush: with no bush on its left it is the left end, with none on its right the right end, and otherwise the middle; a one-tile bush, with none on either side (World 1-1 has one, against the castle), has a picture of its own, rounded on both sides. Each end is rounded and open to the sky, and the middle tiles seamlessly with itself and the ends.
+Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A hill's tile is drawn by its place in the hill, which its scenery neighbours give: with no hill on either side it is the peak, with none on its left the left slope, with none on its right the right slope, and otherwise fill. A slope's outer side is transparent, so the sky shows through and the hill's outline reads as a smooth slope. A cloud's tile is drawn by its place in the cloud the same way: with cloud above it, it is the bottom row, otherwise the top row; with no cloud on its left the left end, with none on its right the right end, and otherwise the middle. The top row carries the puffs and the bottom row the flat underside, each end rounded and open to the sky, so a cloud of any width reads as one solid shape. A bush is one tile tall, and its tile is drawn by its place in the bush: with no bush on its left it is the left end, with none on its right the right end, and otherwise the middle; a one-tile bush, with none on either side (World 1-1 has one, against the castle), has a picture of its own, rounded on both sides. Each end is rounded and open to the sky, and the middle tiles seamlessly with itself and the ends. The castle's wall, windows and battlements are drawn by their place in the castle too, any castle tile counting as castle: a tile with no castle on its left is the castle's left edge, lit along its whole height, and one with none on its right its right edge, a shaded line of mortar, so the castle has a clean outline on both sides. A battlement's ends are corner merlons, flush with the edge, and a battlement with castle above it (the front wall's, under the tower) is the solid wall top the tower rises from, with no merlons and no sky.
 
 | File | Size (px) | Drawn for |
 |---|---|---|
@@ -59,6 +59,13 @@ Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A hill's tile is dra
 | `castle_brick.png` | 16 × 16 | the castle's wall |
 | `castle_door_arch.png` | 16 × 16 | the arch over the castle's door |
 | `castle_door.png` | 16 × 16 | the castle's door |
+| `castle_brick_left_edge.png` | 16 × 16 | a castle wall tile with no castle on its left |
+| `castle_brick_right_edge.png` | 16 × 16 | a castle wall tile with no castle on its right |
+| `castle_window_left_edge.png` | 16 × 16 | a castle window with no castle on its left: the tower's left side |
+| `castle_window_right_edge.png` | 16 × 16 | a castle window with no castle on its right: the tower's right side |
+| `castle_battlement_left_end.png` | 16 × 16 | a battlement tile with no castle on its left: its corner merlon |
+| `castle_battlement_right_end.png` | 16 × 16 | a battlement tile with no castle on its right: its corner merlon |
+| `castle_wall_top.png` | 16 × 16 | a battlement tile with castle above it: the wall top the tower rises from |
 
 ### Mario, by power state, and invincible
 

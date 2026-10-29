@@ -156,6 +156,15 @@ SPRITE_SIZES = {
     "castle_brick": TILE_SPRITE_SIZE,
     "castle_door_arch": TILE_SPRITE_SIZE,
     "castle_door": TILE_SPRITE_SIZE,
+    # the castle by place: its wall's and windows' left and right edges, its
+    # battlements' corner merlons, and the wall top the tower rises from
+    "castle_brick_left_edge": TILE_SPRITE_SIZE,
+    "castle_brick_right_edge": TILE_SPRITE_SIZE,
+    "castle_window_left_edge": TILE_SPRITE_SIZE,
+    "castle_window_right_edge": TILE_SPRITE_SIZE,
+    "castle_battlement_left_end": TILE_SPRITE_SIZE,
+    "castle_battlement_right_end": TILE_SPRITE_SIZE,
+    "castle_wall_top": TILE_SPRITE_SIZE,
     # Mario, by power state
     "mario_small": SMALL_MARIO_SPRITE_SIZE,
     "mario_big": BIG_MARIO_SPRITE_SIZE,
