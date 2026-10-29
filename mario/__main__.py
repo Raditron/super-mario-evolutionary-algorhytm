@@ -27,7 +27,8 @@ def main(runs_root: Path = RUNS_ROOT) -> None:
                               help=f"the run's settings (default: {DEFAULT_CONFIG_FILE_NAME} at the repo root)")
     train_parser.add_argument("--watch", action="store_true",
                               help="show each generation live; closing the window stops the run")
-    replay_parser = commands.add_parser("replay", help="replay a recorded generation, every agent as a ghost")
+    replay_parser = commands.add_parser(
+        "replay", help="replay a recorded generation: all agents as ghosts, or with --best only its best agent")
     replay_parser.add_argument("run_folder", type=Path, help="the run's folder, in runs/")
     replay_parser.add_argument("--generation", type=int, default=None,
                                help="the generation to replay (default: the last one recorded)")

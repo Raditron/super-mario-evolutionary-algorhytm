@@ -80,7 +80,8 @@ mario/
                   mode that draws), FollowedAgentCamera (only pygame importer)
   modes/          PlayMode (+ PlaySession), TrainMode, WatchLive (watch-live's
                   window, a PlayWatcher), ReplayMode (+ ReplaySession): best-agent
-                  replay, AllGhostReplayMode: all-ghost replay, StatsMode
+                  replay, AllGhostReplayMode: all-ghost replay (both exit through
+                  cant_replay's exits_if_cant_replay), StatsMode
 neuroevolution/   the user's package; exposes create_algorithm(settings)
 assets/sprites/   textures, added last (section 12)
 tests/game/       the game's pytest suite
@@ -304,7 +305,7 @@ runs/YYYY-MM-DD_HH-MM_<run-name>/
     - The followed-agent rule ranks agents by `AgentSnapshot.ranking_x_pixels`. That property is the one seam for the bonus room: until #23 adds it, `Area` has only `LEVEL`, and #23 makes an agent there rank as column 57.
 - **All-ghost replay** reuses the same worker + snapshot pipeline, with `ControllerLogSource` in place of the brain: it gives `AgentWorkerPool` a `ChunkControllerSourceFactory` of its own (section 9), whose sources play each agent's Controller log back, and the generation's Controller logs in place of its genomes. That factory builds no algorithm, so replay never imports `neuroevolution`. `LiveChunkPublisher` reads only the chunk's Attempts, and `WatchLive` reads only snapshots, so neither cares where the buttons come from.
   - **As built (#30):**
-    - `AllGhostReplayMode` (`modes/all_ghost_replay_mode.py`) reads every agent's Controller log of the generation through `RecordedRun.controller_logs`, prints one line naming the generation and how many agents it replays, and hands the logs to a watched `AgentWorkerPool` with `ControllerLogChunkControllerSourceFactory` (`training/controller_log_chunk_controller_source.py`). A generation that isn't recorded, or a folder that isn't a run folder, exits with a message before any worker starts or window opens.
+    - `AllGhostReplayMode` (`modes/all_ghost_replay_mode.py`) reads every agent's Controller log of the generation through `RecordedRun.controller_logs` (one per agent of the generation's `results.csv` rows), prints one line naming the generation and how many agents it replays, and hands the logs to a watched `AgentWorkerPool` with `ControllerLogChunkControllerSourceFactory` (`training/controller_log_chunk_controller_source.py`). A generation that isn't recorded, or a folder that isn't a run folder, exits with a message before any worker starts or window opens.
     - Each agent's attempt is a training attempt (stall rule on), as when it was recorded, so it ends on the tick its recorded attempt ended, with the same end reason and `furthest_x` as its `results.csv` row. As in watch-live, an agent vanishes when his attempt ends: one that reached the flag doesn't play out the end of the level, which only best-agent replay does.
     - Its `WatchLive` keeps showing the generation once it has played out, until the viewer quits, as best-agent replay holds its last frame. Quitting (`Esc` or closing the window), at any time, raises `ViewerClosed`: the workers are stopped, not waited for, and `replay` exits normally.
 - **Best-agent replay** and **play** are one Mario each and run in the main process (built in #28):

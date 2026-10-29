@@ -24,7 +24,6 @@ from mario.modes.replay_session import ReplaySession
 from mario.recording.recorded_run import RecordedRun
 from mario.recording.run_recorder import RunRecorder
 from mario.simulation.attempt import Attempt
-from mario.simulation.attempt_result import EndReason
 from mario.training.agent_worker_pool import AgentWorkerPool
 from mario.training.algorithm_factory import AlgorithmFactory
 from mario.training.brain_chunk_controller_source import BrainChunkControllerSourceFactory
@@ -35,7 +34,7 @@ from mario.view.viewer import Viewer
 from tests.game.helpers import CASTLE_STOPPER_X_PIXELS, HOLD_NOTHING, PILOT_ENEMY_LOOK_AHEAD_PIXELS
 from tests.game.mario_with_a_frame_budget import FRAMES_SHOWN_PREFIX, NEUROEVOLUTION_IMPORTED_PREFIX
 from tests.game.random_buttons_algorithm import create_random_buttons_algorithm
-from tests.game.scripted_pilot import ScriptedPilot
+from tests.game.scripted_pilot import pilots_training_attempt
 from tests.game.scripted_window import F1_PRESSED, NOTHING_PRESSED, ScriptedWindow, shows_the_sprite_view
 
 REPO_ROOT = Path(mario.__file__).parent.parent
@@ -94,19 +93,6 @@ def replay_to_the_end(session: ReplaySession) -> None:
         session.step()
 
 
-def pilots_controller_log(level: StaticLevel) -> np.ndarray:
-    """The Controller log of a training attempt (stall rule on) in which the pilot reaches the flag."""
-    attempt = Attempt(level, ends_on_stall=True)
-    pilot = ScriptedPilot(PILOT_ENEMY_LOOK_AHEAD_PIXELS)
-    controller_log = bytearray()
-    while not attempt.is_over:
-        buttons = pilot.next_buttons(attempt)
-        attempt.step(buttons)
-        controller_log.append(buttons)
-    assert attempt.end_reason is EndReason.REACHED_FLAG
-    return np.frombuffer(bytes(controller_log), dtype=np.uint8)
-
-
 def test_a_run_stopped_early_replays_from_its_last_recorded_generation(stopped_run):
     assert RecordedRun(stopped_run).last_generation() == GENERATIONS_BEFORE_THE_STOP
 
@@ -132,7 +118,7 @@ def test_the_replay_holds_still_once_the_recorded_attempt_has_ended(stopped_run,
 
 def test_a_replay_that_reached_the_flag_plays_out_the_end_of_the_level_as_play_mode_does(world_1_1):
     """Play mode's end of the level is the reference (tests/game/test_end_of_level.py checks it)."""
-    controller_log = pilots_controller_log(world_1_1)
+    controller_log, _ = pilots_training_attempt(world_1_1, PILOT_ENEMY_LOOK_AHEAD_PIXELS)
     replay = ReplaySession(controller_log, world_1_1)
     play = PlaySession(world_1_1)
     replay_snapshots, play_snapshots = [], []

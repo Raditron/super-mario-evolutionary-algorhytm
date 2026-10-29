@@ -11,6 +11,7 @@ empty or half-written.
 from pathlib import Path
 
 from mario.level.static_level import StaticLevel
+from mario.modes.cant_replay import exits_if_cant_replay
 from mario.modes.replay_session import ReplaySession
 from mario.recording.recorded_run import RecordedRun
 from mario.view.viewer import Viewer
@@ -19,7 +20,6 @@ from mario.view.window import Window
 REPLAYING_MESSAGE = ("Replaying generation {row.generation}, best agent {row.agent_index} (fitness {row.fitness}): "
                      "its attempt ended {row.end_reason} at furthest_x {row.furthest_x} "
                      "after {row.ticks_elapsed} ticks.")
-CANT_REPLAY_MESSAGE = "Can't replay: {problem}."
 
 
 class ReplayMode:
@@ -32,11 +32,9 @@ class ReplayMode:
         """The best agent of the generation, by default the last one recorded. Exits
         with a message, before any window opens, if the run folder can't give it."""
         recorded_run = RecordedRun(run_folder_path)
-        try:
-            replayed_generation = recorded_run.last_generation() if generation is None else generation
+        with exits_if_cant_replay():
+            replayed_generation = recorded_run.generation_or_last(generation)
             best_agent = recorded_run.best_agent(replayed_generation)
-        except LookupError as problem:
-            raise SystemExit(CANT_REPLAY_MESSAGE.format(problem=problem.args[0])) from None
         print(REPLAYING_MESSAGE.format(row=best_agent))
         session = ReplaySession(recorded_run.controller_log(replayed_generation, best_agent.agent_index),
                                 StaticLevel.load_world_1_1())

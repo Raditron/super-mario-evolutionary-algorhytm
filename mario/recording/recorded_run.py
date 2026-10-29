@@ -32,25 +32,37 @@ class RecordedRun:
             raise LookupError(f"{self._run_folder.path} has no generation recorded yet")
         return max(recorded_generations)
 
+    def generation_or_last(self, generation: int | None) -> int:
+        """The given generation, or, if None, the last one recorded. Raises LookupError
+        if None is given and there is none yet."""
+        return self.last_generation() if generation is None else generation
+
     def best_agent(self, generation: int) -> ResultsRow:
         """The generation's row with the highest fitness; on a tie, the lowest agent index.
         Raises LookupError if the generation isn't recorded."""
         self._check_is_recorded(generation)
-        rows = sorted((row for row in self.results_rows() if row.generation == generation),
-                      key=lambda row: row.agent_index)
+        rows = self._generation_rows(generation)
         return rows[best_agent_index([row.fitness for row in rows])]
 
     def controller_log(self, generation: int, agent_index: int) -> np.ndarray:
         """The agent's Controller log: one uint8 bitmask per tick of its attempt."""
-        with np.load(self._run_folder.controller_logs_path(generation)) as controller_logs:
-            return controller_logs[CONTROLLER_LOG_KEY_FORMAT.format(agent=agent_index)]
+        return self._read_controller_logs(generation, [agent_index])[0]
 
     def controller_logs(self, generation: int) -> list[np.ndarray]:
-        """Every agent's Controller log, in agent order. Raises LookupError if the generation isn't recorded."""
+        """Every agent's Controller log, in agent order: one per agent of the generation's
+        results.csv rows. Raises LookupError if the generation isn't recorded."""
         self._check_is_recorded(generation)
+        return self._read_controller_logs(generation, [row.agent_index for row in self._generation_rows(generation)])
+
+    def _generation_rows(self, generation: int) -> list[ResultsRow]:
+        """The generation's rows of results.csv, in agent order."""
+        return sorted((row for row in self.results_rows() if row.generation == generation),
+                      key=lambda row: row.agent_index)
+
+    def _read_controller_logs(self, generation: int, agent_indices: list[int]) -> list[np.ndarray]:
         with np.load(self._run_folder.controller_logs_path(generation)) as controller_logs:
             return [controller_logs[CONTROLLER_LOG_KEY_FORMAT.format(agent=agent_index)]
-                    for agent_index in range(len(controller_logs.files))]
+                    for agent_index in agent_indices]
 
     def _is_recorded(self, generation: int) -> bool:
         return self._run_folder.controller_logs_path(generation).is_file()

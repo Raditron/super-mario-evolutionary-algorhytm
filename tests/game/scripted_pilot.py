@@ -3,10 +3,14 @@
 A test tool only, not an agent: it reads the Attempt directly.
 """
 
+import numpy as np
+
 from mario.constants.level import TILE_SIZE_PIXELS
 from mario.constants.physics import SUBPIXEL_BITS
 from mario.controller.controller_state import ControllerState
+from mario.level.static_level import StaticLevel
 from mario.simulation.attempt import Attempt
+from mario.simulation.attempt_result import AttemptResult, EndReason
 
 LOOK_AHEAD_PIXELS = 40
 
@@ -52,3 +56,17 @@ class ScriptedPilot:
             if not any(level.is_solid(column, row) for row in range(feet_row, level.height_tiles)):
                 return True
         return False
+
+
+def pilots_training_attempt(level: StaticLevel, enemy_look_ahead_pixels: int) -> tuple[np.ndarray, AttemptResult]:
+    """The Controller log and result of a training attempt (stall rule on) in which the
+    pilot, jumping at enemies too, reaches the flag."""
+    attempt = Attempt(level, ends_on_stall=True)
+    pilot = ScriptedPilot(enemy_look_ahead_pixels)
+    controller_log = bytearray()
+    while not attempt.is_over:
+        buttons = pilot.next_buttons(attempt)
+        attempt.step(buttons)
+        controller_log.append(buttons)
+    assert attempt.end_reason is EndReason.REACHED_FLAG
+    return np.frombuffer(bytes(controller_log), dtype=np.uint8), attempt.result()

@@ -14,18 +14,21 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pygame
 import pytest
 
 import mario
+from mario.level.static_level import StaticLevel
 from mario.modes.all_ghost_replay_mode import AllGhostReplayMode
 from mario.modes.watch_live import WatchLive
 from mario.recording.recorded_run import RecordedRun
 from mario.recording.run_recorder import RunRecorder
-from mario.simulation.attempt_result import EndReason
+from mario.simulation.attempt_result import AttemptResult, EndReason
 from mario.snapshots.world_snapshot import GenerationProgress, WorldSnapshot
 from mario.training.agent_worker_pool import AgentWorkerPool
 from mario.training.algorithm_factory import AlgorithmFactory
+from mario.training.chunk_player import PlayedAttempt
 from mario.training.brain_chunk_controller_source import BrainChunkControllerSourceFactory
 from mario.training.controller_log_chunk_controller_source import ControllerLogChunkControllerSourceFactory
 from mario.training.generation_recorder import GenerationRecorder
@@ -33,8 +36,10 @@ from mario.training.run_config import RunSettings
 from mario.training.trainer import Trainer
 from mario.view.viewer import Viewer
 from mario.view.window import WindowEvents
+from tests.game.helpers import PILOT_ENEMY_LOOK_AHEAD_PIXELS
 from tests.game.mario_with_a_frame_budget import FRAMES_SHOWN_PREFIX, NEUROEVOLUTION_IMPORTED_PREFIX
 from tests.game.random_buttons_algorithm import create_random_buttons_algorithm
+from tests.game.scripted_pilot import pilots_training_attempt
 from tests.game.scripted_window import CLOSED, NOTHING_PRESSED, ScriptedWindow
 
 REPO_ROOT = Path(mario.__file__).parent.parent
@@ -141,22 +146,61 @@ def recorded_run_folder(tmp_path_factory) -> Path:
     return recorder.run_folder_path
 
 
-@pytest.mark.parametrize("generation", range(1, GENERATIONS + 1))
-def test_every_agent_replayed_from_its_controller_log_ends_as_results_csv_says(recorded_run_folder, generation):
-    recorded_run = RecordedRun(recorded_run_folder)
-    with AgentWorkerPool(ControllerLogChunkControllerSourceFactory(), WORKER_COUNT) as worker_pool:
-        replayed_attempts = worker_pool.play(recorded_run.controller_logs(generation), generation)
-    recorded_rows = sorted((row for row in recorded_run.results_rows() if row.generation == generation),
-                           key=lambda row: row.agent_index)
-    assert len(recorded_rows) == POPULATION_SIZE
-    assert [(replayed.attempt_result.end_reason, replayed.attempt_result.furthest_x)
-            for replayed in replayed_attempts] == [(row.end_reason, row.furthest_x) for row in recorded_rows]
-    assert [replayed.attempt_result.ticks_elapsed for replayed in replayed_attempts] == [
-        row.ticks_elapsed for row in recorded_rows]
+@pytest.fixture(scope="module")
+def pilots_attempt() -> tuple[np.ndarray, AttemptResult]:
+    """The Controller log and result of a training attempt that reaches the flag."""
+    return pilots_training_attempt(StaticLevel.load_world_1_1(), PILOT_ENEMY_LOOK_AHEAD_PIXELS)
 
 
 def results_rows_of(recorded_run: RecordedRun, generation: int):
-    return [row for row in recorded_run.results_rows() if row.generation == generation]
+    """The generation's rows of results.csv, in agent order."""
+    return sorted((row for row in recorded_run.results_rows() if row.generation == generation),
+                  key=lambda row: row.agent_index)
+
+
+def endings_of(played_attempts: list[PlayedAttempt]) -> list[tuple[EndReason, int, int]]:
+    return [(played.attempt_result.end_reason, played.attempt_result.furthest_x, played.attempt_result.ticks_elapsed)
+            for played in played_attempts]
+
+
+def recorded_endings(recorded_run: RecordedRun, generation: int) -> list[tuple[EndReason, int, int]]:
+    return [(row.end_reason, row.furthest_x, row.ticks_elapsed) for row in results_rows_of(recorded_run, generation)]
+
+
+@pytest.mark.parametrize("generation", range(1, GENERATIONS + 1))
+def test_every_agent_replayed_from_its_controller_log_ends_as_results_csv_says_even_one_that_reached_the_flag(
+        recorded_run_folder, pilots_attempt, generation):
+    """The pilot's attempt joins the generation's recorded ones as its last agent, so one reaches the flag."""
+    recorded_run = RecordedRun(recorded_run_folder)
+    pilots_controller_log, pilots_result = pilots_attempt
+    with AgentWorkerPool(ControllerLogChunkControllerSourceFactory(), WORKER_COUNT) as worker_pool:
+        replayed_attempts = worker_pool.play(recorded_run.controller_logs(generation) + [pilots_controller_log],
+                                             generation)
+    assert len(results_rows_of(recorded_run, generation)) == POPULATION_SIZE
+    assert endings_of(replayed_attempts) == recorded_endings(recorded_run, generation) + [
+        (pilots_result.end_reason, pilots_result.furthest_x, pilots_result.ticks_elapsed)]
+    assert replayed_attempts[-1].attempt_result.end_reason is EndReason.REACHED_FLAG
+
+
+def test_the_replay_mode_plays_every_agent_of_the_generation_through_the_watched_pool_as_results_csv_says(
+        fonts, recorded_run_folder, monkeypatch, tmp_path):
+    """End to end through AllGhostReplayMode, its watched worker pool, snapshots and WatchLive; the
+    WatchLive here lets the generation go once played, so the pool hands back what it played."""
+    played_attempts: list[PlayedAttempt] = []
+
+    class PlayedAttemptsKeepingWorkerPool(AgentWorkerPool):
+        def play(self, agent_controls, generation):
+            played_now = super().play(agent_controls, generation)
+            played_attempts.extend(played_now)
+            return played_now
+
+    monkeypatch.setattr("mario.modes.all_ghost_replay_mode.AgentWorkerPool", PlayedAttemptsKeepingWorkerPool)
+    recorded_run = RecordedRun(recorded_run_folder)
+    window = EndlessWindow([])
+    AllGhostReplayMode(1, recorded_run.controller_logs(1),
+                       WatchLive(lambda: Viewer.with_both_views(window, tmp_path))).run()
+    assert endings_of(played_attempts) == recorded_endings(recorded_run, 1)
+    assert window.frame_count > 0 and window.is_closed
 
 
 def test_the_replay_shows_the_whole_generation_with_ghosts_and_the_hud_line_then_holds_it_until_the_viewer_quits(
@@ -168,7 +212,7 @@ def test_the_replay_shows_the_whole_generation_with_ghosts_and_the_hud_line_then
     window = EndlessWindow([])
     viewer = WatchingViewer(Viewer.with_both_views(window, tmp_path))
     AllGhostReplayMode(generation, recorded_run.controller_logs(generation),
-                       WatchLive(lambda: viewer, keeps_showing_once_played=True), WORKER_COUNT).run()
+                       WatchLive(lambda: viewer, keeps_showing_once_played=True)).run()
     first_line, last_line = viewer.generation_lines[0], viewer.generation_lines[-1]
     assert (first_line.generation, first_line.population_size) == (generation, POPULATION_SIZE)
     assert first_line.alive > 0 and any(viewer.ghost_counts)
@@ -181,8 +225,8 @@ def test_quitting_part_way_through_stops_the_replay_at_once(fonts, recorded_run_
     recorded_run = RecordedRun(recorded_run_folder)
     window = QuitsOnItsOwnWindow([])
     AllGhostReplayMode(1, recorded_run.controller_logs(1),
-                       WatchLive(lambda: Viewer.with_both_views(window, tmp_path), keeps_showing_once_played=True),
-                       WORKER_COUNT).run()
+                       WatchLive(lambda: Viewer.with_both_views(window, tmp_path),
+                                 keeps_showing_once_played=True)).run()
     assert time.perf_counter() - window.quit_at < SECONDS_TO_STOP  # the workers are stopped, not waited for
     assert window.is_closed
 
