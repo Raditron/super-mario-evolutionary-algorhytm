@@ -1,6 +1,6 @@
 """The worker pool plays whatever controls its agents, through one seam: a ChunkControllerSourceFactory
-(spec sections 9 and 11). Training's is the brain built from genomes; all-ghost replay (#30) is to
-bring one of Controller logs, with no algorithm built."""
+(spec sections 9 and 11). Training's is the brain built from genomes; all-ghost replay (#30)
+brings one of Controller logs (ControllerLogChunkControllerSourceFactory), with no algorithm built."""
 
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import EndReason

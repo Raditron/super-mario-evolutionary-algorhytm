@@ -32,23 +32,45 @@ class RecordedRun:
             raise LookupError(f"{self._run_folder.path} has no generation recorded yet")
         return max(recorded_generations)
 
+    def generation_or_last(self, generation: int | None) -> int:
+        """The given generation, or, if None, the last one recorded. Raises LookupError
+        if None is given and there is none yet."""
+        return self.last_generation() if generation is None else generation
+
     def best_agent(self, generation: int) -> ResultsRow:
         """The generation's row with the highest fitness; on a tie, the lowest agent index.
         Raises LookupError if the generation isn't recorded."""
-        self._check_is_a_run_folder()
-        if not self._is_recorded(generation):
-            raise LookupError(f"generation {generation} isn't recorded in {self._run_folder.path}")
-        rows = sorted((row for row in self.results_rows() if row.generation == generation),
-                      key=lambda row: row.agent_index)
+        self._check_is_recorded(generation)
+        rows = self._generation_rows(generation)
         return rows[best_agent_index([row.fitness for row in rows])]
 
     def controller_log(self, generation: int, agent_index: int) -> np.ndarray:
         """The agent's Controller log: one uint8 bitmask per tick of its attempt."""
+        return self._read_controller_logs(generation, [agent_index])[0]
+
+    def controller_logs(self, generation: int) -> list[np.ndarray]:
+        """Every agent's Controller log, in agent order: one per agent of the generation's
+        results.csv rows. Raises LookupError if the generation isn't recorded."""
+        self._check_is_recorded(generation)
+        return self._read_controller_logs(generation, [row.agent_index for row in self._generation_rows(generation)])
+
+    def _generation_rows(self, generation: int) -> list[ResultsRow]:
+        """The generation's rows of results.csv, in agent order."""
+        return sorted((row for row in self.results_rows() if row.generation == generation),
+                      key=lambda row: row.agent_index)
+
+    def _read_controller_logs(self, generation: int, agent_indices: list[int]) -> list[np.ndarray]:
         with np.load(self._run_folder.controller_logs_path(generation)) as controller_logs:
-            return controller_logs[CONTROLLER_LOG_KEY_FORMAT.format(agent=agent_index)]
+            return [controller_logs[CONTROLLER_LOG_KEY_FORMAT.format(agent=agent_index)]
+                    for agent_index in agent_indices]
 
     def _is_recorded(self, generation: int) -> bool:
         return self._run_folder.controller_logs_path(generation).is_file()
+
+    def _check_is_recorded(self, generation: int) -> None:
+        self._check_is_a_run_folder()
+        if not self._is_recorded(generation):
+            raise LookupError(f"generation {generation} isn't recorded in {self._run_folder.path}")
 
     def results_rows(self) -> list[ResultsRow]:
         """Every row of results.csv, in the order recorded. Raises LookupError if it isn't a run folder."""
