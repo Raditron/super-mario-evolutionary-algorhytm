@@ -130,7 +130,11 @@ SPRITE_SIZES = {
     "brick": TILE_SPRITE_SIZE,
     "question_block": TILE_SPRITE_SIZE,
     "used_block": TILE_SPRITE_SIZE,
-    "pipe": TILE_SPRITE_SIZE,
+    # a pipe by place: its rim's and body's left and right halves
+    "pipe_rim_left": TILE_SPRITE_SIZE,
+    "pipe_rim_right": TILE_SPRITE_SIZE,
+    "pipe_body_left": TILE_SPRITE_SIZE,
+    "pipe_body_right": TILE_SPRITE_SIZE,
     "flagpole": TILE_SPRITE_SIZE,
     # the flag on the flagpole
     "flag": FLAG_SPRITE_SIZE,

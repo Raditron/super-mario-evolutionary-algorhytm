@@ -36,6 +36,7 @@ from mario.constants.view import (
     KOOPA_COLOUR,
     KOOPA_SHELL_COLOUR,
     MARIO_COLOUR,
+    PIPE_COLOUR,
     SKY_COLOUR,
     SPRITE_SIZES,
     STARMAN_COLOUR,
@@ -332,6 +333,18 @@ def test_a_castle_tile_is_drawn_with_the_picture_its_place_in_the_castle_picks(t
     assert colour_at(screen, snapshot, *tile_centre(204, 10)) == PNG_COLOUR
     assert colour_at(screen, snapshot, *tile_centre(202, 11)) == CASTLE_BRICK_COLOUR
     assert colour_at(screen, snapshot, *tile_centre(206, 10)) == CASTLE_BRICK_COLOUR
+
+
+def test_a_pipe_tile_is_drawn_with_the_picture_its_place_in_the_pipe_picks(tmp_path, world_1_1, scenery):
+    """World 1-1's first pipe is columns 28-29 of rows 11-12: (28, 11) is its rim's
+    left half; its rim's right half (29, 11) and its body (28, 12) have no PNG, so
+    they fill in the pipe's colour."""
+    write_png(tmp_path / "pipe_rim_left.png", (*PNG_COLOUR, 255))
+    snapshot = level_screen(world_1_1, first_column=20)
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert colour_at(screen, snapshot, *tile_centre(28, 11)) == PNG_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(29, 11)) == PIPE_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(28, 12)) == PIPE_COLOUR
 
 
 def test_a_sprites_transparent_pixels_show_what_is_behind_it(tmp_path, scenery):

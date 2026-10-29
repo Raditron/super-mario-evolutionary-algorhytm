@@ -36,15 +36,18 @@ from mario.snapshots.world_snapshot import (
     ItemSnapshot,
     MarioSnapshot,
     PowerState,
+    VisibleTiles,
     WorldSnapshot,
 )
 from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, SHELL_COLOURS, TILE_COLOURS, mario_colour
+from mario.view.pipe_sprite_names import PipeNeighbourhood, pipe_sprite_name
 from mario.view.scenery_sprite_names import SceneryNeighbourhood, scenery_sprite_name
 from mario.view.sprite_library import SpriteLibrary
 
-# Tiles by how they look: a brick or ? block doesn't show what it holds. Tiles
-# not listed aren't drawn: open sky, the hidden 1-UP block until it is hit, and
-# the castle stopper behind the castle.
+# Tiles by how they look: a brick or ? block doesn't show what it holds. A pipe
+# tile is drawn by its place in its pipe (pipe_sprite_names). Other tiles not
+# listed aren't drawn: open sky, the hidden 1-UP block until it is hit, and the
+# castle stopper behind the castle.
 TILE_SPRITE_NAMES = {
     TileKind.GROUND: "ground",
     TileKind.HARD_BLOCK: "hard_block",
@@ -54,7 +57,6 @@ TILE_SPRITE_NAMES = {
     TileKind.COIN_QUESTION_BLOCK: "question_block",
     TileKind.POWER_UP_QUESTION_BLOCK: "question_block",
     TileKind.USED_BLOCK: "used_block",
-    TileKind.PIPE: "pipe",
     TileKind.FLAGPOLE: "flagpole",
 }
 
@@ -154,10 +156,10 @@ class SpriteRenderer:
         bounce_offsets = {(block.column, block.row): block.offset_y_pixels for block in snapshot.bouncing_blocks}
         for row, kinds in enumerate(tiles.rows):
             for column_offset, kind in enumerate(kinds):
-                sprite_name = TILE_SPRITE_NAMES.get(kind)
+                column = tiles.first_column + column_offset
+                sprite_name = _tile_sprite_name(tiles, kind, column, row)
                 if sprite_name is None:
                     continue
-                column = tiles.first_column + column_offset
                 tile_box = _tile_box(column, row).move(0, bounce_offsets.get((column, row), 0))
                 self._draw_sprite(sprite_name, TILE_COLOURS[kind], _standing_on(tile_box, sprite_name),
                                   snapshot.screen_left_x_pixels, screen)
@@ -216,6 +218,13 @@ class SpriteRenderer:
             screen.fill(hitbox_colour, place_on_screen)
         else:
             screen.blit(sprite, place_on_screen)
+
+
+def _tile_sprite_name(tiles: VisibleTiles, kind: TileKind, column: int, row: int) -> str | None:
+    """The tile's sprite name, a pipe tile's picked by its place in its pipe; None for a tile not drawn."""
+    if kind is TileKind.PIPE:
+        return pipe_sprite_name(PipeNeighbourhood.around(tiles, column, row))
+    return TILE_SPRITE_NAMES.get(kind)
 
 
 def _mario_sprite_name(mario: MarioSnapshot) -> str:

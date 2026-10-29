@@ -16,7 +16,7 @@ The PNGs here are painted from text drawings in `sprite_art/drawings/`, one pale
 
 ### Tiles (16 × 16, one per tile)
 
-Tiles are named by how they look: a brick or ? block doesn't show what it holds. The hidden 1-UP block isn't drawn until it is hit (it then shows as a used block), and neither is the invisible castle stopper.
+Tiles are named by how they look: a brick or ? block doesn't show what it holds. The hidden 1-UP block isn't drawn until it is hit (it then shows as a used block), and neither is the invisible castle stopper. A pipe is two tiles wide, and its tile is drawn by its place in the pipe, which its neighbouring tiles give: with no pipe above it, it is the rim, otherwise the body; with no pipe on its left, it is the left half, otherwise the right half. The rim is a lip the pipe's full width over the body, which is set in 2 px on each side (transparent there), so the two halves read as one wide pipe with a lip on top. A tile at the screen's left edge, whose left neighbour is off screen, is the left half when pipe is on its right.
 
 | File | Size (px) | Drawn for |
 |---|---|---|
@@ -25,7 +25,10 @@ Tiles are named by how they look: a brick or ? block doesn't show what it holds.
 | `brick.png` | 16 × 16 | every brick: plain, multi-coin and Starman |
 | `question_block.png` | 16 × 16 | every ? block: coin and power-up |
 | `used_block.png` | 16 × 16 | a block that has been emptied |
-| `pipe.png` | 16 × 16 | every tile of a pipe |
+| `pipe_rim_left.png` | 16 × 16 | a pipe's tile with no pipe above it or on its left |
+| `pipe_rim_right.png` | 16 × 16 | a pipe's tile with no pipe above it and pipe on its left |
+| `pipe_body_left.png` | 16 × 16 | a pipe's tile with pipe above it and none on its left |
+| `pipe_body_right.png` | 16 × 16 | a pipe's tile with pipe above it and on its left |
 | `flagpole.png` | 16 × 16 | the flagpole's ball and shaft |
 
 ### The flag

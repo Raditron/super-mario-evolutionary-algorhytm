@@ -1,4 +1,5 @@
-"""The level's tiles and the flag. Every tile of a kind is drawn with the same picture."""
+"""The level's tiles and the flag. Every tile of a kind is drawn with the same picture, but a pipe's,
+which is drawn by its place in its pipe."""
 
 from sprite_art.palettes.level import LEVEL_PALETTE
 from sprite_art.sprite_drawing import SpriteDrawing
@@ -98,7 +99,53 @@ USED_BLOCK = SpriteDrawing("used_block", LEVEL_PALETTE, (
     "nnnnnnnnnnnnnnnn",
 ))
 
-PIPE = SpriteDrawing("pipe", LEVEL_PALETTE, ("KPQQPPPPPPPPpppK",) * 16)
+# A pipe is two tiles wide, drawn by place: its rim's and body's left and right
+# halves. The rim is a lip the pipe's full width, banded with iron rivets, over
+# the body, which is set in 2 px on each side so the lip overhangs it.
+PIPE_BODY_LEFT_ROW = "..KPQQQPPPPPPPPP"
+PIPE_BODY_RIGHT_ROW = "PPPPPPPPpPpppK.."
+
+PIPE_RIM_LEFT = SpriteDrawing("pipe_rim_left", LEVEL_PALETTE, (
+    "KKKKKKKKKKKKKKKK",
+    "KQQQQQQQQQQQQQQQ",
+    "KPQQQPPPPPPPPPPP",
+    "KPQQQPPPPPPPPPPP",
+    "KPQQQPPPPPPPPPPP",
+    "KPQQQPPPPeePPPPP",
+    "KPQQQPPPPepPPPPP",
+    "KPQQQPPPPPPPPPPP",
+    "KPQQQPPPPPPPPPPP",
+    "KPQQQPPPPPPPPPPP",
+    "KPQQQPPPPPPPPPPP",
+    "Kppppppppppppppp",
+    "KKKKKKKKKKKKKKKK",
+    "..Kppppppppppppp",
+    PIPE_BODY_LEFT_ROW,
+    PIPE_BODY_LEFT_ROW,
+))
+
+PIPE_RIM_RIGHT = SpriteDrawing("pipe_rim_right", LEVEL_PALETTE, (
+    "KKKKKKKKKKKKKKKK",
+    "QQQQQQQQQQQQQQpK",
+    "PPPPPPPPpPpppppK",
+    "PPPPPPPPpPpppppK",
+    "PPPPPPPPpPpppppK",
+    "PPPPPeePpPpppppK",
+    "PPPPPepPpPpppppK",
+    "PPPPPPPPpPpppppK",
+    "PPPPPPPPpPpppppK",
+    "PPPPPPPPpPpppppK",
+    "PPPPPPPPpPpppppK",
+    "pppppppppppppppK",
+    "KKKKKKKKKKKKKKKK",
+    "pppppppppppppK..",
+    PIPE_BODY_RIGHT_ROW,
+    PIPE_BODY_RIGHT_ROW,
+))
+
+PIPE_BODY_LEFT = SpriteDrawing("pipe_body_left", LEVEL_PALETTE, (PIPE_BODY_LEFT_ROW,) * 16)
+
+PIPE_BODY_RIGHT = SpriteDrawing("pipe_body_right", LEVEL_PALETTE, (PIPE_BODY_RIGHT_ROW,) * 16)
 
 FLAGPOLE = SpriteDrawing("flagpole", LEVEL_PALETTE, ("......KWeK......",) * 16)
 
@@ -122,4 +169,5 @@ FLAG = SpriteDrawing("flag", LEVEL_PALETTE, (
     "................",
 ))
 
-LEVEL_DRAWINGS = (GROUND, BRICK, HARD_BLOCK, QUESTION_BLOCK, USED_BLOCK, PIPE, FLAGPOLE, FLAG)
+LEVEL_DRAWINGS = (GROUND, BRICK, HARD_BLOCK, QUESTION_BLOCK, USED_BLOCK, PIPE_RIM_LEFT, PIPE_RIM_RIGHT,
+                  PIPE_BODY_LEFT, PIPE_BODY_RIGHT, FLAGPOLE, FLAG)
