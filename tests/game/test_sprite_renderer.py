@@ -292,7 +292,16 @@ def test_a_tile_or_scenery_png_is_drawn_on_every_tile_of_its_kind(tmp_path, worl
     screen = drawn(renderer_with(tmp_path, scenery), snapshot)
     assert {colour_at(screen, snapshot, *tile_centre(column, 14)) for column in range(16)} == {PNG_COLOUR}
     assert colour_at(screen, snapshot, *tile_centre(8, 3)) == (0, 255, 255)
-    assert colour_at(screen, snapshot, *tile_centre(2, 10)) == HILL_COLOUR    # no hill.png: still its colour
+    assert colour_at(screen, snapshot, *tile_centre(2, 10)) == HILL_COLOUR    # no hill PNGs: still its colour
+
+
+def test_a_hill_tile_is_drawn_with_the_picture_its_place_in_the_hill_picks(tmp_path, world_1_1, scenery):
+    """The big hill's peak is (2, 10), its left slope under it at (1, 11)."""
+    write_png(tmp_path / "hill_peak.png", (*PNG_COLOUR, 255))
+    snapshot = WorldSnapshot.of(Attempt(world_1_1))
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert colour_at(screen, snapshot, *tile_centre(2, 10)) == PNG_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(1, 11)) == HILL_COLOUR    # no hill_left_slope.png
 
 
 def test_a_sprites_transparent_pixels_show_what_is_behind_it(tmp_path, scenery):

@@ -1,5 +1,6 @@
 """The background scenery: one picture per tile, repeated across every tile of a kind,
-so each tiles seamlessly with itself."""
+so each tiles seamlessly with itself; a hill's tiles by their place in the hill, the
+slopes open to the sky on their outer side, lit from the top-left."""
 
 from sprite_art.palettes.scenery import SCENERY_PALETTE
 from sprite_art.sprite_drawing import SpriteDrawing
@@ -23,7 +24,64 @@ CLOUD = SpriteDrawing("cloud", SCENERY_PALETTE, (
     "...SSSSSSSSSS...",
 ))
 
-HILL = SpriteDrawing("hill", SCENERY_PALETTE, (
+HILL_LEFT_SLOPE = SpriteDrawing("hill_left_slope", SCENERY_PALETTE, (
+    "...............L",
+    "..............LL",
+    ".............LLG",
+    "............LLGG",
+    "...........LLGGG",
+    "..........LLGGGG",
+    ".........LLGGGLG",
+    "........LLGGGLgL",
+    ".......LLGGGGGGG",
+    "......LLGGGGGGGG",
+    ".....LLGGGGGGgGG",
+    "....LLGGGGGGGGGG",
+    "...LLGGGGLGGGGGG",
+    "..LLGGGGLgLGGGGG",
+    ".LLGGGGGGGGGGGGG",
+    "LLGGGGGgGGGGGGGG",
+))
+
+HILL_RIGHT_SLOPE = SpriteDrawing("hill_right_slope", SCENERY_PALETTE, (
+    "g...............",
+    "gg..............",
+    "Ggg.............",
+    "GGgg............",
+    "GLGgg...........",
+    "LgLGgg..........",
+    "GGGGGgg.........",
+    "GGGGGGgg........",
+    "GGGgGGGgg.......",
+    "GGGGGGGGgg......",
+    "GGGGGLGGGgg.....",
+    "GGGGLgLGGGgg....",
+    "GGGGGGGGGGGgg...",
+    "GgGGGGGGGGGGgg..",
+    "GGGGGGGGGGgGGgg.",
+    "GGGGGGGGGGGGGGgg",
+))
+
+HILL_PEAK = SpriteDrawing("hill_peak", SCENERY_PALETTE, (
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "......LLLg......",
+    "....LLLGGGgg....",
+    "...LLGGGGGGGg...",
+    "...LGGGGGGGGg...",
+    "..LLGGGGGGGGgg..",
+    "..LGGGGLGGGGGg..",
+    ".LLGGGLgLGGGGgg.",
+    ".LGGGGGGGGGGGGg.",
+    "LLGGGGGGGGGGGGgg",
+))
+
+HILL_FILL = SpriteDrawing("hill_fill", SCENERY_PALETTE, (
     "GGGGGGGGGGGGGGGG",
     "GGGLGGGGGGGGGGGG",
     "GGLgLGGGGGGGGgGG",
@@ -148,5 +206,5 @@ CASTLE_DOOR = SpriteDrawing("castle_door", SCENERY_PALETTE, (
     "VcNNnNNnnNNnNNcv",
 ))
 
-SCENERY_DRAWINGS = (CLOUD, HILL, BUSH, CASTLE_BATTLEMENT, CASTLE_WINDOW, CASTLE_BRICK, CASTLE_DOOR_ARCH,
+SCENERY_DRAWINGS = (CLOUD, HILL_LEFT_SLOPE, HILL_RIGHT_SLOPE, HILL_PEAK, HILL_FILL, BUSH, CASTLE_BATTLEMENT, CASTLE_WINDOW, CASTLE_BRICK, CASTLE_DOOR_ARCH,
                     CASTLE_DOOR)

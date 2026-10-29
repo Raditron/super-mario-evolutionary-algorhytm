@@ -39,6 +39,7 @@ from mario.snapshots.world_snapshot import (
     WorldSnapshot,
 )
 from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, SHELL_COLOURS, TILE_COLOURS, mario_colour
+from mario.view.scenery_sprite_names import SceneryNeighbourhood, scenery_sprite_name
 from mario.view.sprite_library import SpriteLibrary
 
 # Tiles by how they look: a brick or ? block doesn't show what it holds. Tiles
@@ -136,14 +137,14 @@ class SpriteRenderer:
             self._draw_mario(mario, snapshot.screen_left_x_pixels, screen)
 
     def _draw_scenery(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
-        """Behind every tile the screen shows; each SceneryKind's value is its sprite name."""
+        """Behind every tile the screen shows, each with the picture its scenery neighbours pick."""
         tiles = snapshot.tiles
         for row, kinds in enumerate(tiles.rows):
             for column in range(tiles.first_column, tiles.first_column + len(kinds)):
-                scenery_kind = self._scenery.scenery_kind(column, row)
-                if scenery_kind is not None:
-                    sprite_name = scenery_kind.value
-                    self._draw_sprite(sprite_name, SCENERY_COLOURS[scenery_kind],
+                neighbourhood = SceneryNeighbourhood.around(self._scenery, column, row)
+                if neighbourhood is not None:
+                    sprite_name = scenery_sprite_name(neighbourhood)
+                    self._draw_sprite(sprite_name, SCENERY_COLOURS[neighbourhood.kind],
                                       _standing_on(_tile_box(column, row), sprite_name),
                                       snapshot.screen_left_x_pixels, screen)
 

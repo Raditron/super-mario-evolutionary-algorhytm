@@ -36,12 +36,15 @@ Tiles are named by how they look: a brick or ? block doesn't show what it holds.
 
 ### Background scenery (16 × 16, one per tile, behind the tiles)
 
-Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A cloud, hill or bush is several tiles, each drawn with the same picture.
+Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A cloud or bush is several tiles, each drawn with the same picture. A hill's tile is drawn by its place in the hill, which its scenery neighbours give: with no hill on either side it is the peak, with none on its left the left slope, with none on its right the right slope, and otherwise fill. A slope's outer side is transparent, so the sky shows through and the hill's outline reads as a smooth slope.
 
 | File | Size (px) | Drawn for |
 |---|---|---|
 | `cloud.png` | 16 × 16 | a cloud's tile |
-| `hill.png` | 16 × 16 | a hill's tile |
+| `hill_left_slope.png` | 16 × 16 | a hill's tile with no hill on its left |
+| `hill_right_slope.png` | 16 × 16 | a hill's tile with no hill on its right |
+| `hill_peak.png` | 16 × 16 | a hill's tile with no hill on either side: its top |
+| `hill_fill.png` | 16 × 16 | a hill's tile with hill on both sides |
 | `bush.png` | 16 × 16 | a bush's tile |
 | `castle_battlement.png` | 16 × 16 | the castle's battlements |
 | `castle_window.png` | 16 × 16 | the castle's windows |
