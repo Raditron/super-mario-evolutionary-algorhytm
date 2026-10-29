@@ -72,6 +72,22 @@ FALL_PIXELS_PER_TICK_AT_THE_CAP = {3, 4}
 TICKS_AT_THE_CAP = 15
 FALL_PIXELS_IN_TICKS_AT_THE_CAP = (48, 49)
 TICK_LIMIT = 1000
+# Mario's jump to the brick over him takes fewer ticks than this.
+JUMP_TO_THE_BRICK_TICKS_AT_MOST = 10
+# How long each test watches the Starman: along the flat ground; long enough for
+# this many landings, BOUNCE_TICKS apart; and long enough to reach a wall 8 columns
+# right of the brick and come this far back from it.
+MOVING_RIGHT_WATCHED_TICKS = 100
+BOUNCING_WATCHED_TICKS = 270
+LANDINGS_AT_LEAST = 4
+WALL_COLUMN = MARIO_SPAWN_COLUMN + 8
+WALL_WATCHED_TICKS = 200
+TICKS_AFTER_THE_TURN = 10
+# A pit from the column right of the brick, wider than the Starman ever gets to.
+PIT_RIGHT_OF_THE_BRICK_COLUMNS = range(MARIO_SPAWN_COLUMN + 1, MARIO_SPAWN_COLUMN + 20)
+# A row of blocks with 3 tiles of air under it, over all of the Starman's bounces.
+CEILING_ROW = GROUND_TOP_ROW - 4
+CEILING_COLUMNS = range(MARIO_SPAWN_COLUMN + 2, MARIO_SPAWN_COLUMN + 30)
 
 
 def release_the_starman(attempt: Attempt) -> None:
@@ -94,11 +110,11 @@ def starman_boxes(attempt: Attempt, ticks: int) -> list[tuple[int, int]]:
 def test_out_of_its_block_the_starman_moves_right_at_one_pixel_per_tick():
     attempt = Attempt(starman_brick_level())
     release_the_starman(attempt)
-    assert attempt.ticks_elapsed < TICKS_BEFORE_IT_MOVES + 10
+    assert attempt.ticks_elapsed < TICKS_BEFORE_IT_MOVES + JUMP_TO_THE_BRICK_TICKS_AT_MOST
     (starman,) = items_in(attempt)
     assert (starman.x_pixels, starman.y_pixels + STARMAN_SIZE_PIXELS) == (BLOCK_X, BLOCK_Y)
-    xs = [x for x, _ in starman_boxes(attempt, 100)]
-    assert xs == [BLOCK_X + STARMAN_PIXELS_PER_TICK * tick for tick in range(1, 101)]
+    xs = [x for x, _ in starman_boxes(attempt, MOVING_RIGHT_WATCHED_TICKS)]
+    assert xs == [BLOCK_X + STARMAN_PIXELS_PER_TICK * tick for tick in range(1, MOVING_RIGHT_WATCHED_TICKS + 1)]
 
 
 def landing_ticks(bottoms: list[int]) -> list[int]:
@@ -108,9 +124,9 @@ def landing_ticks(bottoms: list[int]) -> list[int]:
 def test_the_starman_bounces_along_the_ground_at_3_pixels_per_tick():
     attempt = Attempt(starman_brick_level())
     release_the_starman(attempt)
-    bottoms = [y + STARMAN_SIZE_PIXELS for _, y in starman_boxes(attempt, 270)]
+    bottoms = [y + STARMAN_SIZE_PIXELS for _, y in starman_boxes(attempt, BOUNCING_WATCHED_TICKS)]
     landings = landing_ticks(bottoms)
-    assert len(landings) >= 4
+    assert len(landings) >= LANDINGS_AT_LEAST
     assert [later - earlier for earlier, later in zip(landings, landings[1:])] == [BOUNCE_TICKS] * (len(landings) - 1)
     for landing in landings[:-1]:
         assert bottoms[landing + 1] - bottoms[landing] == BOUNCE_SPEED_PIXELS_PER_TICK
@@ -119,7 +135,7 @@ def test_the_starman_bounces_along_the_ground_at_3_pixels_per_tick():
 
 def test_the_starman_falls_at_most_at_its_3_pixels_per_tick_cap():
     """Off the brick and over a pit, it falls out of the level."""
-    attempt = Attempt(starman_brick_level(pit_columns=range(MARIO_SPAWN_COLUMN + 1, MARIO_SPAWN_COLUMN + 20)))
+    attempt = Attempt(starman_brick_level(pit_columns=PIT_RIGHT_OF_THE_BRICK_COLUMNS))
     release_the_starman(attempt)
     ys = [items_in(attempt)[0].y_pixels]
     while items_in(attempt) and attempt.ticks_elapsed < TICK_LIMIT:
@@ -132,28 +148,27 @@ def test_the_starman_falls_at_most_at_its_3_pixels_per_tick_cap():
 
 
 def test_the_starman_turns_around_at_a_wall():
-    wall_column = MARIO_SPAWN_COLUMN + 8
-    wall = frozenset((wall_column, row) for row in range(GROUND_TOP_ROW))
+    wall = frozenset((WALL_COLUMN, row) for row in range(GROUND_TOP_ROW))
     attempt = Attempt(starman_brick_level(hard_blocks=wall))
     release_the_starman(attempt)
-    xs = [x for x, _ in starman_boxes(attempt, 200)]
+    xs = [x for x, _ in starman_boxes(attempt, WALL_WATCHED_TICKS)]
     turn = xs.index(max(xs))
-    assert max(xs) == wall_column * TILE_PIXELS - STARMAN_SIZE_PIXELS
-    assert xs[turn + 1:turn + 11] == [max(xs) - STARMAN_PIXELS_PER_TICK * tick for tick in range(1, 11)]
+    assert max(xs) == WALL_COLUMN * TILE_PIXELS - STARMAN_SIZE_PIXELS
+    assert xs[turn + 1:turn + 1 + TICKS_AFTER_THE_TURN] == [
+        max(xs) - STARMAN_PIXELS_PER_TICK * tick for tick in range(1, TICKS_AFTER_THE_TURN + 1)]
 
 
 def test_rising_the_starman_goes_up_into_a_block_over_it_it_has_no_head_probe():
     """A row of blocks with 3 tiles of air under it stops none of its bounces."""
-    blocks_row = GROUND_TOP_ROW - 4
-    ceiling = frozenset((column, blocks_row) for column in range(MARIO_SPAWN_COLUMN + 2, MARIO_SPAWN_COLUMN + 30))
+    ceiling = frozenset((column, CEILING_ROW) for column in CEILING_COLUMNS)
     attempt = Attempt(starman_brick_level(hard_blocks=ceiling))
     release_the_starman(attempt)
-    boxes = starman_boxes(attempt, 270)
+    boxes = starman_boxes(attempt, BOUNCING_WATCHED_TICKS)
     bottoms = [y + STARMAN_SIZE_PIXELS for _, y in boxes]
     landings = landing_ticks(bottoms)
     for landing in landings[:-1]:
         assert GROUND_Y - min(bottoms[landing:landing + BOUNCE_TICKS]) in BOUNCE_RISE_PIXELS
-    assert min(y for _, y in boxes[landings[0]:]) < (blocks_row + 1) * TILE_PIXELS
+    assert min(y for _, y in boxes[landings[0]:]) < (CEILING_ROW + 1) * TILE_PIXELS
 
 
 # Collecting it scores 1000, as every item but the 1-UP does (HandlePowerUpCollision:
@@ -187,6 +202,9 @@ GOOMBA_START_X = 300
 # An enemy an invincible Mario touches is defeated as if hit by a shell or a
 # bumped block (EColl, ShellOrBlockDefeat): a Goomba scores 100.
 GOOMBA_STARMAN_POINTS = 100
+# Long enough for a defeated enemy to have fallen well clear of Mario, or for a
+# hurt small Mario's Attempt to be over.
+TICKS_WATCHED_AFTER_A_DEFEAT = 60
 
 
 def enemies_in(attempt: Attempt) -> tuple[EnemySnapshot, ...]:
@@ -212,7 +230,7 @@ def test_while_invincible_walking_into_a_goomba_defeats_it_and_mario_takes_no_da
     goomba_y = goomba.y_pixels
     attempt.step(HOLD_RIGHT)
     assert enemies_in(attempt)[0].y_pixels < goomba_y          # it jumps away, out of the level
-    for _ in range(60):
+    for _ in range(TICKS_WATCHED_AFTER_A_DEFEAT):
         attempt.step(HOLD_RIGHT)
     assert not attempt.is_over
     assert WorldSnapshot.of(attempt).mario.power_state is PowerState.SMALL
@@ -242,7 +260,6 @@ def test_the_invincibility_runs_out_after_735_ticks_and_then_a_goomba_kills_smal
         attempt.step(HOLD_RIGHT)
     assert attempt.result().end_reason is EndReason.DIED_TO_ENEMY
     assert not any(event.detail is DefeatMethod.STARMAN for event in attempt.events)
-
 
 
 # --- Invincible Mario and the other enemies, and pits ---------------------------------------
@@ -305,7 +322,7 @@ def test_while_invincible_walking_into_a_koopa_defeats_it():
     step_until(attempt, HOLD_RIGHT, lambda: enemies_in(attempt)[0].is_defeated)
     assert events_since(attempt, 0) == starman_defeat_events(attempt.ticks_elapsed, KOOPA_STARMAN_POINTS)
     assert enemies_in(attempt)[0].is_shell                     # it falls out of the level flipped
-    for _ in range(60):
+    for _ in range(TICKS_WATCHED_AFTER_A_DEFEAT):
         attempt.step(HOLD_RIGHT)
     assert not attempt.is_over
 
@@ -341,7 +358,7 @@ def test_while_invincible_a_moving_shell_that_hits_mario_is_defeated():
     step_until(attempt, HOLD_NOTHING, lambda: enemies_in(attempt)[0].is_defeated)
     assert events_since(attempt, events_before) == starman_defeat_events(attempt.ticks_elapsed,
                                                                          KOOPA_STARMAN_POINTS)
-    for _ in range(60):
+    for _ in range(TICKS_WATCHED_AFTER_A_DEFEAT):
         attempt.step(HOLD_NOTHING)
     assert not attempt.is_over
 

@@ -46,7 +46,7 @@ BUMPED_ENEMY_POINTS = 100                    # GiveOEPoints
 TICK_LIMIT = 2000
 HOLD_RUN = ControllerState.bitmask(run=True)
 # A Koopa hit by a fireball, walking or in its shell, scores 200 (ShellOrBlockDefeat).
-KOOPA_FIREBALL_POINTS = 200
+KOOPA_KNOCK_OFF_POINTS = 200
 # Mario shoots once the Koopa is this near, well within a fireball's reach.
 SHOOTING_RANGE_X = 150
 # Jumping in place when a walking Koopa is this close lands Mario on top of it.
@@ -336,7 +336,7 @@ def test_a_fireball_defeats_a_koopa_for_200_points():
                lambda: any(event.kind is GameEventKind.DEFEATED_ENEMY for event in attempt.events))
     tick = attempt.ticks_elapsed
     assert attempt.events[-2:] == [GameEvent(tick, GameEventKind.DEFEATED_ENEMY, DefeatMethod.FIREBALL),
-                                   GameEvent(tick, GameEventKind.SCORED_POINTS, KOOPA_FIREBALL_POINTS)]
+                                   GameEvent(tick, GameEventKind.SCORED_POINTS, KOOPA_KNOCK_OFF_POINTS)]
     assert the_koopa(attempt).is_defeated and the_koopa(attempt).is_shell    # drawn flipped in its shell
     step_until(attempt, HOLD_NOTHING, lambda: not enemies_in(attempt))
     assert not attempt.is_over

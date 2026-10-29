@@ -28,11 +28,10 @@ from mario.constants.physics import (
     SUBPIXEL_BITS,
     SUBPIXEL_FRACTION_MASK,
     SUBPIXELS_PER_PIXEL,
-    Y_SUBSPEED_MASK,
 )
 from mario.simulation.attempt_result import GameEventKind
 from mario.simulation.attempt_tiles import AttemptTiles
-from mario.simulation.gravity import add_gravity
+from mario.simulation.gravity import add_gravity, whole_speed_y
 from mario.simulation.item import Item
 from mario.simulation.item_kind import ItemKind
 
@@ -68,8 +67,8 @@ class Starman(Item):
 
     @property
     def _looks_for_a_landing(self) -> bool:
-        whole_speed_y = self.velocity_y - (self.velocity_y & Y_SUBSPEED_MASK)
-        return whole_speed_y >= STARMAN_LANDS_FROM_FALL_SPEED or whole_speed_y <= STARMAN_LANDS_FROM_RISE_SPEED
+        whole_speed = whole_speed_y(self.velocity_y)
+        return whole_speed >= STARMAN_LANDS_FROM_FALL_SPEED or whole_speed <= STARMAN_LANDS_FROM_RISE_SPEED
 
     @property
     def _sprite_y_pixels(self) -> int:
@@ -81,8 +80,9 @@ class Starman(Item):
                               (self._sprite_y_pixels + sprite_y_pixels) // TILE_SIZE_PIXELS)
 
     def _land(self) -> None:
-        """EnemyLanding snaps its sprite's y onto the tile row (the fraction is kept),
-        then it jumps again."""
+        """EnemyLanding snaps its sprite's y onto the tile row, keeping its position's
+        sub-pixel (YMF_Dummy), and zeroes its y speed and the speed's fraction
+        (InitVStf); then it jumps again, at a speed with no fraction."""
         sprite_y_pixels = self._sprite_y_pixels
         landed_sprite_y_pixels = (sprite_y_pixels - sprite_y_pixels % TILE_SIZE_PIXELS
                                   + ENEMY_LANDING_SPRITE_Y_IN_ROW_PIXELS)

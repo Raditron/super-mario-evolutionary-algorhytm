@@ -79,6 +79,11 @@ from mario.simulation.size_change import MarioBody
 from mario.simulation.tile_body import TileBody, VerticalContact
 
 
+def count_down(ticks_left: int) -> int:
+    """A timer one tick on, stopping at 0."""
+    return ticks_left - 1 if ticks_left > 0 else ticks_left
+
+
 class MovementState(Enum):
     """The original's Player_State."""
     ON_GROUND = auto()
@@ -203,12 +208,9 @@ class Mario(TileBody):
 
     def step(self, controller: ControllerState, tiles: AttemptTiles) -> None:
         self.head_hit_tile = None
-        if self.running_timer > 0:
-            self.running_timer -= 1
-        if self._invulnerable_ticks_left > 0:
-            self._invulnerable_ticks_left -= 1
-        if self._invincible_ticks_left > 0:
-            self._invincible_ticks_left -= 1
+        self.running_timer = count_down(self.running_timer)
+        self._invulnerable_ticks_left = count_down(self._invulnerable_ticks_left)
+        self._invincible_ticks_left = count_down(self._invincible_ticks_left)
         self._update_crouching(controller)
         self.held_direction = controller.direction
         if controller.down and self.is_on_ground:

@@ -34,6 +34,10 @@ def is_enemy_check_tick(tick: int) -> bool:
     return tick % ENEMY_CHECK_TICK_INTERVAL == 0
 
 
+def _touches(mario: Mario, enemy: Enemy) -> bool:
+    return enemy.hitbox().overlaps(mario.hitbox())
+
+
 @dataclass(frozen=True)
 class EnemyCollisionOutcome:
     """What one tick's check found: the points each stomp and each shell kick
@@ -84,21 +88,23 @@ class EnemyCollisionCheck:
         """Invincible, he defeats every enemy he touches; the points each scored."""
         points_per_defeat = []
         for enemy in enemies:
-            if not enemy.is_defeated and self._touches(mario, enemy):
-                enemy.defeat_by_starman(mario.x)
-                points_per_defeat.append(enemy.knock_off_points)
+            if enemy.is_defeated:
+                continue
+            if not _touches(mario, enemy):
+                self._forget_touch(enemy)
+                continue
+            enemy.defeat_by_starman(mario.x)
+            points_per_defeat.append(enemy.knock_off_points)
         return tuple(points_per_defeat)
 
-    def _touches(self, mario: Mario, enemy: Enemy) -> bool:
-        """Whether they touch; once they are apart, a later touch is a new one."""
-        if enemy.hitbox().overlaps(mario.hitbox()):
-            return True
+    def _forget_touch(self, enemy: Enemy) -> None:
+        """A check found them apart: a later touch is a new one."""
         self._enemies_touching_mario.discard(enemy)
-        return False
 
     def _is_new_touch(self, mario: Mario, enemy: Enemy) -> bool:
         """Whether they touch now but didn't at the last check."""
-        if not self._touches(mario, enemy):
+        if not _touches(mario, enemy):
+            self._forget_touch(enemy)
             return False
         if enemy in self._enemies_touching_mario:
             return False
