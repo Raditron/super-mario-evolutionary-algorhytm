@@ -11,7 +11,7 @@ from mario.simulation.attempt import Attempt
 from mario.simulation.observation_builder import ObservationBuilder
 from mario.snapshots.live_chunk_publisher import LiveChunkPublisher
 from mario.snapshots.snapshot_channel import SnapshotChannel
-from mario.snapshots.world_snapshot import WorldSnapshot
+from mario.snapshots.world_snapshot import MarioPose, WorldSnapshot
 from tests.game.helpers import HOLD_LEFT, HOLD_NOTHING, HOLD_RIGHT
 
 SLOT_COUNT = 3
@@ -62,6 +62,20 @@ def test_the_slot_carries_which_way_each_agent_faces(channel, world_1_1: StaticL
     published = channel.read_all()[SLOT]
     assert [agent.faces_right for agent in published.agents] == [False, True]
     assert published.followed_world.mario.faces_right
+
+
+def test_the_slot_carries_the_animation_frame_each_agent_shows(channel, world_1_1: StaticLevel):
+    attempts = [Attempt(world_1_1, ends_on_stall=True) for _ in range(2)]
+    for _ in range(TICKS_TO_MOVE_A_FEW_PIXELS):
+        attempts[0].step(HOLD_NOTHING)
+        attempts[1].step(HOLD_RIGHT)
+    publisher = LiveChunkPublisher(channel.writer.open(), SLOT, GENERATION, FIRST_AGENT,
+                                   ObservationBuilder(world_1_1))
+    publisher.tick_played(attempts)
+    published = channel.read_all()[SLOT]
+    assert [agent.mario.pose for agent in published.agents] == [MarioPose.STANDING, MarioPose.WALKING]
+    assert [agent.mario.walk_frame for agent in published.agents] == [
+        attempt.mario.animation.walk_frame for attempt in attempts]
 
 
 def test_a_newer_snapshot_replaces_the_older_one_in_its_slot(channel, world_1_1: StaticLevel):

@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from mario.constants.animation import ENEMY_FIRST_WALK_FRAME, FIRST_WALK_FRAME
 from mario.constants.level import SCREEN_WIDTH_PIXELS, TILE_SIZE_PIXELS
 from mario.constants.snapshots import RECENT_GAME_EVENT_TICKS
 from mario.controller.controller_state import RIGHT
@@ -22,6 +23,7 @@ from mario.simulation.observation_builder import ObservationBuilder
 from mario.simulation.attempt_result import GameEvent as GameEvent
 from mario.simulation.item_kind import ItemKind as ItemKind
 from mario.simulation.mario import PowerState as PowerState
+from mario.simulation.mario_animation import MarioPose as MarioPose
 
 # A screen scrolled part-way into a tile shows one column more than it is wide.
 VISIBLE_COLUMNS = SCREEN_WIDTH_PIXELS // TILE_SIZE_PIXELS + 1
@@ -45,7 +47,8 @@ class BouncingBlockSnapshot:
 class MarioSnapshot:
     """Mario's hitbox, in level pixels (while he grows or shrinks, the box of the
     animation frame showing), his power state, whether he can't be hurt after
-    being hurt, whether a Starman has made him invincible, and which way he faces."""
+    being hurt, whether a Starman has made him invincible, which way he faces,
+    and the animation frame he shows: his pose and, walking, which walking frame."""
     x_pixels: int
     y_pixels: int
     width_pixels: int
@@ -54,18 +57,22 @@ class MarioSnapshot:
     is_invulnerable: bool = False
     is_invincible: bool = False
     faces_right: bool = True
+    pose: MarioPose = MarioPose.STANDING
+    walk_frame: int = FIRST_WALK_FRAME                # 1 to 3, as the walking frames' sprites are numbered
 
     @classmethod
     def of(cls, mario: Mario) -> "MarioSnapshot":
         hitbox = mario.hitbox()
         return cls(hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
-                   mario.power_state, mario.is_invulnerable, mario.is_invincible, mario.facing_direction == RIGHT)
+                   mario.power_state, mario.is_invulnerable, mario.is_invincible, mario.facing_direction == RIGHT,
+                   mario.animation.pose, mario.animation.walk_frame)
 
 
 @dataclass(frozen=True)
 class EnemySnapshot:
     """One enemy's hitbox, in level pixels, whether it has been defeated, whether
-    it is a Koopa's shell, and which way it faces: the way it walks."""
+    it is a Koopa's shell, which way it faces: the way it walks, and which of its
+    two walking frames it shows."""
     kind: EnemyKind
     x_pixels: int
     y_pixels: int
@@ -74,12 +81,13 @@ class EnemySnapshot:
     is_defeated: bool
     is_shell: bool = False
     faces_right: bool = True
+    walk_frame: int = ENEMY_FIRST_WALK_FRAME          # 1 or 2
 
     @classmethod
     def of(cls, enemy: Enemy) -> "EnemySnapshot":
         hitbox = enemy.hitbox()
         return cls(enemy.kind, hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
-                   enemy.is_defeated, enemy.is_shell, enemy.walks_right)
+                   enemy.is_defeated, enemy.is_shell, enemy.walks_right, enemy.walk_frame)
 
 
 @dataclass(frozen=True)

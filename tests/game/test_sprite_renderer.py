@@ -3,6 +3,7 @@ at the original's sizes, over the background scenery; a thing whose PNG is
 missing is drawn in its hitbox colour instead, so the view works with an empty
 folder and a PNG dropped in later shows with no code change."""
 
+from dataclasses import replace
 from pathlib import Path
 
 import pygame
@@ -57,11 +58,13 @@ from mario.snapshots.world_snapshot import (
     HudSnapshot,
     ItemKind,
     ItemSnapshot,
+    MarioPose,
     MarioSnapshot,
     PowerState,
     VisibleTiles,
     WorldSnapshot,
 )
+from mario.view.hitbox_colours import ENEMY_COLOURS, mario_colour
 from mario.view.sprite_library import SpriteLibrary
 from mario.view.sprite_renderer import SpriteRenderer
 
@@ -445,3 +448,121 @@ def test_the_sprites_readme_documents_every_sprite_file_and_its_size():
 def test_the_repos_sprites_folder_loads():
     """Whatever has been added so far, the folder the play mode reads loads."""
     SpriteLibrary.load(SPRITES_FOLDER)
+
+
+# --- Animation frames (#57) ------------------------------------------------------------------
+
+FRAME_PNG_COLOUR = PNG_COLOUR
+STANDING_PNG_COLOUR = OTHER_PNG_COLOUR
+
+
+def with_mario_frame(snapshot: WorldSnapshot, pose: MarioPose, walk_frame: int = 1) -> WorldSnapshot:
+    return WorldSnapshot(**{**vars(snapshot), "mario": replace(snapshot.mario, pose=pose, walk_frame=walk_frame)})
+
+
+def box_of(mario: MarioSnapshot) -> tuple[int, int, int, int]:
+    return mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels
+
+
+@pytest.mark.parametrize("snapshot, standing_sprite_name, frame_sprite_name", [
+    pytest.param(with_mario_frame(sky_screen(SMALL_MARIO_BOX), MarioPose.WALKING, 2),
+                 "mario_small", "mario_small_walk_2", id="small Mario walking"),
+    pytest.param(with_mario_frame(sky_screen(BIG_MARIO_BOX, PowerState.BIG), MarioPose.WALKING, 3),
+                 "mario_big", "mario_big_walk_3", id="big Mario walking"),
+    pytest.param(with_mario_frame(sky_screen(BIG_MARIO_BOX, PowerState.BIG), MarioPose.SKIDDING),
+                 "mario_big", "mario_big_skid", id="big Mario skidding"),
+    pytest.param(with_mario_frame(sky_screen(BIG_MARIO_BOX, PowerState.FIERY), MarioPose.JUMPING),
+                 "mario_fiery", "mario_fiery_jump", id="fire Mario jumping"),
+    pytest.param(with_mario_frame(sky_screen(SMALL_MARIO_BOX, PowerState.BIG), MarioPose.CROUCHING),
+                 "mario_big", "mario_big_crouch", id="big Mario crouching, in small Mario's box"),
+    pytest.param(with_mario_frame(sky_screen(SMALL_MARIO_BOX, mario_is_invincible=True), MarioPose.WALKING, 1),
+                 "mario_small_invincible", "mario_small_invincible_walk_1", id="invincible small Mario walking"),
+    pytest.param(with_mario_frame(sky_screen(BIG_MARIO_BOX, PowerState.FIERY, mario_is_invincible=True),
+                                  MarioPose.JUMPING),
+                 "mario_big_invincible", "mario_big_invincible_jump", id="invincible fire Mario jumping"),
+])
+def test_mario_is_drawn_with_the_frame_his_snapshot_names_else_standing_else_in_his_colour(
+        tmp_path, scenery, snapshot, standing_sprite_name, frame_sprite_name):
+    """At the frame's own size, standing on his box's bottom: the crouch is 16 x 24."""
+    mario_box = box_of(snapshot.mario)
+    frame_place = standing_place(mario_box, frame_sprite_name)
+    standing_sprite_place = standing_place(mario_box, standing_sprite_name)
+    write_png(tmp_path / f"{frame_sprite_name}.png", (*FRAME_PNG_COLOUR, 255))
+    write_png(tmp_path / f"{standing_sprite_name}.png", (*STANDING_PNG_COLOUR, 255))
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert filled_box(screen, snapshot, frame_place) == {FRAME_PNG_COLOUR}
+    assert border_colours(screen, snapshot, frame_place) == {SKY_COLOUR}
+
+    (tmp_path / f"{frame_sprite_name}.png").unlink()
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert filled_box(screen, snapshot, standing_sprite_place) == {STANDING_PNG_COLOUR}
+
+    (tmp_path / f"{standing_sprite_name}.png").unlink()
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert filled_box(screen, snapshot, standing_sprite_place) == {mario_colour(snapshot.mario)}
+
+
+def test_standing_mario_is_drawn_with_his_standing_sprite_whatever_frames_there_are(tmp_path, scenery):
+    write_png(tmp_path / "mario_small.png", (*STANDING_PNG_COLOUR, 255))
+    for frame_sprite_name in ("mario_small_walk_1", "mario_small_jump", "mario_small_skid"):
+        write_png(tmp_path / f"{frame_sprite_name}.png", (*FRAME_PNG_COLOUR, 255))
+    snapshot = with_mario_frame(sky_screen(SMALL_MARIO_BOX), MarioPose.STANDING)
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert filled_box(screen, snapshot, standing_place(SMALL_MARIO_BOX, "mario_small")) == {STANDING_PNG_COLOUR}
+
+
+def test_a_ghost_is_drawn_with_the_frame_his_mario_shows(tmp_path, scenery):
+    """Translucent, so the jump frame's colour shows blended, unlike the standing sprite's."""
+    write_png(tmp_path / "mario_small.png", (*STANDING_PNG_COLOUR, 255))
+    write_png(tmp_path / "mario_small_jump.png", (*FRAME_PNG_COLOUR, 255))
+    renderer = renderer_with(tmp_path, scenery)
+    place = standing_place(SMALL_MARIO_BOX, "mario_small")
+
+    def ghost_colours(pose: MarioPose) -> set[tuple[int, int, int]]:
+        ghost = AgentSnapshot(1, MarioSnapshot(*SMALL_MARIO_BOX, pose=pose), Area.LEVEL, True, False)
+        snapshot = sky_screen(ghosts=(ghost,))
+        return filled_box(drawn(renderer, snapshot), snapshot, place)
+
+    jumping, standing = ghost_colours(MarioPose.JUMPING), ghost_colours(MarioPose.STANDING)
+    assert len(jumping) == 1 and len(standing) == 1 and jumping != standing
+
+
+@pytest.mark.parametrize("enemy, sprite_place, standing_sprite_name, frame_sprite_name", [
+    pytest.param(replace(goomba(), walk_frame=2), (THING_X, THING_Y, 16, 16), "goomba", "goomba_walk_2",
+                 id="Goomba"),
+    pytest.param(replace(koopa(), walk_frame=2), (THING_X, THING_Y - 8, 16, 24), "koopa", "koopa_walk_2",
+                 id="Koopa"),
+])
+def test_a_walking_enemy_is_drawn_with_its_second_frame_else_its_own_sprite_else_its_colour(
+        tmp_path, scenery, enemy, sprite_place, standing_sprite_name, frame_sprite_name):
+    write_png(tmp_path / f"{frame_sprite_name}.png", (*FRAME_PNG_COLOUR, 255))
+    write_png(tmp_path / f"{standing_sprite_name}.png", (*STANDING_PNG_COLOUR, 255))
+    second_frame = sky_screen(enemies=(enemy,))
+    first_frame = sky_screen(enemies=(replace(enemy, walk_frame=1),))
+    assert filled_box(drawn(renderer_with(tmp_path, scenery), second_frame), second_frame,
+                      sprite_place) == {FRAME_PNG_COLOUR}
+    assert filled_box(drawn(renderer_with(tmp_path, scenery), first_frame), first_frame,
+                      sprite_place) == {STANDING_PNG_COLOUR}
+
+    (tmp_path / f"{frame_sprite_name}.png").unlink()
+    assert filled_box(drawn(renderer_with(tmp_path, scenery), second_frame), second_frame,
+                      sprite_place) == {STANDING_PNG_COLOUR}
+    (tmp_path / f"{standing_sprite_name}.png").unlink()
+    assert filled_box(drawn(renderer_with(tmp_path, scenery), second_frame), second_frame,
+                      sprite_place) == {ENEMY_COLOURS[enemy.kind]}
+
+
+@pytest.mark.parametrize("enemy, sprite_name, sprite_place", [
+    pytest.param(replace(koopa(is_shell=True), walk_frame=2), "koopa_shell", (THING_X, THING_Y, 16, 16),
+                 id="Koopa shell"),
+    pytest.param(replace(goomba(is_defeated=True), walk_frame=2), "goomba_defeated", (THING_X, THING_Y + 8, 16, 8),
+                 id="squashed Goomba"),
+])
+def test_a_shell_and_a_defeated_enemy_are_drawn_without_a_walking_frame(tmp_path, scenery, enemy, sprite_name,
+                                                                        sprite_place):
+    write_png(tmp_path / "goomba_walk_2.png", (*FRAME_PNG_COLOUR, 255))
+    write_png(tmp_path / "koopa_walk_2.png", (*FRAME_PNG_COLOUR, 255))
+    write_png(tmp_path / f"{sprite_name}.png", (*STANDING_PNG_COLOUR, 255))
+    snapshot = sky_screen(enemies=(enemy,))
+    assert filled_box(drawn(renderer_with(tmp_path, scenery), snapshot), snapshot,
+                      sprite_place) == {STANDING_PNG_COLOUR}

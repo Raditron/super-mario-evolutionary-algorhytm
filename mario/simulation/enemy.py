@@ -3,11 +3,13 @@
 An enemy spawns at its fixed spawn position and starts walking left; it walks
 as every WalkingBody does. One defeated by a bumped block, a fireball, a moving
 shell or an invincible Mario's touch jumps up away from Mario and falls through
-everything, out of the level.
+everything, out of the level. A walking enemy steps between its two walking
+frames on the original's timing (walk_frame).
 """
 
 from abc import ABC, abstractmethod
 
+from mario.constants.animation import ENEMY_FIRST_WALK_FRAME, ENEMY_SECOND_WALK_FRAME, ENEMY_WALK_FRAME_TICK_BIT
 from mario.constants.level import (
     ENEMY_FELL_OUT_SPRITE_Y_PIXELS,
     ENEMY_OFF_SCREEN_LEFT_PIXELS,
@@ -47,6 +49,7 @@ class Enemy(WalkingBody, ABC):
                          height_pixels * SUBPIXELS_PER_PIXEL,
                          -walk_speed)
         self._is_knocked_off = False
+        self._last_moved_tick = 0
 
     @property
     def is_defeated(self) -> bool:
@@ -57,6 +60,16 @@ class Enemy(WalkingBody, ABC):
         """Whether it is walking rightwards (the original's Enemy_MovingDir), the
         way it faces; it spawns walking left."""
         return self.velocity_x > 0
+
+    @property
+    def walk_frame(self) -> int:
+        """Which of its two walking frames it shows (CheckForSecondFrame): the second
+        on ticks whose number has ENEMY_WALK_FRAME_TICK_BIT clear, as of the last
+        tick it moved, so it stops while the game stands still. A shell and a
+        defeated enemy are drawn without it."""
+        if self._last_moved_tick & ENEMY_WALK_FRAME_TICK_BIT:
+            return ENEMY_FIRST_WALK_FRAME
+        return ENEMY_SECOND_WALK_FRAME
 
     @property
     def is_shell(self) -> bool:
@@ -127,6 +140,7 @@ class Enemy(WalkingBody, ABC):
 
     def step(self, tiles: AttemptTiles, tick: int) -> None:
         """One tick of moving; the tick's number is the original's FrameCounter."""
+        self._last_moved_tick = tick
         if self._is_knocked_off:
             self._fall_through_everything()
             return

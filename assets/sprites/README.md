@@ -11,7 +11,7 @@ The PNGs here are painted from text drawings in `sprite_art/drawings/`, one pale
 - **Transparency:** transparent pixels show what is behind (the sky, the scenery, the tiles).
 - **Placement:** a sprite stands on the bottom of its thing's box, centred across it. Mario's 16 px wide sprite overhangs his 12 px box by 2 px on each side. A fireball's explosion is centred on the fireball.
 - **Facing right:** draw Mario and the enemies facing right. The Sprite view mirrors the picture, in the same place, for Mario, a ghost or an enemy facing left; an enemy faces the way it walks. A Koopa's shell is never mirrored, so draw it to look the same either way.
-- **One picture per sprite:** no animation frames yet. Those, and the full sprite list, are for the texture-pass ticket (spec section 12).
+- **Animation frames:** a frame is its thing's standing sprite's name plus `_<frame>`, after any state already in the name: `_walk_1` to `_walk_3`, `_skid`, `_jump` and `_crouch` for Mario (`mario_big_walk_1.png`, `mario_small_invincible_jump.png`), and `_walk_2` for an enemy's second walking frame (`goomba_walk_2.png`), its first being its own sprite. The game picks the frame (the snapshot carries Mario's pose and walking frame, and an enemy's walking frame); the Sprite view keeps no clock of its own. **A frame that isn't here is drawn as the standing sprite**, and that as the box in the thing's colour while it is missing too.
 
 ## The sprites
 
@@ -81,6 +81,41 @@ Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A hill's tile is dra
 | `mario_small_invincible.png` | 16 × 16 | small Mario while a Starman makes him invincible |
 | `mario_big_invincible.png` | 16 × 32 | big or fire Mario while a Starman makes him invincible (the star's colours show over fire Mario's) |
 
+### Mario's animation frames
+
+Each of the five Mario sprites above has these frames, painted from one set of rows per size in its own palette; only big Mario has a crouch. He shows the standing sprite while he stands still (and while his power state changes). Walking or running, the three walking frames take turns, each for 7, 4 or 2 ticks as his speed on the ground grows; falling off a ledge, he keeps the one he had. On the ground, fast enough and facing against the way he moves, he skids; in the air he shows the jump frame; big Mario holding down shows the crouch.
+
+| File | Size (px) | Drawn for |
+|---|---|---|
+| `mario_small_walk_1.png` | 16 × 16 | small Mario walking: his first walking frame |
+| `mario_small_walk_2.png` | 16 × 16 | small Mario walking: his second walking frame |
+| `mario_small_walk_3.png` | 16 × 16 | small Mario walking: his third walking frame |
+| `mario_small_skid.png` | 16 × 16 | small Mario skidding |
+| `mario_small_jump.png` | 16 × 16 | small Mario in the air |
+| `mario_small_invincible_walk_1.png` | 16 × 16 | the same, invincible |
+| `mario_small_invincible_walk_2.png` | 16 × 16 | the same, invincible |
+| `mario_small_invincible_walk_3.png` | 16 × 16 | the same, invincible |
+| `mario_small_invincible_skid.png` | 16 × 16 | the same, invincible |
+| `mario_small_invincible_jump.png` | 16 × 16 | the same, invincible |
+| `mario_big_walk_1.png` | 16 × 32 | big Mario walking: his first walking frame |
+| `mario_big_walk_2.png` | 16 × 32 | big Mario walking: his second walking frame |
+| `mario_big_walk_3.png` | 16 × 32 | big Mario walking: his third walking frame |
+| `mario_big_skid.png` | 16 × 32 | big Mario skidding |
+| `mario_big_jump.png` | 16 × 32 | big Mario in the air |
+| `mario_big_crouch.png` | 16 × 24 | big Mario crouching |
+| `mario_fiery_walk_1.png` | 16 × 32 | the same, fire Mario |
+| `mario_fiery_walk_2.png` | 16 × 32 | the same, fire Mario |
+| `mario_fiery_walk_3.png` | 16 × 32 | the same, fire Mario |
+| `mario_fiery_skid.png` | 16 × 32 | the same, fire Mario |
+| `mario_fiery_jump.png` | 16 × 32 | the same, fire Mario |
+| `mario_fiery_crouch.png` | 16 × 24 | the same, fire Mario |
+| `mario_big_invincible_walk_1.png` | 16 × 32 | the same, big or fire Mario invincible |
+| `mario_big_invincible_walk_2.png` | 16 × 32 | the same, big or fire Mario invincible |
+| `mario_big_invincible_walk_3.png` | 16 × 32 | the same, big or fire Mario invincible |
+| `mario_big_invincible_skid.png` | 16 × 32 | the same, big or fire Mario invincible |
+| `mario_big_invincible_jump.png` | 16 × 32 | the same, big or fire Mario invincible |
+| `mario_big_invincible_crouch.png` | 16 × 24 | the same, big or fire Mario invincible |
+
 ### Enemies
 
 | File | Size (px) | Drawn for |
@@ -89,6 +124,8 @@ Layer 2 of the grid in `docs/research/world-1-1-layout.md`. A hill's tile is dra
 | `goomba_defeated.png` | 16 × 8 | a squashed Goomba |
 | `koopa.png` | 16 × 24 | the green Koopa Troopa, walking |
 | `koopa_shell.png` | 16 × 16 | its shell: still, kicked, or flipped as it falls out of the level |
+| `goomba_walk_2.png` | 16 × 16 | a walking Goomba's second walking frame, shown on 8 ticks of every 16 |
+| `koopa_walk_2.png` | 16 × 24 | a walking Koopa's second walking frame, shown on 8 ticks of every 16 |
 
 ### Items
 

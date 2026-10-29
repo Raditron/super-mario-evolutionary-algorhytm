@@ -4,13 +4,16 @@ from assets/sprites/ at the original's size, over the background scenery.
 A watched generation's ghosts are their Mario sprites, translucent, under the
 followed agent's. Mario, a ghost and a walking enemy face the way they face:
 every sprite is drawn facing right, and mirrored for one facing left (a shell
-looks the same either way, so it isn't). A thing whose sprite is missing fills the sprite's place in its hitbox colour,
-so the view works with an empty folder and a PNG dropped in later shows with
-no code change (spec sections 8 and 12).
+looks the same either way, so it isn't). Mario, a ghost and a walking enemy
+show the animation frame their snapshot names (#57); a frame whose sprite is
+missing shows the standing sprite. A thing whose sprite is missing fills the
+sprite's place in its hitbox colour, so the view works with an empty folder and
+a PNG dropped in later shows with no code change (spec sections 8 and 12).
 """
 
 import pygame
 
+from mario.constants.animation import ENEMY_SECOND_WALK_FRAME
 from mario.constants.level import TILE_SIZE_PIXELS
 from mario.constants.view import (
     BUSH_COLOUR,
@@ -36,6 +39,7 @@ from mario.snapshots.world_snapshot import (
     FlagSnapshot,
     ItemKind,
     ItemSnapshot,
+    MarioPose,
     MarioSnapshot,
     PowerState,
     VisibleTiles,
@@ -86,9 +90,24 @@ INVINCIBLE_MARIO_SPRITE_NAMES = {
     PowerState.FIERY: "mario_big_invincible",
 }
 
+# Mario's animation frames: his standing sprite's name, then the pose's ending;
+# a walking frame's ending is numbered 1 to 3. Standing, he shows the standing sprite.
+MARIO_POSE_SPRITE_SUFFIXES = {
+    MarioPose.SKIDDING: "_skid",
+    MarioPose.JUMPING: "_jump",
+    MarioPose.CROUCHING: "_crouch",
+}
+WALK_FRAME_SPRITE_SUFFIX = "_walk_{}"
+
 ENEMY_SPRITE_NAMES = {
     EnemyKind.GOOMBA: "goomba",
     EnemyKind.KOOPA: "koopa",
+}
+
+# A walking enemy's second walking frame; its first is its own sprite.
+ENEMY_SECOND_WALK_FRAME_SPRITE_NAMES = {
+    EnemyKind.GOOMBA: "goomba_walk_2",
+    EnemyKind.KOOPA: "koopa_walk_2",
 }
 
 DEFEATED_ENEMY_SPRITE_NAMES = {
@@ -167,14 +186,14 @@ class SpriteRenderer:
                                   snapshot.screen_left_x_pixels, screen)
 
     def _draw_mario(self, mario: MarioSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
-        sprite_name = _mario_sprite_name(mario)
+        sprite_name = self._frame_or_standing(_mario_frame_sprite_name(mario), _mario_sprite_name(mario))
         self._draw_sprite(sprite_name, mario_colour(mario), _standing_on(_hitbox(mario), sprite_name),
                           screen_left_x_pixels, screen, is_mirrored=not mario.faces_right)
 
     def _draw_ghost(self, ghost: AgentSnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         """His Mario's sprite (or its place, filled), drawn at GHOST_OPACITY."""
         mario = ghost.mario
-        sprite_name = _mario_sprite_name(mario)
+        sprite_name = self._frame_or_standing(_mario_frame_sprite_name(mario), _mario_sprite_name(mario))
         place = _standing_on(_hitbox(mario), sprite_name)
         ghost_surface = pygame.Surface(place.size, pygame.SRCALPHA)
         self._draw_sprite(sprite_name, mario_colour(mario), place.move(-place.x, -place.y), 0, ghost_surface,
@@ -184,12 +203,16 @@ class SpriteRenderer:
 
     def _draw_enemy(self, enemy: EnemySnapshot, screen_left_x_pixels: int, screen: pygame.Surface) -> None:
         """A shell, even a defeated one (the original flips it), is drawn as its shell,
-        never mirrored: the original draws it symmetric (MirrorEnemyGfx)."""
+        never mirrored: the original draws it symmetric (MirrorEnemyGfx). A walking
+        enemy shows its walking frame."""
         if enemy.is_shell:
             sprite_name, colour = SHELL_SPRITE_NAMES[enemy.kind], SHELL_COLOURS[enemy.kind]
+        elif enemy.is_defeated:
+            sprite_name, colour = DEFEATED_ENEMY_SPRITE_NAMES[enemy.kind], ENEMY_COLOURS[enemy.kind]
         else:
-            sprite_names = DEFEATED_ENEMY_SPRITE_NAMES if enemy.is_defeated else ENEMY_SPRITE_NAMES
-            sprite_name, colour = sprite_names[enemy.kind], ENEMY_COLOURS[enemy.kind]
+            sprite_name, colour = ENEMY_SPRITE_NAMES[enemy.kind], ENEMY_COLOURS[enemy.kind]
+            if enemy.walk_frame == ENEMY_SECOND_WALK_FRAME:
+                sprite_name = self._frame_or_standing(ENEMY_SECOND_WALK_FRAME_SPRITE_NAMES[enemy.kind], sprite_name)
         self._draw_sprite(sprite_name, colour, _standing_on(_hitbox(enemy), sprite_name), screen_left_x_pixels, screen,
                           is_mirrored=not enemy.is_shell and not enemy.faces_right)
 
@@ -214,6 +237,11 @@ class SpriteRenderer:
         place = pygame.Rect((flag.x_pixels, flag.y_pixels), SPRITE_SIZES[FLAG_SPRITE_NAME])
         self._draw_sprite(FLAG_SPRITE_NAME, FLAG_COLOUR, place, screen_left_x_pixels, screen)
 
+    def _frame_or_standing(self, frame_sprite_name: str, standing_sprite_name: str) -> str:
+        """The frame's sprite while its picture is there; otherwise the standing sprite,
+        whose place is filled in the colour while its picture is missing too."""
+        return frame_sprite_name if self._sprites.sprite(frame_sprite_name) is not None else standing_sprite_name
+
     def _draw_sprite(self, sprite_name: str, hitbox_colour: tuple[int, int, int], place: pygame.Rect,
                      screen_left_x_pixels: int, screen: pygame.Surface, is_mirrored: bool = False) -> None:
         """The sprite in its place, given in level pixels, mirrored left to right in that same
@@ -236,8 +264,19 @@ def _tile_sprite_name(tiles: VisibleTiles, kind: TileKind, column: int, row: int
 
 
 def _mario_sprite_name(mario: MarioSnapshot) -> str:
+    """His standing sprite's name."""
     sprite_names = INVINCIBLE_MARIO_SPRITE_NAMES if mario.is_invincible else MARIO_SPRITE_NAMES
     return sprite_names[mario.power_state]
+
+
+def _mario_frame_sprite_name(mario: MarioSnapshot) -> str:
+    """The sprite of the animation frame he shows: his standing sprite's, with his pose's ending."""
+    standing_sprite_name = _mario_sprite_name(mario)
+    if mario.pose is MarioPose.STANDING:
+        return standing_sprite_name
+    if mario.pose is MarioPose.WALKING:
+        return standing_sprite_name + WALK_FRAME_SPRITE_SUFFIX.format(mario.walk_frame)
+    return standing_sprite_name + MARIO_POSE_SPRITE_SUFFIXES[mario.pose]
 
 
 def _hitbox(thing: MarioSnapshot | EnemySnapshot | ItemSnapshot | FireballSnapshot) -> pygame.Rect:

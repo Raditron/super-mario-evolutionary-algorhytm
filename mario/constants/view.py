@@ -114,6 +114,9 @@ SPRITE_FILE_EXTENSION = ".png"
 TILE_SPRITE_SIZE = (16, 16)
 SMALL_MARIO_SPRITE_SIZE = (16, 16)
 BIG_MARIO_SPRITE_SIZE = (16, 32)
+# Big Mario's crouching frame is the player object's lower 24 rows (its top row
+# of 8 x 8 tiles is blank in PlayerGraphicsTable).
+BIG_MARIO_CROUCH_SPRITE_SIZE = (16, 24)
 GOOMBA_SPRITE_SIZE = (16, 16)
 DEFEATED_GOOMBA_SPRITE_SIZE = (16, 8)
 KOOPA_SPRITE_SIZE = (16, 24)
@@ -176,11 +179,44 @@ SPRITE_SIZES = {
     # Mario invincible, by size: the star palette shows over fire Mario's colours too
     "mario_small_invincible": SMALL_MARIO_SPRITE_SIZE,
     "mario_big_invincible": BIG_MARIO_SPRITE_SIZE,
+    # Mario's animation frames (#57), by standing sprite: three walking frames, the
+    # skid and the jump, and for big Mario the crouch
+    "mario_small_walk_1": SMALL_MARIO_SPRITE_SIZE,
+    "mario_small_walk_2": SMALL_MARIO_SPRITE_SIZE,
+    "mario_small_walk_3": SMALL_MARIO_SPRITE_SIZE,
+    "mario_small_skid": SMALL_MARIO_SPRITE_SIZE,
+    "mario_small_jump": SMALL_MARIO_SPRITE_SIZE,
+    "mario_small_invincible_walk_1": SMALL_MARIO_SPRITE_SIZE,
+    "mario_small_invincible_walk_2": SMALL_MARIO_SPRITE_SIZE,
+    "mario_small_invincible_walk_3": SMALL_MARIO_SPRITE_SIZE,
+    "mario_small_invincible_skid": SMALL_MARIO_SPRITE_SIZE,
+    "mario_small_invincible_jump": SMALL_MARIO_SPRITE_SIZE,
+    "mario_big_walk_1": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_walk_2": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_walk_3": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_skid": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_jump": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_crouch": BIG_MARIO_CROUCH_SPRITE_SIZE,
+    "mario_fiery_walk_1": BIG_MARIO_SPRITE_SIZE,
+    "mario_fiery_walk_2": BIG_MARIO_SPRITE_SIZE,
+    "mario_fiery_walk_3": BIG_MARIO_SPRITE_SIZE,
+    "mario_fiery_skid": BIG_MARIO_SPRITE_SIZE,
+    "mario_fiery_jump": BIG_MARIO_SPRITE_SIZE,
+    "mario_fiery_crouch": BIG_MARIO_CROUCH_SPRITE_SIZE,
+    "mario_big_invincible_walk_1": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_invincible_walk_2": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_invincible_walk_3": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_invincible_skid": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_invincible_jump": BIG_MARIO_SPRITE_SIZE,
+    "mario_big_invincible_crouch": BIG_MARIO_CROUCH_SPRITE_SIZE,
     # enemies
     "goomba": GOOMBA_SPRITE_SIZE,
     "goomba_defeated": DEFEATED_GOOMBA_SPRITE_SIZE,
     "koopa": KOOPA_SPRITE_SIZE,
     "koopa_shell": KOOPA_SHELL_SPRITE_SIZE,
+    # a walking enemy's second walking frame (#57); its first is its own sprite
+    "goomba_walk_2": GOOMBA_SPRITE_SIZE,
+    "koopa_walk_2": KOOPA_SPRITE_SIZE,
     # items
     "super_mushroom": ITEM_SPRITE_SIZE,
     "one_up_mushroom": ITEM_SPRITE_SIZE,

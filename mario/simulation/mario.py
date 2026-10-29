@@ -10,6 +10,9 @@ shrinking or catching fire: PowerStateChange) stops him and the whole game for
 a while; after shrinking he can't be hurt for a while. A Starman makes him
 invincible for a while. Growing or standing up can put his box inside a solid
 tile, which his head and side probes then get him out of, as in the original.
+
+Once a tick, after everything has moved, he picks the animation frame he shows
+(animate, MarioAnimation).
 """
 
 from enum import Enum, auto
@@ -32,6 +35,7 @@ from mario.constants.level import (
     SUBPIXEL_TO_TILE_SHIFT,
     TILE_SIZE_PIXELS,
 )
+from mario.constants.animation import SKID_FRAME_MIN_SPEED
 from mario.constants.physics import (
     AIR_RUN_CAP_SPEED,
     AREA_ENTRY_FALLING_GRAVITY,
@@ -74,6 +78,7 @@ from mario.constants.physics import (
 from mario.controller.controller_state import LEFT, NO_DIRECTION, RIGHT, ControllerState
 from mario.simulation.attempt_tiles import AttemptTiles
 from mario.simulation.gravity import add_gravity
+from mario.simulation.mario_animation import MarioAnimation, MarioPose
 from mario.simulation.power_state_change import PowerState, PowerStateChange
 from mario.simulation.size_change import MarioBody
 from mario.simulation.tile_body import TileBody, VerticalContact
@@ -148,6 +153,7 @@ class Mario(TileBody):
         self._run_held_last_tick = False
         # set each tick: fire Mario pressed run afresh while able to shoot (ProcFireball_Bubble)
         self.wants_to_shoot_fireball = False
+        self.animation = MarioAnimation()
 
     @property
     def pixel_x(self) -> int:
@@ -189,6 +195,11 @@ class Mario(TileBody):
     @property
     def is_fiery(self) -> bool:
         return self.power_state is PowerState.FIERY
+
+    @property
+    def is_crouching(self) -> bool:
+        """CrouchingFlag: big Mario holding down on the ground, and still so in the air."""
+        return self._is_crouching
 
     @property
     def is_changing_power_state(self) -> bool:
@@ -328,6 +339,29 @@ class Mario(TileBody):
             self._jump_held_last_tick = controller.jump
             self._run_held_last_tick = controller.run
         self.wants_to_shoot_fireball = False
+        self.animation.stand_through_power_state_change()
+
+    def animate(self) -> None:
+        """PlayerGfxHandler, once a tick after everything has moved: the frame he
+        shows. Falling off a ledge, he keeps the walking frame he had (ActionFalling)."""
+        if self.movement_state is MovementState.FALLING:
+            self.animation.keep_walk_frame()
+        else:
+            self.animation.show(self._pose())
+
+    def _pose(self) -> MarioPose:
+        """ProcessPlayerAction, jumping or on the ground: crouching if he crouches;
+        in the air, jumping; on the ground, standing with no speed and no left or
+        right held, skidding fast enough against the way he faces, else walking."""
+        if self._is_crouching:
+            return MarioPose.CROUCHING
+        if self.movement_state is MovementState.JUMPING:
+            return MarioPose.JUMPING
+        if self.whole_speed_x == 0 and self.held_direction == NO_DIRECTION:
+            return MarioPose.STANDING
+        if self.x_speed_absolute >= SKID_FRAME_MIN_SPEED and self.moving_direction != self.facing_direction:
+            return MarioPose.SKIDDING
+        return MarioPose.WALKING
 
     def _check_for_fireball_shot(self, controller: ControllerState) -> None:
         """ProcFireball_Bubble, after he has moved: fiery, he shoots on a fresh run
@@ -400,7 +434,9 @@ class Mario(TileBody):
     # --- OnGroundStateSub / JumpSwimSub / FallingSub -----------------------------------------
 
     def _update_running_speed_and_skid(self, controller: ControllerState) -> None:
-        """GetPlayerAnimSpeed: the RunningSpeed flag, and the turnaround at the end of a skid."""
+        """GetPlayerAnimSpeed: how long each walking frame shows, the RunningSpeed
+        flag, and the turnaround at the end of a skid."""
+        self.animation.choose_walk_speed(self.x_speed_absolute)
         if self.x_speed_absolute >= RUNNING_SPEED_FLAG_SPEED:
             self.running_speed_flag = True
         elif controller.holds_any_button_but_jump:

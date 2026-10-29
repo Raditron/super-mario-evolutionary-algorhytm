@@ -13,7 +13,9 @@ ends the tick there: the level timer stops, and nothing else moves (the slide an
 castle walk after it are step_end_of_level's). While Mario
 grows, shrinks or catches fire, everything else stands still, the level timer
 too, but for his fireballs, which the original runs every frame; the ticks
-still count, and so does the stall rule.
+still count, and so does the stall rule. Once everything has moved, Mario picks
+the animation frame he shows (Mario.animate), on the flagpole and on his castle
+walk too.
 """
 
 from mario.constants.level import CHECKPOINT_LEFT_X_PIXELS
@@ -93,6 +95,8 @@ class Attempt:
             raise RuntimeError("the attempt did not reach the flag")
         if self.end_of_level.is_walking_to_the_castle:
             self._move_mario(WALK_RIGHT)
+        if self.end_of_level.mario_still_moves:
+            self.mario.animate()
         self.end_of_level.step()
 
     def result(self) -> AttemptResult:
@@ -124,6 +128,7 @@ class Attempt:
         self._collect_touched_item()
         self.blocks.step()
         self.level_timer.count_down()
+        self.mario.animate()
 
     def _touch_flagpole(self) -> None:
         self.flagpole_touch = FlagpoleTouch.of(self.mario, self.level_timer.time_left)

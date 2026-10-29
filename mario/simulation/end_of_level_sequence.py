@@ -76,6 +76,12 @@ class EndOfLevelSequence:
         return self.phase is EndOfLevelPhase.WALKING_TO_THE_CASTLE
 
     @property
+    def mario_still_moves(self) -> bool:
+        """Whether Mario is still on the pole or walking to the castle: until the
+        castle stopper has stopped him at the door."""
+        return self.phase not in (EndOfLevelPhase.COUNTING_TIME, EndOfLevelPhase.OVER)
+
+    @property
     def points_still_to_count(self) -> int:
         """The points of the touch the HUD's score doesn't show yet."""
         flag_is_up = self.phase in (EndOfLevelPhase.TAKING_HOLD, EndOfLevelPhase.SLIDING)

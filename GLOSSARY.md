@@ -140,6 +140,10 @@ _Avoid_: Normal mode
 The clouds, hills, bushes and castle drawn behind the level (layer 2 of its grid); never solid, never seen by the game or the AI, and drawn only by the Sprite view.
 _Avoid_: Background, decoration, layer 2
 
+**Animation frame**:
+One of the pictures a thing's sprite shows as it moves: Mario's walking frames, skid, jump and crouch, and an enemy's two walking frames. The game picks it and the snapshot carries it; the Sprite view never keeps a clock of its own.
+_Avoid_: Sprite frame, animation step, tick (a tick is the game's time step)
+
 **Debug view**:
 The level drawn as the game and AI treat it: hitboxes, and the game events and rewards being scored.
 _Avoid_: Hitbox mode, AI view
