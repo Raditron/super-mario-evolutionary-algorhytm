@@ -1,0 +1,48 @@
+"""The background scenery: their colours (RGBA), and the key each is drawn with.
+
+Kept softer than the level's tiles so the foreground reads in front of them."""
+
+from sprite_art.palettes.shared import SHARED_KEYS
+
+CLOUD_SHADE = (196, 220, 248, 255)
+CLOUD_SHADE_DEEP = (160, 196, 244, 255)
+
+HILL_GREEN = (60, 132, 84, 255)
+HILL_GREEN_DARK = (42, 104, 70, 255)
+HILL_GREEN_LIGHT = (100, 164, 104, 255)
+
+BUSH_GREEN = (92, 156, 72, 255)
+BUSH_GREEN_DARK = (56, 112, 56, 255)
+BUSH_GREEN_LIGHT = (140, 192, 100, 255)
+
+CASTLE_STONE = (184, 156, 120, 255)
+CASTLE_STONE_LIGHT = (212, 192, 156, 255)
+CASTLE_STONE_SHADE = (152, 124, 96, 255)
+CASTLE_MORTAR = (116, 88, 68, 255)
+
+CASTLE_OPENING = (36, 28, 40, 255)
+CASTLE_OPENING_REVEAL = (72, 56, 64, 255)
+
+DOOR_WOOD = (128, 80, 48, 255)
+DOOR_WOOD_DARK = (84, 52, 32, 255)
+DOOR_IRON = (64, 64, 76, 255)
+
+SCENERY_PALETTE = SHARED_KEYS | {
+    "s": CLOUD_SHADE,
+    "S": CLOUD_SHADE_DEEP,
+    "G": HILL_GREEN,
+    "g": HILL_GREEN_DARK,
+    "L": HILL_GREEN_LIGHT,
+    "B": BUSH_GREEN,
+    "b": BUSH_GREEN_DARK,
+    "J": BUSH_GREEN_LIGHT,
+    "C": CASTLE_STONE,
+    "V": CASTLE_STONE_LIGHT,
+    "v": CASTLE_STONE_SHADE,
+    "c": CASTLE_MORTAR,
+    "O": CASTLE_OPENING,
+    "o": CASTLE_OPENING_REVEAL,
+    "N": DOOR_WOOD,
+    "n": DOOR_WOOD_DARK,
+    "I": DOOR_IRON,
+}

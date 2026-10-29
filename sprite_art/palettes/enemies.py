@@ -1,0 +1,33 @@
+"""The enemies: their colours (RGBA), and the key each is drawn with."""
+
+from sprite_art.palettes.shared import SHARED_KEYS
+
+SLIME_PURPLE = (152, 72, 200, 255)
+SLIME_PURPLE_DARK = (80, 32, 120, 255)
+SLIME_PURPLE_LIGHT = (208, 144, 240, 255)
+
+IRON = (128, 136, 152, 255)
+IRON_DARK = (64, 68, 84, 255)
+IRON_LIGHT = (204, 212, 224, 255)
+
+HELMET_BAND_RED = (192, 40, 48, 255)
+HELMET_BAND_RED_DARK = (112, 20, 32, 255)
+
+GOBLIN_GREEN = (112, 184, 64, 255)
+GOBLIN_GREEN_DARK = (48, 104, 40, 255)
+
+GOBLIN_EYE_YELLOW = (248, 224, 64, 255)
+
+ENEMY_PALETTE = SHARED_KEYS | {
+    "S": SLIME_PURPLE,
+    "s": SLIME_PURPLE_DARK,
+    "L": SLIME_PURPLE_LIGHT,
+    "M": IRON,
+    "m": IRON_DARK,
+    "H": IRON_LIGHT,
+    "R": HELMET_BAND_RED,
+    "r": HELMET_BAND_RED_DARK,
+    "G": GOBLIN_GREEN,
+    "g": GOBLIN_GREEN_DARK,
+    "Y": GOBLIN_EYE_YELLOW,
+}

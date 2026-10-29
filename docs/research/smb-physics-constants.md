@@ -390,7 +390,7 @@ These facts were sourced from [D] while building the Sprite view, for the sizes 
 | The flag | Three 8 × 8 sprites: two side by side at the flag's position (triangle, skull), the third 8 px below the right one (triangle). Its place is **16 × 16 from the flag's position**, the same square as its box in the game. | [D] `FlagpoleGfxHandler` l. 13259-13286 |
 
 **Replica choices**:
-- **One picture per sprite:** the Sprite view draws each thing with one picture (small, big or fire Mario; a Goomba; a squashed Goomba). Crouching, the grow frames, walking frames and facing are drawing only, and wait for the texture pass (spec section 12).
+- **One picture per sprite:** the Sprite view draws each thing with one picture (small, big or fire Mario; a Goomba; a squashed Goomba). Crouching, the grow frames and walking frames are drawing only, and wait for the texture pass (spec section 12). Facing came with #56 (see below).
 
 ## Added during the build (#22)
 
@@ -443,6 +443,52 @@ These facts were sourced from [D] while building the Starman. Line numbers refer
 - **The 17th step:** as for the mushroom, it rises 16 px and sets off with its feet on the block's top; the original's last rise puts it 1 px higher. Its fall is then the same: it sinks into the block (about 5 px) until its speed byte reaches 1, when the foot probe lands it back on top.
 - **Its look:** both views draw an invincible Mario in one colour, `INVINCIBLE_MARIO_COLOUR` (the Sprite view's `mario_small_invincible` and `mario_big_invincible` sprites fall back to it), whatever his power state, as the star palette replaces fire Mario's. The palette cycling is left to the texture pass.
 - **Not reproduced:** the landing skip near the top and bottom of the screen (`SubtEnemyYPos`) and the side check's skip above sprite y `$20`: in 1-1 the Starman never comes within 6 px of the screen's top, lands on the ground before its sprite y reaches 194, and never rises above sprite y `$20`. A squashed Goomba (state `$04`, not d5) touched by an invincible Mario: the original would defeat it again (100 more points); the replica counts it as defeated already and lets it be, as its fireballs and shells do. It can only happen when Mario stomps a Goomba and collects the Starman within the 42 ticks it lies squashed.
+
+## Added during the build (#56)
+
+These facts were sourced from [D] while drawing Mario and the enemies facing the way they face. Line numbers refer to the same file.
+
+| Fact | Value | Source |
+|---|---|---|
+| The flip | Every two-tile row of a sprite is drawn by `DrawSpriteObject`, whose flip control `$03` is a direction (1 right, 2 left): with d1 set (left) it swaps the row's two tiles and sets the OAM horizontal-flip bit on both. The graphics face right; a thing facing left is drawn mirrored, in the same place. | [D] `DrawSpriteObject`/`NoHFlip`/`SetHFAt` l. 15000-15017 |
+| Mario's facing | `RenderPlayerSub` hands `PlayerFacingDir` to it as the flip control. | [D] `RenderPlayerSub` l. 14562-14575 |
+| An enemy's facing | `EnemyGfxHandler` hands `Enemy_MovingDir`, the way the enemy moves, to it as the flip control: an enemy faces the way it walks. | [D] `EnemyGfxHandler` l. 13614-13626 |
+| The Goomba | Its flip control is inverted on 8 frames of every 16 (`FrameCounter` d3 clear), unless it is defeated or time is stopped: its walk is its own picture mirrored back and forth, whichever way it moves. | [D] `CheckForGoomba`/`GmbaAnim` l. 13688-13705 |
+| Shells | For an enemy in state 2 or more (a Koopa's shell, still, moving or flipped), `MirrorEnemyGfx` rewrites the right column as the left one mirrored: the shell is symmetric, so which way it moves doesn't show. | [D] `CheckForESymmetry`/`MirrorEnemyGfx`/`EggExc` l. 13932-13981 |
+
+**Replica choices**:
+- **Facing by mirroring:** `MarioSnapshot.faces_right` is `Mario.facing_direction`, and `EnemySnapshot.faces_right` is the enemy's walking direction (`Enemy.walks_right`, the sign of its speed). The Sprite view draws every sprite facing right and mirrors it, in the same place, for a thing facing left; a ghost faces as his Mario does (`AgentSnapshot.faces_right`). A shell is never mirrored, since its picture is drawn symmetric as the original's is.
+- **The Goomba faces the way it walks:** its mirrored walk (above) is an animation, left to the walking frames (#57).
+
+## Added during the build (#57)
+
+These facts were sourced from [D] while designing the knight's and the enemies' animation frames. Line numbers refer to the same file.
+
+| Fact | Value | Source |
+|---|---|---|
+| The player's frames | `PlayerGraphicsTable` holds, for each size, three walking frames, a skid, a jump, three swimming and two climbing frames. Big Mario also has a crouch, 16 × 24 with its top row blank, and a fireball-throwing frame. The standing frames come after both sizes' rows. `PlayerGfxTblOffsets` picks a row by action, plus 8 for small Mario (`GetGfxOffsetAdder`). | [D] `PlayerGfxTblOffsets` l. 14393-14395, `PlayerGraphicsTable` l. 14399-14430, `GetGfxOffsetAdder` l. 14680-14687 |
+| Which frame shows | `ProcessPlayerAction` runs every frame from `PlayerGfxHandler`, after everything has moved. **Jumping** (`Player_State` 1): the crouch frame if `CrouchingFlag` is set, otherwise the jump frame. **On the ground**: the crouch frame if crouching; standing if `Player_X_Speed` and `Left_Right_Buttons` are both 0; the skid frame if `Player_XSpeedAbsolute` ≥ 9 while his moving and facing directions differ; otherwise the walk. **Falling** (`Player_State` 2, walked off a ledge): the walking frame he had, not stepped on, even if crouching. The standing, skid, jump and crouch frames set the walk back to its first frame (`PlayerAnimCtrl` = 0). | [D] `ProcessPlayerAction`/`ProcOnGroundActs`/`NonAnimatedActs`/`ActionFalling`/`ActionWalkRun` l. 14585-14632, `GetCurrentAnimOffset` l. 14651-14653 |
+| The walk cycle | `PlayerAnimCtrl` counts 0, 1, 2, 0 … (the upper extent is 3, despite `FourFrameExtent`'s name): walking frames 1 to 3. The frame drawn is the counter's value before it steps. When `PlayerAnimTimer` is 0, it is reset to `PlayerAnimTimerSet` and the counter steps, so each walking frame shows for `PlayerAnimTimerSet` frames. | [D] `FourFrameExtent`/`AnimationControl`/`SetAnimC` l. 14655-14678 |
+| The animation timer | `PlayerAnimTimer` ($0781) is one of the frame timers. `DecTimers` takes 1 off it every frame that it isn't 0, except while `TimerControl` is set (while Mario grows or shrinks, for one). | [D] `Timers` l. 81-83, `DecTimers` l. 785-800 |
+| Walk speed follows running speed | `GetPlayerAnimSpeed` runs at the start of each frame on the ground (`OnGroundStateSub`), from the last frame's `Player_XSpeedAbsolute`: at ≥ 28 ($1c), 2 frames per walking frame; at ≥ 14 ($0e), 4; below that, 7 (`PlayerAnimTmrData`). In the air the setting keeps its last value. A step cycle of three walking frames therefore takes 6 frames at the run's top speed (40), 12 at the walk's (24), and 21 below 14. | [D] `PlayerAnimTmrData`/`GetPlayerAnimSpeed`/`SetAnimSpd` l. 6192-6223, `OnGroundStateSub` l. 5903-5904 |
+| A size change | `InitChangeSize` sets `PlayerAnimCtrl` to 0 as the change starts. `HandleChangeSize` then uses it as its own counter and leaves it at 0, so the walk starts again from its first frame. | [D] `InitChangeSize` l. 5753-5761, `HandleChangeSize` l. 14693-14703 |
+| Not in the frame choice | Fire Mario's throwing frame replaces the frame for a few frames after a shot, and shortens the animation timer (`PlayerAnimTimer` = `PlayerAnimTimerSet` − 1). While `InjuryTimer` runs, `PlayerGfxHandler` leaves at once on every other frame (the blink), so the walk doesn't step on those frames. On the flagpole Mario is climbing (`Player_State` 3) and shows the climbing frames. | [D] `PlayerGfxProcessing` l. 14486-14509, `ProcFireball_Bubble` l. 6299-6302, `PlayerGfxHandler` l. 14435-14440, `PutPlayerOnVine` l. 12206-12208 |
+| The enemies' walk | `CheckForSecondFrame`: on frames with `FrameCounter` d3 clear (8 frames of every 16; the mask `EnemyAnimTimingBMask` is $08), a walking enemy's graphics offset moves 6 bytes on, to its second frame (the Koopa's frames 1 and 2). This doesn't happen if its state has d7 or d5 set or `TimerControl` is set. The Goomba never gets here: it is mirrored on the same frames instead (`GmbaAnim`, #56). | [D] `EnemyAnimTimingBMask` l. 13608-13609, `CheckToAnimateEnemy`/`CheckForSecondFrame`/`CheckAnimationStop` l. 13831-13866, `EnemyGraphicsTable` l. 13554-13555 |
+
+**Replica choices** (designed in part 1 of #57, built in part 2):
+- **The frame is game state:** the Sprite view keeps no clock.
+  - A `MarioAnimation` (in `mario/simulation/`, its timings named in `mario/constants/animation.py`) replays the original's frame choice. At the start of Mario's tick on the ground it sets the frame timing from `x_speed_absolute` (`GetPlayerAnimSpeed`). Once per tick, after everything has moved, it runs `ProcessPlayerAction` and `AnimationControl`, as `PlayerGfxHandler` runs after the enemies.
+  - It stands still while the game does for a power-state change. The change sets the walk back to its first frame. The replica does so for catching fire too, which the original's `UpToFiery` leaves alone (it doesn't go through `InitChangeSize`): at most one walking frame differs once play resumes.
+  - Built (part 2): `Mario` owns the `MarioAnimation`. `GetPlayerAnimSpeed`'s timing is chosen where `Mario.step` runs the rest of that routine (`_update_running_speed_and_skid`), and `Mario.animate` picks the pose (`ProcessPlayerAction`), which `Attempt` calls once a tick after everything has moved. In the end-of-level sequence it is called every tick until the castle stopper stops Mario at the door; from then on his last frame stays.
+- **What the snapshot carries:** `MarioSnapshot.pose`, a `MarioPose`: `STANDING`, `WALKING`, `SKIDDING`, `JUMPING` or `CROUCHING`. Falling off a ledge is `WALKING`, with the frame kept. `MarioSnapshot.walk_frame` is 1, 2 or 3: the walking frame drawn this tick, numbered as the files are. A ghost has both through his `MarioSnapshot`, and watch-live's snapshot slot carries them. During a power-state change the pose is `STANDING`, so the change is drawn as it is now.
+- **The enemies' walk:** `EnemySnapshot.walk_frame` is 1 or 2. It is 2 on a tick whose number has d3 clear, taken from the last tick the enemy moved, so it stops while the game stands still. A shell and a defeated enemy are drawn without it. The slime (Goomba) keeps the original's timing but has a second picture of its own instead of the mirror trick, and it faces the way it walks (#56).
+- **Choosing the picture:** the name is Mario's standing picture's name plus `_walk_<n>`, `_skid`, `_jump` or `_crouch`; `STANDING` uses the standing picture itself. An enemy's walk frame 1 is its own picture, and frame 2 adds `_walk_2`. If the frame's PNG is missing, the standing picture is drawn; if that is missing too, its box is drawn in the thing's colour.
+- **Frame names** (`<sprite>_<frame>`, after any state already in the name):
+  - Small Mario (16 × 16): `mario_small_walk_1` to `_3`, `mario_small_skid` and `mario_small_jump`. The same frames exist for `mario_small_invincible`.
+  - Big Mario (16 × 32): `mario_big_walk_1` to `_3`, `mario_big_skid`, `mario_big_jump`, and `mario_big_crouch` at 16 × 24. The same frames exist for `mario_fiery` and `mario_big_invincible`.
+  - The enemies: `goomba_walk_2` and `koopa_walk_2`.
+  - That makes 28 knight frames and 2 enemy frames. The fiery and invincible knights reuse the small and big rows with their own palettes.
+- **Not reproduced:** the swimming and climbing frames, the throwing frame, the injury blink, the grow and shrink frames' own pictures, and the killed frame. On the flagpole the replica's Mario is falling, not climbing, so he keeps his walking frame.
 
 ## Not covered or uncertain
 

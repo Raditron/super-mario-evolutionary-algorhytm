@@ -13,7 +13,12 @@ LAYER_NAME = "layer_2"
 
 
 class SceneryKind(StrEnum):
-    # Each value is also the file name of its sprite in assets/sprites/.
+    # Each value is also the file name of its sprite in assets/sprites/, unless the
+    # Sprite view picks the kind's picture by place (a hill's slopes, peak and fill;
+    # a cloud's top and bottom rows, each with its two ends and middle; a bush's
+    # two ends and middle, or a one-tile bush; a castle wall's or window's edges, a
+    # battlement's corner merlons and the wall top under the tower, the castle kinds'
+    # own pictures drawing the rest).
     CLOUD = "cloud"
     HILL = "hill"
     BUSH = "bush"
