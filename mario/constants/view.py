@@ -78,6 +78,9 @@ DEBUG_FONT_SIZE = 14                      # pygame's default font, as the HUD us
 # are (column, row) cells of that grid; each character fills one cell.
 HUD_CELL_PIXELS = 8
 HUD_TEXT_COLOUR = (252, 252, 252)
+# The coin icon is this sprite, filling its cell; while it is missing, a rectangle
+# in this colour at HUD_COIN_ICON_RECT_IN_CELL.
+HUD_COIN_SPRITE_NAME = "coin"
 HUD_COIN_ICON_COLOUR = (252, 152, 56)
 HUD_FONT_SIZE = 14                        # pygame's default font, unsmoothed: digits about 8 px tall
 HUD_LABELS = {(3, 2): "MARIO", (18, 2): "WORLD", (25, 2): "TIME"}
@@ -125,6 +128,8 @@ ITEM_SPRITE_SIZE = (16, 16)
 FIREBALL_SPRITE_SIZE = (8, 8)
 FIREBALL_EXPLOSION_SPRITE_SIZE = (16, 16)
 FLAG_SPRITE_SIZE = (16, 16)
+# The HUD's coin icon fills one 8 x 8 cell of the status bar's text grid.
+HUD_COIN_SPRITE_SIZE = (HUD_CELL_PIXELS, HUD_CELL_PIXELS)
 # Every sprite the Sprite view draws: its file name (without the extension) and size.
 SPRITE_SIZES = {
     # tiles, by how they look: the bricks and ? blocks don't show what they hold
@@ -225,6 +230,8 @@ SPRITE_SIZES = {
     # Mario's fireballs
     "fireball": FIREBALL_SPRITE_SIZE,
     "fireball_explosion": FIREBALL_EXPLOSION_SPRITE_SIZE,
+    # the HUD's coin icon
+    HUD_COIN_SPRITE_NAME: HUD_COIN_SPRITE_SIZE,
 }
 # Scenery has no hitbox; a missing scenery sprite is drawn in these colours (RGB).
 CLOUD_COLOUR = (252, 252, 252)

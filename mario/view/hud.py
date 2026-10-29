@@ -4,7 +4,8 @@ The original prints its status bar on the NES's 8 x 8 px text grid, one
 character per cell; this draws each character centred in its cell. While a
 generation is watched (watch-live, all-ghost replay), a line about it is added
 under the level's ground line, in a smaller font: it is longer than the screen
-has cells.
+has cells. The coin before the coin count is the coin sprite (assets/sprites/coin.png),
+the size of its cell, or, while that is missing, an orange rectangle in it.
 """
 
 import pygame
@@ -20,6 +21,7 @@ from mario.constants.view import (
     HUD_COIN_ICON_CELL,
     HUD_COIN_ICON_COLOUR,
     HUD_COIN_ICON_RECT_IN_CELL,
+    HUD_COIN_SPRITE_NAME,
     HUD_COINS_CELL,
     HUD_COINS_DIGITS,
     HUD_FONT_SIZE,
@@ -33,6 +35,7 @@ from mario.constants.view import (
     HUD_WORLD_CELL,
 )
 from mario.snapshots.world_snapshot import GenerationProgress, HudSnapshot
+from mario.view.sprite_library import SpriteLibrary
 
 Cell = tuple[int, int]
 
@@ -43,7 +46,8 @@ def generation_line(progress: GenerationProgress) -> str:
 
 
 class Hud:
-    def __init__(self):
+    def __init__(self, sprites: SpriteLibrary):
+        self._coin_sprite = sprites.sprite(HUD_COIN_SPRITE_NAME)
         self._font = pygame.font.Font(None, HUD_FONT_SIZE)
         self._generation_line_font = pygame.font.Font(None, GENERATION_LINE_FONT_SIZE)
         self._glyphs: dict[str, pygame.Surface] = {}
@@ -76,9 +80,12 @@ class Hud:
             self._glyphs[character] = self._font.render(character, False, HUD_TEXT_COLOUR)
         return self._glyphs[character]
 
-    @staticmethod
-    def _draw_coin_icon(screen: pygame.Surface) -> None:
+    def _draw_coin_icon(self, screen: pygame.Surface) -> None:
+        """The coin sprite in its cell, else an orange rectangle in it while the sprite is missing."""
         column, row = HUD_COIN_ICON_CELL
+        cell_left_x, cell_top_y = column * HUD_CELL_PIXELS, row * HUD_CELL_PIXELS
+        if self._coin_sprite is not None:
+            screen.blit(self._coin_sprite, (cell_left_x, cell_top_y))
+            return
         x_in_cell, y_in_cell, width, height = HUD_COIN_ICON_RECT_IN_CELL
-        screen.fill(HUD_COIN_ICON_COLOUR, pygame.Rect(column * HUD_CELL_PIXELS + x_in_cell,
-                                                      row * HUD_CELL_PIXELS + y_in_cell, width, height))
+        screen.fill(HUD_COIN_ICON_COLOUR, pygame.Rect(cell_left_x + x_in_cell, cell_top_y + y_in_cell, width, height))

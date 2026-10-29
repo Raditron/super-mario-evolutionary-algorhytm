@@ -35,10 +35,11 @@ class Viewer:
 
     @classmethod
     def with_both_views(cls, window: ViewerWindow, sprites_folder: Path) -> "Viewer":
-        """The Sprite view first, reading its PNGs from sprites_folder (assets/sprites/), then the Debug view."""
-        views = ViewToggle(SpriteRenderer(SpriteLibrary.load(sprites_folder), BackgroundScenery.load_world_1_1()),
-                           DebugRenderer())
-        return cls(window, views, Hud())
+        """The Sprite view first, then the Debug view, under a HUD with the coin icon; the Sprite
+        view and the HUD read their PNGs from sprites_folder (assets/sprites/)."""
+        sprites = SpriteLibrary.load(sprites_folder)
+        views = ViewToggle(SpriteRenderer(sprites, BackgroundScenery.load_world_1_1()), DebugRenderer())
+        return cls(window, views, Hud(sprites))
 
     def handle_events(self) -> bool:
         """Handle the window's events since the last frame: F1 toggles the view.

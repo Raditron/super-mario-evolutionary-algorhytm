@@ -1,8 +1,8 @@
 """The sprites found in assets/sprites/, each at the original's size.
 
-Every file the Sprite view knows (SPRITE_SIZES) is looked for once, at start-up;
-one that isn't there is simply missing, and the Sprite view draws that thing in
-its hitbox colour. A PNG of any size is scaled to its sprite's size.
+Every file the Sprite view and the HUD know (SPRITE_SIZES) is looked for once, at
+start-up; one that isn't there is simply missing, and whatever draws that thing
+draws it without its picture. A PNG of any size is scaled to its sprite's size.
 """
 
 from pathlib import Path
