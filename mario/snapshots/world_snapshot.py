@@ -24,6 +24,7 @@ from mario.simulation.attempt_result import GameEvent as GameEvent
 from mario.simulation.item_kind import ItemKind as ItemKind
 from mario.simulation.mario import PowerState as PowerState
 from mario.simulation.mario_animation import MarioPose as MarioPose
+from mario.simulation.mario_animation import is_blinked_out as is_blinked_out
 
 # A screen scrolled part-way into a tile shows one column more than it is wide.
 VISIBLE_COLUMNS = SCREEN_WIDTH_PIXELS // TILE_SIZE_PIXELS + 1

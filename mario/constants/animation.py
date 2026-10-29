@@ -21,6 +21,11 @@ SLOW_TICKS_PER_WALK_FRAME = 7
 # On the ground he shows his skid frame at or above this speed while he faces
 # against the way he moves.
 SKID_FRAME_MIN_SPEED = 9 * NES_X_SPEED_UNIT
+# While he can't be hurt after being hurt, Mario is drawn only on ticks that are a
+# multiple of this: PlayerGfxHandler leaves at once on odd frames while InjuryTimer
+# runs, so on the other ticks his frame isn't chosen and his walk doesn't step,
+# though its timer still counts down.
+INVULNERABLE_MARIO_DRAWN_EVERY_TICKS = 2
 
 # --- Enemies -------------------------------------------------------------------------------
 

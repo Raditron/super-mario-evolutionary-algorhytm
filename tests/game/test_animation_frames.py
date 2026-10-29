@@ -10,6 +10,7 @@ from mario.constants.animation import (
     ENEMY_SECOND_WALK_FRAME,
     ENEMY_WALK_FRAME_TICK_BIT,
     FIRST_WALK_FRAME,
+    INVULNERABLE_MARIO_DRAWN_EVERY_TICKS,
     RUN_ANIMATION_SPEED,
     RUN_TICKS_PER_WALK_FRAME,
     SLOW_TICKS_PER_WALK_FRAME,
@@ -33,6 +34,7 @@ from tests.game.helpers import (
     HOLD_RIGHT,
     HOLD_RIGHT_RUN,
     big_mario_attempt,
+    fire_mario_attempt,
     build_level,
     goomba_spawn,
 )
@@ -53,6 +55,9 @@ TICKS_IN_THE_AIR = 5
 # The ground ends at this column; walking right from the start, Mario walks off it.
 LEDGE_COLUMN = 8
 TICKS_FALLING_WATCHED = 6
+# Shown on every other tick, a walking frame due to change on a tick he isn't
+# drawn waits for the next: the 7-tick frame lasts 8.
+BLINKING_SLOW_TICKS_PER_WALK_FRAME = 8
 # A Goomba spawned just past the screen's right edge is active from the first tick.
 GOOMBA_SPAWN_X_PIXELS = 260
 # Watched over several cycles of the enemies' 16-tick walk.
@@ -182,6 +187,67 @@ def test_while_his_power_state_changes_he_stands_and_his_walk_starts_again_from_
     attempt.step(HOLD_RIGHT)
     snapshot = MarioSnapshot.of(attempt.mario)
     assert (snapshot.pose, snapshot.walk_frame) == (MarioPose.WALKING, FIRST_WALK_FRAME)
+
+
+def test_a_tick_he_blinks_out_his_walk_stands_still_but_its_timer_counts_down():
+    """PlayerGfxHandler leaves at once on a frame he isn't drawn; DecTimers still runs.
+    Shown every other tick, the slowest walking frame lasts 8 ticks, not 7."""
+    animation = MarioAnimation()
+    animation.choose_walk_speed(WALK_ANIMATION_SPEED - NES_X_SPEED_UNIT)
+    frames = []
+    for tick in range(1 + 2 * WALK_FRAME_COUNT * BLINKING_SLOW_TICKS_PER_WALK_FRAME):
+        if tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0:
+            animation.show(MarioPose.WALKING)
+        else:
+            animation.blink_out()
+        frames.append(animation.walk_frame)
+    assert frame_runs(frames)[1:-1] == [(frame, BLINKING_SLOW_TICKS_PER_WALK_FRAME) for frame in (2, 3, 1, 2, 3)]
+
+
+@pytest.mark.parametrize("ticks_into_the_walk", range(1, 1 + WALK_FRAME_COUNT * WALK_TICKS_PER_WALK_FRAME))
+def test_a_fireball_shot_restarts_the_walking_frames_time(ticks_into_the_walk):
+    """ProcFireball_Bubble sets PlayerAnimTimer to PlayerAnimTimerSet - 1 after
+    DecTimers: wherever the walk was, the frame showing holds for the full time
+    from the shot's tick, and the next shows on the tick after."""
+    animation = MarioAnimation()
+    animation.choose_walk_speed(WALK_ANIMATION_SPEED)
+    walk_frames_shown(animation, ticks_into_the_walk)
+    animation.throw_fireball()
+    frames = walk_frames_shown(animation, WALK_TICKS_PER_WALK_FRAME + 1)
+    assert frames[:WALK_TICKS_PER_WALK_FRAME] == [frames[0]] * WALK_TICKS_PER_WALK_FRAME
+    assert frames[WALK_TICKS_PER_WALK_FRAME] == frames[0] % WALK_FRAME_COUNT + 1
+
+
+def test_fire_mario_shooting_while_he_walks_restarts_his_walking_frames_time(flat_level):
+    attempt = fire_mario_attempt(flat_level)
+    for _ in range(TICKS_TO_TOP_SPEED):
+        attempt.step(HOLD_RIGHT)
+    attempt.step(HOLD_RIGHT_RUN)
+    assert attempt.fireballs.active
+    frames = [MarioSnapshot.of(attempt.mario).walk_frame]
+    for _ in range(WALK_TICKS_PER_WALK_FRAME):
+        attempt.step(HOLD_RIGHT)
+        frames.append(MarioSnapshot.of(attempt.mario).walk_frame)
+    assert frames[:WALK_TICKS_PER_WALK_FRAME] == [frames[0]] * WALK_TICKS_PER_WALK_FRAME
+    assert frames[WALK_TICKS_PER_WALK_FRAME] != frames[0]
+
+
+def test_while_he_blinks_after_being_hurt_his_walk_steps_only_on_ticks_he_is_drawn(flat_level):
+    attempt = big_mario_attempt(flat_level)
+    attempt.mario.get_hurt()
+    while attempt.mario.is_changing_power_state or not attempt.mario.is_on_ground:
+        attempt.step(HOLD_NOTHING)
+    ticks_of_a_new_frame = []
+    last_frame = MarioSnapshot.of(attempt.mario).walk_frame
+    for _ in range(TICKS_WATCHED):
+        attempt.step(HOLD_RIGHT)
+        snapshot = WorldSnapshot.of(attempt)
+        assert snapshot.mario.is_invulnerable
+        if snapshot.mario.walk_frame != last_frame:
+            ticks_of_a_new_frame.append(snapshot.tick)
+            last_frame = snapshot.mario.walk_frame
+    assert ticks_of_a_new_frame
+    assert all(tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0 for tick in ticks_of_a_new_frame)
 
 
 def test_an_agent_carries_his_marios_frame(flat_level):

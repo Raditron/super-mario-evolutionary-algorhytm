@@ -6,7 +6,9 @@ says his pose once a tick, after everything has moved (ProcessPlayerAction); the
 walk steps on through its frames, each shown for a number of ticks his speed on
 the ground chose (AnimationControl, GetPlayerAnimSpeed). Every other pose sets
 the walk back to its first frame. Falling off a ledge, he keeps the walking frame
-he had. While his power state changes, nothing here moves.
+he had. While his power state changes, nothing here moves. Blinking after being
+hurt, on the ticks he isn't drawn nothing is chosen, though the walk's timer still
+counts down, and a fireball shot starts the walking frame's time again (#61).
 """
 
 from dataclasses import dataclass, field
@@ -14,6 +16,7 @@ from enum import StrEnum
 
 from mario.constants.animation import (
     FIRST_WALK_FRAME,
+    INVULNERABLE_MARIO_DRAWN_EVERY_TICKS,
     RUN_ANIMATION_SPEED,
     RUN_TICKS_PER_WALK_FRAME,
     SLOW_TICKS_PER_WALK_FRAME,
@@ -30,6 +33,13 @@ class MarioPose(StrEnum):
     SKIDDING = "skidding"
     JUMPING = "jumping"
     CROUCHING = "crouching"
+
+
+def is_blinked_out(is_invulnerable: bool, tick: int) -> bool:
+    """Whether Mario isn't drawn this tick: blinking after being hurt, he shows only
+    every INVULNERABLE_MARIO_DRAWN_EVERY_TICKS ticks (PlayerGfxHandler), and on the
+    others his frame isn't chosen either."""
+    return is_invulnerable and tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS != 0
 
 
 def ticks_per_walk_frame(x_speed_absolute: int) -> int:
@@ -69,6 +79,18 @@ class MarioAnimation:
         if self._walk_frame_ticks_left == 0:
             self._walk_frame_ticks_left = self._ticks_per_walk_frame
             self._walk_position = self._walk_position % WALK_FRAME_COUNT + 1
+
+    def throw_fireball(self) -> None:
+        """The tick his fireball goes into play, before his frame is chosen
+        (ProcFireball_Bubble): PlayerAnimTimer = PlayerAnimTimerSet - 1, after that
+        tick's DecTimers. Here the tick's count down comes after, so it takes the 1 off."""
+        self._walk_frame_ticks_left = self._ticks_per_walk_frame
+
+    def blink_out(self) -> None:
+        """Once a tick he isn't drawn, blinking after being hurt: PlayerGfxHandler
+        leaves at once, so nothing is chosen and the walk doesn't step, but its
+        timer counts down (DecTimers)."""
+        self._count_down()
 
     def keep_walk_frame(self) -> None:
         """Once a tick while he falls off a ledge (ActionFalling): the walking frame

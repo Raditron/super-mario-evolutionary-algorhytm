@@ -25,7 +25,6 @@ from mario.constants.view import (
     FLAG_COLOUR,
     GHOST_OPACITY,
     HILL_COLOUR,
-    INVULNERABLE_MARIO_DRAWN_EVERY_TICKS,
     SKY_COLOUR,
     SPRITE_SIZES,
 )
@@ -44,6 +43,7 @@ from mario.snapshots.world_snapshot import (
     PowerState,
     VisibleTiles,
     WorldSnapshot,
+    is_blinked_out,
 )
 from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, SHELL_COLOURS, TILE_COLOURS, mario_colour
 from mario.view.pipe_sprite_names import PipeNeighbourhood, pipe_sprite_name
@@ -156,7 +156,7 @@ class SpriteRenderer:
         for ghost in snapshot.ghosts:
             self._draw_ghost(ghost, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
-        if not mario.is_invulnerable or snapshot.tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0:
+        if not is_blinked_out(mario.is_invulnerable, snapshot.tick):
             self._draw_mario(mario, snapshot.screen_left_x_pixels, screen)
 
     def _draw_scenery(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:

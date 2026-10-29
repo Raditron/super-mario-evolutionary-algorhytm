@@ -46,9 +46,6 @@ FIRE_FLOWER_COLOUR = (252, 160, 68)
 STARMAN_COLOUR = (248, 184, 0)
 FIREBALL_COLOUR = (252, 216, 0)
 EXPLODING_FIREBALL_COLOUR = (252, 100, 0)
-# While he can't be hurt, Mario is drawn only on ticks that are a multiple of this
-# (PlayerGfxHandler skips him on odd frames while InjuryTimer runs).
-INVULNERABLE_MARIO_DRAWN_EVERY_TICKS = 2
 
 # --- Debug view: the followed agent's Observation and recent game events (#25) ---------------
 

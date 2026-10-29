@@ -73,5 +73,6 @@ class Fireballs:
             return
         mario = self._mario
         self._slots[slot] = Fireball(mario.sprite_x_pixels, mario.sprite_y_pixels, mario.facing_direction)
+        mario.throw_fireball()
         self._shot_count += 1
         self._events.append(GameEvent(tick, GameEventKind.SHOT_FIREBALL))

@@ -12,10 +12,16 @@ from mario.constants.view import (
     FIREBALL_COLOUR,
     FLAG_COLOUR,
     GHOST_OUTLINE_WIDTH_PIXELS,
-    INVULNERABLE_MARIO_DRAWN_EVERY_TICKS,
     SKY_COLOUR,
 )
-from mario.snapshots.world_snapshot import AgentSnapshot, EnemySnapshot, FireballSnapshot, ItemSnapshot, WorldSnapshot
+from mario.snapshots.world_snapshot import (
+    AgentSnapshot,
+    EnemySnapshot,
+    FireballSnapshot,
+    ItemSnapshot,
+    WorldSnapshot,
+    is_blinked_out,
+)
 from mario.view.debug_text import DebugText
 from mario.view.game_event_feed import GameEventFeed
 from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, SHELL_COLOURS, TILE_COLOURS, mario_colour
@@ -50,7 +56,7 @@ class DebugRenderer:
         for ghost in snapshot.ghosts:
             self._draw_ghost(ghost, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
-        if not mario.is_invulnerable or snapshot.tick % INVULNERABLE_MARIO_DRAWN_EVERY_TICKS == 0:
+        if not is_blinked_out(mario.is_invulnerable, snapshot.tick):
             _fill_level_box(screen, mario_colour(mario), snapshot.screen_left_x_pixels,
                             mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels)
         if snapshot.observation is not None:

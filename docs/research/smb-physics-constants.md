@@ -488,7 +488,52 @@ These facts were sourced from [D] while designing the knight's and the enemies' 
   - Big Mario (16 × 32): `mario_big_walk_1` to `_3`, `mario_big_skid`, `mario_big_jump`, and `mario_big_crouch` at 16 × 24. The same frames exist for `mario_fiery` and `mario_big_invincible`.
   - The enemies: `goomba_walk_2` and `koopa_walk_2`.
   - That makes 28 knight frames and 2 enemy frames. The fiery and invincible knights reuse the small and big rows with their own palettes.
-- **Not reproduced:** the swimming and climbing frames, the throwing frame, the injury blink, the grow and shrink frames' own pictures, and the killed frame. On the flagpole the replica's Mario is falling, not climbing, so he keeps his walking frame.
+- **Not reproduced:** the swimming and climbing frames, the throwing frame, the injury blink's effect on the walk (reproduced since #61, below), the grow and shrink frames' own pictures, and the killed frame. On the flagpole the replica's Mario is falling, not climbing, so he keeps his walking frame.
+
+## Added during the build (#61)
+
+The walk (#57 above) re-checked fact by fact against [D], while capturing the knight walking (`tests/game/test_walk_capture.py`, which writes GIFs and a strip of frames to the git-ignored `test_output/walk_animation/`). Line numbers refer to the same file.
+
+### Checked: what the #57 table says holds
+
+| Fact | Checked against [D] | Source |
+|---|---|---|
+| Order of the walking frames | `PlayerAnimCtrl` 0, 1, 2 picks rows "walking frame 1, 2, 3" (`GetOffsetFromAnimCtrl` adds 8 × the counter to the walk's row, `PlayerGfxTblOffsets` index 4: `$00` big, `$60` small). `AnimationControl` steps the counter to 0 once it reaches the extent 3 (`FourFrameExtent`). So the walk loops 1, 2, 3, 1 … and never plays back 3, 2. | l. 14393-14395, 14401-14403, 14415-14417, 14655-14678, 14709-14713 |
+| Which frame is drawn on a tick | The frame drawn is the counter's value before it steps (`GetCurrentAnimOffset` runs before the timer check, the offset is kept on the stack). | l. 14662-14678 |
+| How long each frame shows | When `PlayerAnimTimer` is 0 it is reset to `PlayerAnimTimerSet` and the counter steps; `DecTimers` takes 1 off it on each frame, before the game engine runs (it is in the NMI, ahead of `OperModeExecutionTree`). So a frame shows for `PlayerAnimTimerSet` frames: 2, 4 or 7 (`PlayerAnimTmrData`). | l. 785-800, 842, 6192-6193, 14666-14676 |
+| When the speed is chosen | `GetPlayerAnimSpeed` is the first thing `OnGroundStateSub` does, from `Player_XSpeedAbsolute` as `ImposeFriction` left it the frame before: ≥ `$1c` (28) → 2, ≥ `$0e` (14) → 4, else 7. Only on the ground (and swimming); in the air `PlayerAnimTimerSet` keeps its value. Climbing sets it too (8, or 4 climbing up), which the replica has no use for. | l. 5903-5904, 6042-6061, 6195-6223, 6265 |
+| Order within a frame | The player moves (`PlayerCtrlRoutine`, from `GameRoutines`), then the enemies, then `PlayerGfxHandler` picks the frame. | l. 5301-5322, 5558 |
+| Starting to walk | Standing sets `PlayerAnimCtrl` to 0 every frame (`NonAnimatedActs`) while `PlayerAnimTimer` runs down to 0. The first walking frame then shows frame 1 for one frame and steps at once, since the timer is already 0; frame 2 follows for the full time. (If he stood for fewer frames than the timer had left, frame 1 shows for what is left.) | l. 14605-14608, 14617-14622, 14666-14676 |
+| Stopping | Standing needs `Player_X_Speed` and `Left_Right_Buttons` both 0. Letting go while he still slides keeps the walk running, its timing following his falling speed. Holding down on the ground clears `Left_Right_Buttons` (`PlayerCtrlRoutine`). | l. 5583-5589, 14605-14608 |
+| Turning | The skid frame needs `Player_XSpeedAbsolute` ≥ 9 and `Player_MovingDir` AND `PlayerFacingDir` = 0 (they differ). Slower than 9 while turning, he shows the walk. `GetPlayerAnimSpeed` turns him round below `$0b` (11) with left or right held against the way he moves. | l. 6204-6220, 14609-14615 |
+| Landing | A jump (or the crouch, skid or standing frame) sets `PlayerAnimCtrl` to 0, so on landing the walk starts again from frame 1, as when starting to walk. | l. 14593-14599, 14617-14622 |
+| Walking off a ledge | `Player_State` 2 (falling) takes `ActionFalling`: the counter's current value is drawn and nothing steps. That value is the frame after the last one drawn whenever the timer ran out on his last frame on the ground. | l. 14624-14627, 14651-14653 |
+
+### What each walking frame shows
+
+[D] holds no pixels (the tiles are in the CHR ROM), but `PlayerGraphicsTable` says which 8 × 8 tiles each frame shares:
+
+| Fact | Value | Source |
+|---|---|---|
+| The whole body moves | Big Mario's three walking frames share **no tile with each other**: 24 tiles (`$00`-`$17`), head to feet, so every row changes from frame to frame. Frame 1's top row (`$00`, `$01`) is the standing frame's. Frame 2's upper rows (`$08`-`$0d`) are the head and body the swimming, climbing, crouch and throwing frames are built on, and its legs (`$0e`, `$0f`) are the throwing frame's. Frame 3's tiles are its own. Small Mario's walking frames all have different lower halves (body, arms and legs), and frames 1 and 2 have different upper halves too. | l. 14401-14412, 14415-14417, 14428-14430 |
+| The last frame is closest to standing | Small Mario's walking frame 3 has the standing frame's upper half (`$3a`, `$37`); frame 2 shares its front tile (`$37`). | l. 14417, 14428 |
+| Standing is symmetric, the walk isn't | For the standing, crouch and grow frames `ChkForPlayerAttrib` draws the feet row's right tile as the left one mirrored, so his feet are even. The walking frames are drawn as they are, so every walking frame is lopsided. | l. 14728-14756 |
+| The walk is half a stride | Seen in play: the three frames are one leg's step forward and back, not a full left-right stride: "the right leg never makes contact with the ground, and the left leg never extends forward". | UCLA Game Lab, *Walk Cycles* (<https://games.ucla.edu/?p=985>), secondary |
+
+The legs' and arms' exact positions can't be read from [D], and the drawings must stay original anyway, so the poses are the replica's choices, made to fit the facts above:
+- **The knight's poses** (no source line: a design): frame 1 is the stride, frame 2 the back leg passing, frame 3 the front foot reaching forward (#57's legs, kept), a half stride as the UCLA page describes. His arms swing with them: on frame 1 the front arm is swung forward with its hand raised and the back arm trails behind; on frame 2 the front hand is still forward; on frame 3 both arms rest as when standing.
+- **Frame 3's arms at rest** follow small Mario, whose frame 3 has the standing frame's upper half ([D] l. 14417, 14428). Big Mario's frame 3 shares no tile with standing, so for the big knight this is the small knight's choice carried over, not something [D] shows.
+
+### Differences found between the original and the replica (as of #57)
+
+| # | Original | Replica before #61 | Now |
+|---|---|---|---|
+| 1 | The whole figure is redrawn in each walking frame (above). | Only the knight's legs changed; his head, body and arms were the standing picture in every walking frame. | **Fixed in part:** his arms swing (above). **Not reproduced:** his head and body stay as when standing in every walking frame, where big Mario's frames 2 and 3 share no tile with standing ([D] l. 14402-14403, 14430). What changes there can't be read from [D]. |
+| 2 | While `InjuryTimer` runs, `PlayerGfxHandler` leaves at once on odd frames, so the frame isn't chosen and the walk doesn't step, but `DecTimers` still counts `PlayerAnimTimer` down. A walking frame due to change on an odd frame waits for the next one: the 7-frame walking frame lasts 8 ([D] l. 785-800, 14436-14440). | The walk stepped every tick; only the view skipped drawing him. | **Fixed:** `Mario.animate` gets the tick and, on a tick he blinks out, `MarioAnimation.blink_out` only counts the timer down. `INVULNERABLE_MARIO_DRAWN_EVERY_TICKS` moved to `mario/constants/animation.py`, since the game and both views use it. |
+| 3 | A fireball shot sets `PlayerAnimTimer` to `PlayerAnimTimerSet` − 1, after that frame's `DecTimers`, wherever the timer was: the walking frame showing holds for the full `PlayerAnimTimerSet` frames from the shot (at the walk's top speed, up to 3 frames longer than it would have). The throwing frame then shows until the timer runs out; moving, only its top three rows are drawn, so he keeps the walking frame's legs ([D] l. 6273, 6299-6302, 14491-14508). | Neither. | **Fixed:** the timer. `Fireballs` calls `Mario.throw_fireball` once his fireball is in play, and `MarioAnimation.throw_fireball` restarts the walking frame's time. **Not reproduced:** the throwing frame, which needs a picture of its own (#57's list). |
+| 4 | On the flagpole Mario climbs (`Player_State` 3) and shows the climbing frames ([D] l. 12206-12208, 14634-14639). | Falling, so he keeps his walking frame. | **Not reproduced:** as #57 says. |
+
+Nothing else differs: the frame order, the 2, 4 and 7 frame timings (and how a shot restarts them), when the timing is chosen, the timer's phase on starting and landing, the ledge and the power-state change all match the rows above.
 
 ## Not covered or uncertain
 
