@@ -90,6 +90,23 @@ HUD_COIN_ICON_CELL = (11, 3)
 HUD_COIN_ICON_RECT_IN_CELL = (2, 1, 4, 6)  # x, y, width, height in px
 HUD_COIN_CROSS_CELL = (12, 3)
 HUD_COIN_CROSS = "x"
+# The dash in the world's name (WORLD_NAME, 1-1).
+HUD_WORLD_DASH = "-"
+# Each character the HUD prints is its own 8 x 8 glyph sprite, filling its cell from its
+# top-left corner: the labels' letters, the digits, the world's dash and the coin's cross.
+# A letter or digit's glyph is named the prefix plus the character in lower case; a symbol's,
+# the prefix plus a word for it, so it can never clash with a letter's.
+# A character whose glyph is missing is printed in pygame's default font at HUD_FONT_SIZE,
+# unsmoothed and centred in its cell.
+HUD_GLYPH_LETTERS = "".join(sorted(set("".join(HUD_LABELS.values()))))
+HUD_GLYPH_DIGITS = "0123456789"
+HUD_GLYPH_SPRITE_NAME_PREFIX = "glyph_"
+HUD_GLYPH_SYMBOL_WORDS = {HUD_WORLD_DASH: "dash", HUD_COIN_CROSS: "cross"}
+HUD_GLYPH_SPRITE_NAMES = {
+    **{character: f"{HUD_GLYPH_SPRITE_NAME_PREFIX}{character.lower()}"
+       for character in HUD_GLYPH_LETTERS + HUD_GLYPH_DIGITS},
+    **{symbol: f"{HUD_GLYPH_SPRITE_NAME_PREFIX}{word}" for symbol, word in HUD_GLYPH_SYMBOL_WORDS.items()},
+}
 # While a generation is watched, the HUD adds this line about it (spec section 8).
 GENERATION_LINE = "generation {generation} · alive {alive} / {population_size} · reached flag {reached_flag}"
 HUD_COINS_CELL = (13, 3)
@@ -127,6 +144,8 @@ FIREBALL_EXPLOSION_SPRITE_SIZE = (16, 16)
 FLAG_SPRITE_SIZE = (16, 16)
 # The HUD's coin icon fills one 8 x 8 cell of the status bar's text grid.
 HUD_COIN_SPRITE_SIZE = (HUD_CELL_PIXELS, HUD_CELL_PIXELS)
+# A glyph of the HUD's text fills one cell too.
+HUD_GLYPH_SPRITE_SIZE = (HUD_CELL_PIXELS, HUD_CELL_PIXELS)
 # Every sprite the Sprite view draws: its file name (without the extension) and size.
 SPRITE_SIZES = {
     # tiles, by how they look: the bricks and ? blocks don't show what they hold
@@ -229,6 +248,8 @@ SPRITE_SIZES = {
     "fireball_explosion": FIREBALL_EXPLOSION_SPRITE_SIZE,
     # the HUD's coin icon
     HUD_COIN_SPRITE_NAME: HUD_COIN_SPRITE_SIZE,
+    # the HUD's text, one glyph per character
+    **{name: HUD_GLYPH_SPRITE_SIZE for name in HUD_GLYPH_SPRITE_NAMES.values()},
 }
 # Scenery has no hitbox; a missing scenery sprite is drawn in these colours (RGB).
 CLOUD_COLOUR = (252, 252, 252)

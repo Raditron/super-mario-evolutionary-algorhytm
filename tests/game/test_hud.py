@@ -1,20 +1,27 @@
 """The HUD draws score, coins, world and time in the original's status-bar cells (#16),
-the coin's icon from the coin sprite, else as an orange rectangle (#60)."""
+the coin's icon from the coin sprite, else as an orange rectangle (#60), and every
+character from its own 8 x 8 glyph sprite, else in pygame's default font (#59)."""
 
 import pygame
 import pytest
 
-from mario.constants.level import SCREEN_HEIGHT_PIXELS, SCREEN_WIDTH_PIXELS
+from mario.__main__ import SPRITES_FOLDER
+from mario.constants.level import SCREEN_HEIGHT_PIXELS, SCREEN_WIDTH_PIXELS, WORLD_NAME
 from mario.constants.view import (
     HUD_CELL_PIXELS,
+    HUD_COIN_CROSS,
     HUD_COIN_ICON_CELL,
     HUD_COIN_ICON_COLOUR,
     HUD_COIN_ICON_RECT_IN_CELL,
     HUD_COIN_SPRITE_NAME,
     HUD_COINS_CELL,
     HUD_COINS_DIGITS,
+    HUD_GLYPH_DIGITS,
+    HUD_GLYPH_SPRITE_NAMES,
+    HUD_LABELS,
     HUD_SCORE_CELL,
     HUD_SCORE_CELLS_WIDE,
+    HUD_TEXT_COLOUR,
     HUD_TIME_CELL,
     HUD_TIME_DIGITS,
     SKY_COLOUR,
@@ -110,3 +117,87 @@ def test_without_the_coin_sprite_the_coin_cell_shows_an_orange_rectangle(hud):
     screen = drawn(hud, HudSnapshot(0, 0, 400))
     assert colours_at(screen, rectangle) == {HUD_COIN_ICON_COLOUR}
     assert colours_at(screen, cell_pixels(HUD_COIN_ICON_CELL, 1) - rectangle) == {SKY_COLOUR}
+
+
+# --- The HUD's glyphs (#59) ------------------------------------------------------------------
+
+# The status bar's two rows for HudSnapshot(1200, 7, 399), one character per cell from
+# column 0, as the original lays them out: the score blanks its first digit while it is 0,
+# the coin icon (a space here) stands before the cross, and the world is 1-1.
+STATUS_BAR_ROWS = {
+    2: "   MARIO          WORLD  TIME",
+    3: "   001200   x07    1-1    399",
+}
+STATUS_BAR_NUMBERS = HudSnapshot(1200, 7, 399)
+
+
+GLYPH_COLOUR_FIRST_RED = 10
+GLYPH_COLOUR_RED_STEP = 8
+GLYPH_COLOUR_GREEN = 40
+GLYPH_COLOUR_BLUE = 90
+
+
+def glyph_colour(glyph_index: int) -> tuple[int, int, int]:
+    """A colour of its own for each glyph, none of them the sky's or the HUD text's."""
+    return GLYPH_COLOUR_FIRST_RED + glyph_index * GLYPH_COLOUR_RED_STEP, GLYPH_COLOUR_GREEN, GLYPH_COLOUR_BLUE
+
+
+GLYPH_COLOURS = {character: glyph_colour(index) for index, character in enumerate(HUD_GLYPH_SPRITE_NAMES)}
+
+
+def glyph_sprites(missing: str = "") -> SpriteLibrary:
+    """Every glyph as a solid square of its own colour, but the characters in missing."""
+    sprites = {}
+    for character, name in HUD_GLYPH_SPRITE_NAMES.items():
+        if character not in missing:
+            glyph = pygame.Surface(SPRITE_SIZES[name], pygame.SRCALPHA)
+            glyph.fill((*GLYPH_COLOURS[character], 255))
+            sprites[name] = glyph
+    return SpriteLibrary(sprites)
+
+
+def status_bar_characters() -> list[tuple[str, tuple[int, int]]]:
+    return [(character, (column, row)) for row, line in STATUS_BAR_ROWS.items()
+            for column, character in enumerate(line) if character != " "]
+
+
+@pytest.mark.parametrize("character, cell", status_bar_characters(),
+                         ids=lambda value: str(value))
+def test_each_hud_character_fills_its_cell_with_its_own_glyph(fonts, character, cell):
+    screen = drawn(Hud(glyph_sprites()), STATUS_BAR_NUMBERS)
+    assert colours_at(screen, cell_pixels(cell, 1)) == {GLYPH_COLOURS[character]}
+
+
+MARIO_M_CELL = (3, 2)
+MARIO_A_CELL = (4, 2)
+
+
+def inked_shape(screen: pygame.Surface, cell: tuple[int, int]) -> set[tuple[int, int]]:
+    """The pixels of the cell in the HUD text's colour, relative to the cell's top-left corner."""
+    column, row = cell
+    return {(x - column * HUD_CELL_PIXELS, y - row * HUD_CELL_PIXELS) for x, y in cell_pixels(cell, 1)
+            if tuple(screen.get_at((x, y)))[:3] == HUD_TEXT_COLOUR}
+
+
+def test_a_character_whose_glyph_is_missing_is_printed_in_the_font_in_its_cell(fonts):
+    screen = drawn(Hud(glyph_sprites(missing="M")), STATUS_BAR_NUMBERS)
+    colours_in_cell = colours_at(screen, cell_pixels(MARIO_M_CELL, 1))
+    assert colours_in_cell == {SKY_COLOUR, HUD_TEXT_COLOUR}
+    assert colours_at(screen, cell_pixels(MARIO_A_CELL, 1)) == {GLYPH_COLOURS["A"]}
+
+
+def test_the_font_prints_the_same_character_its_glyph_would_stand_for(fonts):
+    """The fallback prints the missing character itself: an M looks unlike an A."""
+    screen = drawn(Hud(glyph_sprites(missing="MA")), STATUS_BAR_NUMBERS)
+    m_shape, a_shape = inked_shape(screen, MARIO_M_CELL), inked_shape(screen, MARIO_A_CELL)
+    assert m_shape and a_shape and m_shape != a_shape
+
+
+def test_every_character_the_hud_prints_has_a_glyph():
+    printed = "".join(HUD_LABELS.values()) + WORLD_NAME + HUD_COIN_CROSS + HUD_GLYPH_DIGITS
+    assert set(printed) <= HUD_GLYPH_SPRITE_NAMES.keys()
+
+
+def test_the_repos_sprites_folder_has_every_glyph():
+    sprites = SpriteLibrary.load(SPRITES_FOLDER)
+    assert [name for name in HUD_GLYPH_SPRITE_NAMES.values() if sprites.sprite(name) is None] == []

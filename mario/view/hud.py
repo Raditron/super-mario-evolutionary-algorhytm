@@ -1,7 +1,9 @@
 """The HUD: score, coins, world and time, laid out as the original's status bar.
 
 The original prints its status bar on the NES's 8 x 8 px text grid, one
-character per cell; this draws each character centred in its cell. While a
+character per cell; this draws each character's glyph sprite (assets/sprites/glyph_*.png)
+filling its cell from the top-left corner, or, while that glyph is missing, the
+character in pygame's default font, centred in its cell. While a
 generation is watched (watch-live, all-ghost replay), a line about it is added
 under the level's ground line, in a smaller font: it is longer than the screen
 has cells. The coin before the coin count is the coin sprite (assets/sprites/coin.png),
@@ -25,6 +27,7 @@ from mario.constants.view import (
     HUD_COINS_CELL,
     HUD_COINS_DIGITS,
     HUD_FONT_SIZE,
+    HUD_GLYPH_SPRITE_NAMES,
     HUD_LABELS,
     HUD_SCORE_CELL,
     HUD_SCORE_CELLS_WIDE,
@@ -48,9 +51,10 @@ def generation_line(progress: GenerationProgress) -> str:
 class Hud:
     def __init__(self, sprites: SpriteLibrary):
         self._coin_sprite = sprites.sprite(HUD_COIN_SPRITE_NAME)
+        self._glyph_sprites = {character: sprites.sprite(name) for character, name in HUD_GLYPH_SPRITE_NAMES.items()}
         self._font = pygame.font.Font(None, HUD_FONT_SIZE)
         self._generation_line_font = pygame.font.Font(None, GENERATION_LINE_FONT_SIZE)
-        self._glyphs: dict[str, pygame.Surface] = {}
+        self._font_glyphs: dict[str, pygame.Surface] = {}
 
     def draw(self, hud: HudSnapshot, screen: pygame.Surface) -> None:
         for cell, label in HUD_LABELS.items():
@@ -70,15 +74,23 @@ class Hud:
     def _draw_text(self, text: str, first_cell: Cell, screen: pygame.Surface) -> None:
         first_column, row = first_cell
         for offset, character in enumerate(text):
-            glyph = self._glyph(character)
             cell_rect = pygame.Rect((first_column + offset) * HUD_CELL_PIXELS, row * HUD_CELL_PIXELS,
                                     HUD_CELL_PIXELS, HUD_CELL_PIXELS)
-            screen.blit(glyph, glyph.get_rect(center=cell_rect.center))
+            self._draw_character(character, cell_rect, screen)
 
-    def _glyph(self, character: str) -> pygame.Surface:
-        if character not in self._glyphs:
-            self._glyphs[character] = self._font.render(character, False, HUD_TEXT_COLOUR)
-        return self._glyphs[character]
+    def _draw_character(self, character: str, cell_rect: pygame.Rect, screen: pygame.Surface) -> None:
+        """Its glyph sprite from the cell's top-left corner, else the font's glyph centred in the cell."""
+        glyph_sprite = self._glyph_sprites.get(character)
+        if glyph_sprite is not None:
+            screen.blit(glyph_sprite, cell_rect.topleft)
+            return
+        font_glyph = self._font_glyph(character)
+        screen.blit(font_glyph, font_glyph.get_rect(center=cell_rect.center))
+
+    def _font_glyph(self, character: str) -> pygame.Surface:
+        if character not in self._font_glyphs:
+            self._font_glyphs[character] = self._font.render(character, False, HUD_TEXT_COLOUR)
+        return self._font_glyphs[character]
 
     def _draw_coin_icon(self, screen: pygame.Surface) -> None:
         """The coin sprite in its cell, else an orange rectangle in it while the sprite is missing."""

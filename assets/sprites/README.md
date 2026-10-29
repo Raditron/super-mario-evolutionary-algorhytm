@@ -151,4 +151,31 @@ The coin before the HUD's coin count is drawn in its 8 × 8 cell of the status b
 |---|---|---|
 | `coin.png` | 8 × 8 | the coin icon before the HUD's coin count |
 
+Every character of the HUD's text (the labels `MARIO`, `WORLD` and `TIME`, the score, the coin count, `1-1` and the time) is its own glyph, one per 8 × 8 cell of the text grid, drawn from the cell's top-left corner like the coin. A letter's or digit's glyph is named `glyph_` plus its character in lower case; a symbol's is named `glyph_` plus a word for it, `glyph_dash` for `-` and `glyph_cross` for the coin count's `x`, so it never clashes with a letter's. Draw every glyph but the dash from the cell's top row down to its seventh, so they all stand on one baseline at one height, and the dash on the middle line between them; draw the cross in single-pixel diagonals, lighter than a letter's strokes, so it reads as a times sign rather than the letter X; leave the cell's last row and column clear so the characters stand apart. **A glyph that isn't here is printed in pygame's default font**, centred in its cell. The line about the watched generation under the ground line is always printed in that font, being longer than the screen has cells.
+
+| File | Size (px) | Drawn for |
+|---|---|---|
+| `glyph_a.png` | 8 × 8 | the letter A |
+| `glyph_d.png` | 8 × 8 | the letter D |
+| `glyph_e.png` | 8 × 8 | the letter E |
+| `glyph_i.png` | 8 × 8 | the letter I |
+| `glyph_l.png` | 8 × 8 | the letter L |
+| `glyph_m.png` | 8 × 8 | the letter M |
+| `glyph_o.png` | 8 × 8 | the letter O |
+| `glyph_r.png` | 8 × 8 | the letter R |
+| `glyph_t.png` | 8 × 8 | the letter T |
+| `glyph_w.png` | 8 × 8 | the letter W |
+| `glyph_0.png` | 8 × 8 | the digit 0 |
+| `glyph_1.png` | 8 × 8 | the digit 1 |
+| `glyph_2.png` | 8 × 8 | the digit 2 |
+| `glyph_3.png` | 8 × 8 | the digit 3 |
+| `glyph_4.png` | 8 × 8 | the digit 4 |
+| `glyph_5.png` | 8 × 8 | the digit 5 |
+| `glyph_6.png` | 8 × 8 | the digit 6 |
+| `glyph_7.png` | 8 × 8 | the digit 7 |
+| `glyph_8.png` | 8 × 8 | the digit 8 |
+| `glyph_9.png` | 8 × 8 | the digit 9 |
+| `glyph_dash.png` | 8 × 8 | the dash in the world's name, 1-1 |
+| `glyph_cross.png` | 8 × 8 | the cross before the coin count |
+
 The sizes and names are `SPRITE_SIZES` in `mario/constants/view.py`; a test checks this page lists every one.
