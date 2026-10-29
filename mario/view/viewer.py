@@ -35,8 +35,8 @@ class Viewer:
 
     @classmethod
     def with_both_views(cls, window: ViewerWindow, sprites_folder: Path) -> "Viewer":
-        """The Sprite view first, then the Debug view, under a HUD with the coin icon; the Sprite
-        view and the HUD read their PNGs from sprites_folder (assets/sprites/)."""
+        """The Sprite view first, then the Debug view, under a HUD with the coin icon and its font;
+        the Sprite view and the HUD read their PNGs from sprites_folder (assets/sprites/)."""
         sprites = SpriteLibrary.load(sprites_folder)
         views = ViewToggle(SpriteRenderer(sprites, BackgroundScenery.load_world_1_1()), DebugRenderer())
         return cls(window, views, Hud(sprites))
