@@ -5,6 +5,7 @@ Every timing is the original's (docs/research/world-1-1-layout.md, "The bonus ro
 import copy
 from dataclasses import replace
 
+import numpy as np
 import pytest
 
 from mario.controller.controller_state import ControllerState
@@ -13,6 +14,7 @@ from mario.level.tile_kind import TileKind
 from mario.simulation.area import Area
 from mario.simulation.attempt import Attempt
 from mario.simulation.attempt_result import EndReason, GameEvent, GameEventKind
+from mario.simulation.observation_builder import ObservationBuilder
 from tests.game.helpers import (
     HOLD_DOWN,
     HOLD_LEFT,
@@ -161,6 +163,15 @@ COIN_COLUMNS_OVER_THE_BRICK_BLOCK = range(4, 11)
 COIN_POINTS = 200
 LEVEL_TIMER_TICKS_PER_UNIT = 24
 STALL_LIMIT_TICKS = 180
+# The Observation's window (spec section 7).
+OBSERVATION_COLUMNS_BEHIND = 3
+OBSERVATION_COLUMNS = 13
+OBSERVATION_TOP_ROW = 2
+OBSERVATION_ROWS = 12
+# With Mario just dropped into the room (centre column 2), a brick of the block and
+# a coin over it are in his window.
+ROOM_BRICK_IN_THE_WINDOW = (4, 10)
+ROOM_COIN_IN_THE_WINDOW = (4, 9)
 
 
 def walk_into_the_exit_pipe(attempt: Attempt) -> None:
@@ -292,6 +303,43 @@ def test_standing_still_in_the_room_stalls_after_180_controlled_ticks(level):
     assert not attempt.is_over
     attempt.step(HOLD_NOTHING)
     assert attempt.end_reason is EndReason.STALLED
+
+
+def tile_grid_around(attempt: Attempt, tiles: StaticLevel) -> np.ndarray:
+    """The Observation's grid worked out from the spec one cell at a time: the 12
+    rows from screen row 2, the 13 columns from 3 behind the one holding Mario's
+    centre, solid +1 (outside the grid at the sides too), all else 0."""
+    first_column = attempt.mario.centre_column - OBSERVATION_COLUMNS_BEHIND
+    return np.array([[1.0 if tiles.is_solid(column, row) else 0.0
+                      for column in range(first_column, first_column + OBSERVATION_COLUMNS)]
+                     for row in range(OBSERVATION_TOP_ROW, OBSERVATION_TOP_ROW + OBSERVATION_ROWS)])
+
+
+def test_in_the_bonus_room_the_observation_shows_the_rooms_tiles(level):
+    """Built in one batch with an attempt still in the level, each sees its own area."""
+    in_the_level = Attempt(level)
+    in_the_room = in_the_bonus_room(level)
+    wait_for_control(in_the_room)
+    builder = ObservationBuilder(level)
+    grids = builder.grid_of(builder.build_batch([in_the_level, in_the_room]))
+    assert np.array_equal(grids[0], tile_grid_around(in_the_level, level))
+    assert np.array_equal(grids[1], tile_grid_around(in_the_room, level.bonus_room.tiles))
+    assert not np.array_equal(grids[0], grids[1])
+
+
+def test_a_coin_shows_as_empty_and_a_broken_room_brick_as_empty_too(level):
+    """Coins are not solid; the room's own changed tiles show as they now are."""
+    attempt = in_the_bonus_room(level)
+    wait_for_control(attempt)
+    attempt.tiles.change_block(*ROOM_BRICK_IN_THE_WINDOW, TileKind.EMPTY)
+    builder = ObservationBuilder(level)
+    grid = builder.grid_of(builder.build(attempt))
+    column, row = ROOM_BRICK_IN_THE_WINDOW
+    first_column = attempt.mario.centre_column - OBSERVATION_COLUMNS_BEHIND
+    assert grid[row - OBSERVATION_TOP_ROW, column - first_column] == 0
+    assert grid[row - OBSERVATION_TOP_ROW, column + 1 - first_column] == 1
+    coin_column, coin_row = ROOM_COIN_IN_THE_WINDOW
+    assert grid[coin_row - OBSERVATION_TOP_ROW, coin_column - first_column] == 0
 
 
 def ticks_until_it_stalls_standing_still(attempt: Attempt) -> int:
