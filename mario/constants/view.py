@@ -19,6 +19,8 @@ VIEW_TOGGLE_KEY = "f1"                    # switches between the Sprite view and
 # --- Debug view colours (RGB) ------------------------------------------------------------
 
 SKY_COLOUR = (92, 148, 252)
+# The bonus room's background, as every underground area's (BackgroundColors: $0f, black).
+UNDERGROUND_COLOUR = (0, 0, 0)
 GROUND_COLOUR = (200, 76, 12)
 HARD_BLOCK_COLOUR = (136, 20, 0)
 BRICK_COLOUR = (228, 92, 16)
@@ -26,6 +28,7 @@ QUESTION_BLOCK_COLOUR = (252, 188, 60)
 USED_BLOCK_COLOUR = (160, 108, 40)
 HIDDEN_BLOCK_COLOUR = (188, 188, 252)
 PIPE_COLOUR = (0, 168, 0)
+COIN_COLOUR = (252, 216, 68)
 FLAGPOLE_COLOUR = (240, 240, 240)
 CASTLE_STOPPER_COLOUR = (60, 60, 60)
 FLAG_COLOUR = (60, 188, 60)
@@ -159,6 +162,16 @@ SPRITE_SIZES = {
     "pipe_rim_right": TILE_SPRITE_SIZE,
     "pipe_body_left": TILE_SPRITE_SIZE,
     "pipe_body_right": TILE_SPRITE_SIZE,
+    # the bonus room's exit pipe on its side by place: its mouth's and body's top and
+    # bottom halves, and the joint where it meets the upright shaft
+    "side_pipe_mouth_top": TILE_SPRITE_SIZE,
+    "side_pipe_mouth_bottom": TILE_SPRITE_SIZE,
+    "side_pipe_body_top": TILE_SPRITE_SIZE,
+    "side_pipe_body_bottom": TILE_SPRITE_SIZE,
+    "pipe_joint_top": TILE_SPRITE_SIZE,
+    "pipe_joint_bottom": TILE_SPRITE_SIZE,
+    # the bonus room's coins
+    "coin_tile": TILE_SPRITE_SIZE,
     "flagpole": TILE_SPRITE_SIZE,
     # the flag on the flagpole
     "flag": FLAG_SPRITE_SIZE,

@@ -1,5 +1,5 @@
-"""The level's tiles and the flag. Every tile of a kind is drawn with the same picture, but a pipe's,
-which is drawn by its place in its pipe."""
+"""The level's and the bonus room's tiles and the flag. Every tile of a kind is drawn with the same
+picture, but a pipe's, upright or sideways, which is drawn by its place in its pipe."""
 
 from sprite_art.palettes.level import LEVEL_PALETTE
 from sprite_art.sprite_drawing import SpriteDrawing
@@ -147,6 +147,113 @@ PIPE_BODY_LEFT = SpriteDrawing("pipe_body_left", LEVEL_PALETTE, (PIPE_BODY_LEFT_
 
 PIPE_BODY_RIGHT = SpriteDrawing("pipe_body_right", LEVEL_PALETTE, (PIPE_BODY_RIGHT_ROW,) * 16)
 
+# The bonus room's exit pipe lies on its side, two tiles high: an upright pipe's
+# rim and body turned so the mouth faces left, still lit from the top-left. Its
+# top half's rows are the upright left half's columns, its bottom half's the right half's.
+SIDE_PIPE_MOUTH_TOP = SpriteDrawing("side_pipe_mouth_top", LEVEL_PALETTE, (
+    "KKKKKKKKKKKKK...",
+    "KQPPPPPPPPPpK...",
+    "KQQQQQQQQQQpKKKK",
+    "KQQQQQQQQQQpKpPP",
+    "KQQQQQQQQQQpKpQQ",
+    "KQPPPPPPPPPpKpQQ",
+    "KQPPPPPPPPPpKpQQ",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPeePPPPpKpPP",
+    "KQPPPepPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+))
+
+SIDE_PIPE_MOUTH_BOTTOM = SpriteDrawing("side_pipe_mouth_bottom", LEVEL_PALETTE, (
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQPPPeePPPPpKpPP",
+    "KQPPPepPPPPpKpPP",
+    "KQPPPPPPPPPpKpPP",
+    "KQppppppppppKppp",
+    "KQPPPPPPPPPpKpPP",
+    "KQppppppppppKppp",
+    "KQppppppppppKppp",
+    "KQppppppppppKppp",
+    "KQppppppppppKKKK",
+    "KpppppppppppK...",
+    "KKKKKKKKKKKKK...",
+))
+
+SIDE_PIPE_BODY_TOP = SpriteDrawing("side_pipe_body_top", LEVEL_PALETTE, tuple(key * 16 for key in PIPE_BODY_LEFT_ROW))
+
+SIDE_PIPE_BODY_BOTTOM = SpriteDrawing("side_pipe_body_bottom", LEVEL_PALETTE,
+                                      tuple(key * 16 for key in PIPE_BODY_RIGHT_ROW))
+
+# Where the sideways pipe meets the upright shaft on its right: the shaft's left
+# half, its outline opened to the sideways pipe, a dark seam where they join.
+PIPE_JOINT_TOP = SpriteDrawing("pipe_joint_top", LEVEL_PALETTE, (
+    PIPE_BODY_LEFT_ROW,
+    PIPE_BODY_LEFT_ROW,
+    "KKKPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "QQpPQQQPPPPPPPPP",
+    "QQpPQQQPPPPPPPPP",
+    "QQpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+))
+
+PIPE_JOINT_BOTTOM = SpriteDrawing("pipe_joint_bottom", LEVEL_PALETTE, (
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "pppPQQQPPPPPPPPP",
+    "PPpPQQQPPPPPPPPP",
+    "pppPQQQPPPPPPPPP",
+    "pppPQQQPPPPPPPPP",
+    "pppPQQQPPPPPPPPP",
+    "KKKPQQQPPPPPPPPP",
+    PIPE_BODY_LEFT_ROW,
+    PIPE_BODY_LEFT_ROW,
+))
+
+# The bonus room's coins: a gold coin on its edge, as narrow as the original's
+# (one 8 px column of the tile), lit on its left, a slot struck down its middle.
+COIN_TILE = SpriteDrawing("coin_tile", LEVEL_PALETTE, (
+    "................",
+    "......KKKK......",
+    ".....KZZZYK.....",
+    "....KZZYYYyK....",
+    "....KZYZZYyK....",
+    "....KZYZYYyK....",
+    "....KZYZYYyK....",
+    "....KZYZYYyK....",
+    "....KZYZYYyK....",
+    "....KZYZYYyK....",
+    "....KZYZYYyK....",
+    "....KZYyyYyK....",
+    "....KZYYYyyK....",
+    ".....KYyyyK.....",
+    "......KKKK......",
+    "................",
+))
+
 FLAGPOLE = SpriteDrawing("flagpole", LEVEL_PALETTE, ("......KWeK......",) * 16)
 
 # Drawn left of the pole from its top-left corner, so it hangs from its right edge.
@@ -170,4 +277,5 @@ FLAG = SpriteDrawing("flag", LEVEL_PALETTE, (
 ))
 
 LEVEL_DRAWINGS = (GROUND, BRICK, HARD_BLOCK, QUESTION_BLOCK, USED_BLOCK, PIPE_RIM_LEFT, PIPE_RIM_RIGHT,
-                  PIPE_BODY_LEFT, PIPE_BODY_RIGHT, FLAGPOLE, FLAG)
+                  PIPE_BODY_LEFT, PIPE_BODY_RIGHT, SIDE_PIPE_MOUTH_TOP, SIDE_PIPE_MOUTH_BOTTOM, SIDE_PIPE_BODY_TOP,
+                  SIDE_PIPE_BODY_BOTTOM, PIPE_JOINT_TOP, PIPE_JOINT_BOTTOM, COIN_TILE, FLAGPOLE, FLAG)

@@ -15,6 +15,7 @@ class TileKind(StrEnum):
     HIDDEN_ONE_UP_BLOCK = "hidden_one_up_block"
     USED_BLOCK = "used_block"
     PIPE = "pipe"
+    SIDE_PIPE = "side_pipe"                    # the bonus room's exit pipe, lying on its side
     FLAGPOLE = "flagpole"
     CASTLE_STOPPER = "castle_stopper"
     COIN = "coin"
@@ -40,8 +41,8 @@ TILE_KIND_BY_CHARACTER = {
     "W": TileKind.CASTLE_STOPPER,
     # the bonus room's
     "$": TileKind.COIN,
-    "<": TileKind.PIPE,
-    "-": TileKind.PIPE,
+    "<": TileKind.SIDE_PIPE,
+    "-": TileKind.SIDE_PIPE,
 }
 
 # The hidden 1-UP block is solid only to a head coming from below; the flagpole
@@ -56,6 +57,7 @@ SOLID_TILE_KINDS = frozenset({
     TileKind.MULTI_COIN_BRICK,
     TileKind.USED_BLOCK,
     TileKind.PIPE,
+    TileKind.SIDE_PIPE,
     TileKind.CASTLE_STOPPER,
 })
 

@@ -79,6 +79,7 @@ def test_the_bonus_room_has_a_brick_wall_a_brick_block_under_a_brick_ceiling_and
 def test_the_bonus_room_exit_pipe_has_its_mouth_at_13_12_and_leads_back_to_page_10(world_1_1):
     room = world_1_1.bonus_room
     assert (room.exit_pipe_mouth_column, room.exit_pipe_mouth_row) == (13, 12)
-    assert all(room.tiles.tile_kind(column, row) is TileKind.PIPE for column in (13, 14) for row in (11, 12))
+    assert all(room.tiles.tile_kind(column, row) is TileKind.SIDE_PIPE for column in (13, 14) for row in (11, 12))
+    assert all(room.tiles.is_solid(column, row) for column in (13, 14) for row in (11, 12))
     assert all(room.tiles.tile_kind(15, row) is TileKind.PIPE for row in range(2, 13))
     assert room.return_page == 10

@@ -9,6 +9,9 @@ LEVEL_HEIGHT_TILES = 15
 BONUS_ROOM_WIDTH_TILES = 16
 
 TILE_SIZE_PIXELS = 16
+# The first row of the original's block buffer, the playfield's top: the rows
+# above it hold the HUD. Our row = block-buffer row + 2.
+PLAYFIELD_TOP_ROW = 2
 TILE_PIXEL_BITS = 4                                          # 16 px = 1 << 4
 SUBPIXEL_TO_TILE_SHIFT = SUBPIXEL_BITS + TILE_PIXEL_BITS
 TILE_SIZE_SUBPIXELS = 1 << SUBPIXEL_TO_TILE_SHIFT

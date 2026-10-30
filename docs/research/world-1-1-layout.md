@@ -428,6 +428,15 @@ Column 16, the vertical pipe's right half, is off the screen and outside this gr
 | The level timer | It counts only in game routine 8 and up, so it stops while Mario sinks (routine 3), walks into the exit pipe (2) and arrives (7). | `RunGameTimer` l. 6436-6441, `GameRoutines` l. 5474-5486 |
 | Enemies meanwhile | Enemies, items and fireballs go on moving while Mario is in a transition, but none touches him: the enemy check runs only in routine 8. | `PlayerEnemyCollision` l. 11301-11303 |
 
+### How it looks
+
+| Fact | Value | Source |
+|---|---|---|
+| Background | Black: the room's header (`$48,$01`) sets no background colour (its low 3 bits are 0, under 4), so the colour is the area type's, underground (2): `BackgroundColors`[2] = `$0f`, black. 1-1 (ground) is `$22`, its sky blue. | `BackgroundColors` l. 1426-1428, `SetBGColor` l. 1461-1464, header parse l. 4404-4408 |
+| No scenery | The header's second byte, `$01`, has its background scenery bits (5-4) at 0: none. | header parse l. 4425-4436 |
+| The exit pipe's pieces | Read backwards from its length 3 (`ExitPipe`, `RenderSidewaysPipe`): column 13 the mouth, `$1c` over `$1f`; column 14 the sideways body, `$1d` over `$20`; column 15 the shaft's left half (`$14`) from the block buffer's top, row 0, with the joint, `$1e` over `$21`, where the sideways pipe meets it; column 16 the shaft's right half (`$15`), off the room's screen. The shaft has no rim: it is the same `$14`/`$15` as an upright pipe's body (`VerticalPipeData`). | `SidePipeShaftData` / `SidePipeTopPart` / `SidePipeBottomPart` l. 3800-3808, `RenderSidewaysPipe` l. 3815-3834, `VerticalPipeData` l. 3837-3841 |
+| Behind the pipes | Mario is drawn behind the background (`Player_SprAttrib` bit 5) while he sinks into the warp pipe and walks into the exit pipe, while he drops into the room (`PlayerBGPriorityData`[1] = `$20`, the room's entrance control being 1) and while he rises out of pipe 163. The bit is cleared once he is in play again (game routine 8) and his sprite is below y = `$40`. | `HandlePipeEntry` l. 12287, `PipeDwnS` l. 12086-12091, `PlayerBGPriorityData` l. 2826-2827, `Entrance_GameTimerSetup` l. 2860-2861, `PlayerCtrlRoutine` l. 5612-5623 |
+
 **Replica choices** (spec §4, §5):
 - **The room is its own 16 × 15 grid**, kept with 1-1's data, and a fixed screen. Mario's x there is in the room's own pixels.
 - **The black screens are skipped.** The original blanks the screen for some frames while it loads the next area; the replica changes area at once, at the end of the sinking or the walk into the exit pipe. Every frame that shows something is kept: the 48-tick sinking, the drop into the room, the 160-tick walk into the exit pipe and the 96-tick rise out of pipe 163.
@@ -435,6 +444,7 @@ Column 16, the vertical pipe's right half, is off the screen and outside this gr
 - **Leaving** is his box against the mouth's lower tile, (13, 12), on the ground, facing right: the replica's boxes stop him with his box's right edge on the mouth (sprite x 194).
 - **The walk into the exit pipe** keeps 0.5 px a tick: the original's friction can carry the speed's fraction into a ninth 1/16 px now and then, which isn't modelled.
 - **Coins** are collected by Mario's box touching their tile, as the replica's boxes stand for the original's probes elsewhere.
+- **The views** (spec §8) draw the room on black, with no scenery. The exit pipe's tiles are their own kind, `SIDE_PIPE`, solid as a pipe's, so the Sprite view can draw its mouth and body, which have the same neighbours as an upright pipe's rim and body. A pipe tile on the playfield's top row, row 2, is drawn as the body, so the shaft has no rim. While a pipe transition moves Mario (the drop into the room too) he is drawn behind the tiles. The original clears that once his sprite is below y = `$40` after control returns, which is always so in the room and on pipe 163's top; the replica clears it as control returns.
 - **A change of area** starts Mario afresh where he arrives, keeping his power state and nothing else (no speed, no invincibility, no invulnerability), clears enemies, items and fireballs, and restarts the level timer's unit. Enemies already passed over in 1-1 stay skipped on the way back; those due at page 10 activate as the screen arrives there.
 
 **Replica choices** (spec §5):

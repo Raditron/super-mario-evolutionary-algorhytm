@@ -26,6 +26,7 @@ from mario.constants.view import (
     BUSH_COLOUR,
     CASTLE_BRICK_COLOUR,
     CLOUD_COLOUR,
+    COIN_COLOUR,
     EXPLODING_FIREBALL_COLOUR,
     FIREBALL_COLOUR,
     FIRE_MARIO_COLOUR,
@@ -42,6 +43,7 @@ from mario.constants.view import (
     SPRITE_SIZES,
     STARMAN_COLOUR,
     SUPER_MUSHROOM_COLOUR,
+    UNDERGROUND_COLOUR,
     USED_BLOCK_COLOUR,
 )
 from mario.level.background_scenery import BackgroundScenery
@@ -67,6 +69,7 @@ from mario.snapshots.world_snapshot import (
 from mario.view.hitbox_colours import ENEMY_COLOURS, mario_colour
 from mario.view.sprite_library import SpriteLibrary
 from mario.view.sprite_renderer import SpriteRenderer
+from tests.game.helpers import in_the_bonus_room, without_enemies
 
 # The folder play mode reads its PNGs from, assets/sprites/.
 SPRITES_README = SPRITES_FOLDER / "README.md"
@@ -274,6 +277,7 @@ def test_invulnerable_mario_blinks_drawn_only_on_even_ticks(tmp_path, scenery):
 # --- A PNG dropped into assets/sprites/ ----------------------------------------------------
 
 PNG_COLOUR = (255, 0, 255)
+OTHER_PNG_COLOUR = (0, 255, 255)
 
 
 def test_a_png_dropped_in_under_its_name_is_drawn_at_its_sprites_size_in_place_of_the_colour(tmp_path, scenery):
@@ -353,9 +357,72 @@ def test_a_pipe_tile_is_drawn_with_the_picture_its_place_in_the_pipe_picks(tmp_p
     assert colour_at(screen, snapshot, *tile_centre(28, 12)) == PIPE_COLOUR
 
 
+# --- The bonus room (#23) ------------------------------------------------------------------
+
+# A coin of the room's (its middle row of coins, row 7), and tiles where 1-1's own
+# start has a hill and a cloud, which the room must not show.
+ROOM_COIN = (6, 7)
+LEVEL_HILL_TILE, LEVEL_CLOUD_TILE = (2, 10), (8, 3)
+
+
+def in_the_room(level: StaticLevel) -> WorldSnapshot:
+    return WorldSnapshot.of(in_the_bonus_room(without_enemies(level)))
+
+
+def test_the_bonus_room_has_no_scenery_and_a_black_background(tmp_path, world_1_1, scenery):
+    snapshot = in_the_room(world_1_1)
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert colour_at(screen, snapshot, *tile_centre(*LEVEL_HILL_TILE)) == UNDERGROUND_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(*LEVEL_CLOUD_TILE)) == UNDERGROUND_COLOUR
+
+
+def test_a_bonus_room_coin_is_drawn_with_its_sprite_else_in_the_coin_colour(tmp_path, world_1_1, scenery):
+    snapshot = in_the_room(world_1_1)
+    assert colour_at(drawn(renderer_with(tmp_path, scenery), snapshot), snapshot,
+                     *tile_centre(*ROOM_COIN)) == COIN_COLOUR
+    write_png(tmp_path / "coin_tile.png", (*PNG_COLOUR, 255))
+    assert colour_at(drawn(renderer_with(tmp_path, scenery), snapshot), snapshot,
+                     *tile_centre(*ROOM_COIN)) == PNG_COLOUR
+
+
+def test_the_exit_pipe_on_its_side_is_drawn_with_the_pictures_its_place_picks(tmp_path, world_1_1, scenery):
+    """Its mouth's top half (13, 11) and the joint's (15, 11) have PNGs; its body's
+    top half (14, 11) has none, so it fills in the pipe's colour."""
+    write_png(tmp_path / "side_pipe_mouth_top.png", (*PNG_COLOUR, 255))
+    write_png(tmp_path / "pipe_joint_top.png", (*OTHER_PNG_COLOUR, 255))
+    snapshot = in_the_room(world_1_1)
+    screen = drawn(renderer_with(tmp_path, scenery), snapshot)
+    assert colour_at(screen, snapshot, *tile_centre(13, 11)) == PNG_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(14, 11)) == PIPE_COLOUR
+    assert colour_at(screen, snapshot, *tile_centre(15, 11)) == OTHER_PNG_COLOUR
+
+
+# A pipe tile with Mario's box on it, his sprite filling the tile.
+PIPE_TILE = (THING_X // TILE_SIZE_PIXELS, MARIO_FEET_Y // TILE_SIZE_PIXELS - 1)
+
+
+def mario_on_a_pipe_tile(is_in_pipe: bool, as_a_ghost: bool = False) -> WorldSnapshot:
+    column, row = PIPE_TILE
+    rows = tuple(tuple(TileKind.PIPE if (each_column, each_row) == PIPE_TILE else TileKind.EMPTY
+                       for each_column in range(column + 1)) for each_row in range(row + 1))
+    mario = MarioSnapshot(*SMALL_MARIO_BOX, is_in_pipe=is_in_pipe)
+    if as_a_ghost:
+        return sky_screen(tiles=VisibleTiles(0, rows),
+                          ghosts=(AgentSnapshot(1, mario, Area.LEVEL, True, False, SMALL_MARIO_BOX[0]),))
+    return replace(sky_screen(tiles=VisibleTiles(0, rows)), mario=mario)
+
+
+@pytest.mark.parametrize("as_a_ghost", [False, True], ids=["Mario", "a ghost"])
+def test_mario_is_drawn_behind_the_tiles_while_a_pipe_transition_moves_him(tmp_path, scenery, as_a_ghost):
+    renderer = renderer_with(tmp_path, scenery)
+    mario_x, mario_y = SMALL_MARIO_BOX[0], SMALL_MARIO_BOX[1]
+    in_pipe, out_of_it = mario_on_a_pipe_tile(True, as_a_ghost), mario_on_a_pipe_tile(False, as_a_ghost)
+    assert colour_at(drawn(renderer, in_pipe), in_pipe, mario_x, mario_y) == PIPE_COLOUR
+    assert colour_at(drawn(renderer, out_of_it), out_of_it, mario_x, mario_y) != PIPE_COLOUR
+
+
 # --- Facing: a sprite is drawn facing right, mirrored for a thing facing left (#56) --------
 
-OTHER_PNG_COLOUR = (0, 255, 255)
 GOOMBA_BOX = (THING_X, THING_Y, GOOMBA_HITBOX_WIDTH_PIXELS, GOOMBA_HITBOX_HEIGHT_PIXELS)
 
 
