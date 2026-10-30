@@ -9,6 +9,10 @@ show the animation frame their snapshot names (#57); a frame whose sprite is
 missing shows the standing sprite. A thing whose sprite is missing fills the
 sprite's place in its hitbox colour, so the view works with an empty folder and
 a PNG dropped in later shows with no code change (spec sections 8 and 12).
+
+In the bonus room there is no scenery, and the background is black, as
+underground. Mario and a ghost whom a pipe transition is moving are drawn behind
+the tiles, as the original draws them (#23).
 """
 
 import pygame
@@ -25,7 +29,6 @@ from mario.constants.view import (
     FLAG_COLOUR,
     GHOST_OPACITY,
     HILL_COLOUR,
-    SKY_COLOUR,
     SPRITE_SIZES,
 )
 from mario.level.background_scenery import BackgroundScenery, SceneryKind
@@ -33,6 +36,7 @@ from mario.level.static_level import EnemyKind
 from mario.level.tile_kind import TileKind
 from mario.snapshots.world_snapshot import (
     AgentSnapshot,
+    Area,
     EnemySnapshot,
     FireballSnapshot,
     FlagSnapshot,
@@ -45,13 +49,19 @@ from mario.snapshots.world_snapshot import (
     WorldSnapshot,
     is_blinked_out,
 )
+from mario.view.area_backgrounds import AREA_BACKGROUND_COLOURS
 from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, SHELL_COLOURS, TILE_COLOURS, mario_colour
-from mario.view.pipe_sprite_names import PipeNeighbourhood, pipe_sprite_name
+from mario.view.pipe_sprite_names import (
+    PipeNeighbourhood,
+    SidePipeNeighbourhood,
+    pipe_sprite_name,
+    side_pipe_sprite_name,
+)
 from mario.view.scenery_sprite_names import SceneryNeighbourhood, scenery_sprite_name
 from mario.view.sprite_library import SpriteLibrary
 
 # Tiles by how they look: a brick or ? block doesn't show what it holds. A pipe
-# tile is drawn by its place in its pipe (pipe_sprite_names). Other tiles not
+# tile, upright or sideways, is drawn by its place in its pipe (pipe_sprite_names). Other tiles not
 # listed aren't drawn: open sky, the hidden 1-UP block until it is hit, and the
 # castle stopper behind the castle.
 TILE_SPRITE_NAMES = {
@@ -64,6 +74,7 @@ TILE_SPRITE_NAMES = {
     TileKind.POWER_UP_QUESTION_BLOCK: "question_block",
     TileKind.USED_BLOCK: "used_block",
     TileKind.FLAGPOLE: "flagpole",
+    TileKind.COIN: "coin_tile",
 }
 
 SCENERY_COLOURS = {
@@ -136,13 +147,16 @@ class SpriteRenderer:
         self._scenery = scenery
 
     def draw(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
-        """Scenery behind the tiles, as in the original; items still rising out of
-        their block behind it too."""
-        screen.fill(SKY_COLOUR)
-        self._draw_scenery(snapshot, screen)
+        """Scenery behind the tiles, as in the original (the bonus room has none);
+        items still rising out of their block behind them too, and Mario and the
+        ghosts while a pipe transition moves them."""
+        screen.fill(AREA_BACKGROUND_COLOURS[snapshot.area])
+        if snapshot.area is Area.LEVEL:
+            self._draw_scenery(snapshot, screen)
         for item in snapshot.items:
             if item.is_emerging:
                 self._draw_item(item, snapshot.screen_left_x_pixels, screen)
+        self._draw_agents(snapshot, screen, in_pipe=True)
         self._draw_tiles(snapshot, screen)
         if snapshot.flag is not None:
             self._draw_flag(snapshot.flag, snapshot.screen_left_x_pixels, screen)
@@ -153,10 +167,15 @@ class SpriteRenderer:
             self._draw_enemy(enemy, snapshot.screen_left_x_pixels, screen)
         for fireball in snapshot.fireballs:
             self._draw_fireball(fireball, snapshot.screen_left_x_pixels, screen)
+        self._draw_agents(snapshot, screen, in_pipe=False)
+
+    def _draw_agents(self, snapshot: WorldSnapshot, screen: pygame.Surface, in_pipe: bool) -> None:
+        """The ghosts, then Mario over them: those a pipe transition is moving, or the others."""
         for ghost in snapshot.ghosts:
-            self._draw_ghost(ghost, snapshot.screen_left_x_pixels, screen)
+            if ghost.mario.is_in_pipe is in_pipe:
+                self._draw_ghost(ghost, snapshot.screen_left_x_pixels, screen)
         mario = snapshot.mario
-        if not is_blinked_out(mario.is_invulnerable, snapshot.tick):
+        if mario.is_in_pipe is in_pipe and not is_blinked_out(mario.is_invulnerable, snapshot.tick):
             self._draw_mario(mario, snapshot.screen_left_x_pixels, screen)
 
     def _draw_scenery(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
@@ -260,6 +279,8 @@ def _tile_sprite_name(tiles: VisibleTiles, kind: TileKind, column: int, row: int
     """The tile's sprite name, a pipe tile's picked by its place in its pipe; None for a tile not drawn."""
     if kind is TileKind.PIPE:
         return pipe_sprite_name(PipeNeighbourhood.around(tiles, column, row))
+    if kind is TileKind.SIDE_PIPE:
+        return side_pipe_sprite_name(SidePipeNeighbourhood.around(tiles, column, row))
     return TILE_SPRITE_NAMES.get(kind)
 
 

@@ -8,7 +8,7 @@ The PNGs here are painted from text drawings in `sprite_art/drawings/`, one pale
 
 - **File names:** one PNG per sprite, named after what it shows, in lower-case `snake_case`, plus `_<state>` for another look of the same thing (`goomba_defeated.png`). Exactly the names below are read. Any other file in this folder is ignored.
 - **Sizes:** the original's, in NES pixels, on the 16 px grid. A PNG of another size is scaled to the size below, so draw it at that size.
-- **Transparency:** transparent pixels show what is behind (the sky, the scenery, the tiles).
+- **Transparency:** transparent pixels show what is behind (the sky, the scenery, the tiles; in the bonus room, the black underground background).
 - **Placement:** a sprite stands on the bottom of its thing's box, centred across it. Mario's 16 px wide sprite overhangs his 12 px box by 2 px on each side. A fireball's explosion is centred on the fireball.
 - **Facing right:** draw Mario and the enemies facing right. The Sprite view mirrors the picture, in the same place, for Mario, a ghost or an enemy facing left; an enemy faces the way it walks. A Koopa's shell is never mirrored, so draw it to look the same either way.
 - **Animation frames:** a frame is its thing's standing sprite's name plus `_<frame>`, after any state already in the name: `_walk_1` to `_walk_3`, `_skid`, `_jump` and `_crouch` for Mario (`mario_big_walk_1.png`, `mario_small_invincible_jump.png`), and `_walk_2` for an enemy's second walking frame (`goomba_walk_2.png`), its first being its own sprite. The game picks the frame (the snapshot carries Mario's pose and walking frame, and an enemy's walking frame); the Sprite view keeps no clock of its own. **A frame that isn't here is drawn as the standing sprite**, and that as the box in the thing's colour while it is missing too.
@@ -17,7 +17,9 @@ The PNGs here are painted from text drawings in `sprite_art/drawings/`, one pale
 
 ### Tiles (16 × 16, one per tile)
 
-Tiles are named by how they look: a brick or ? block doesn't show what it holds. The hidden 1-UP block isn't drawn until it is hit (it then shows as a used block), and neither is the invisible castle stopper. A pipe is two tiles wide, and its tile is drawn by its place in the pipe, which its neighbouring tiles give: with no pipe above it, it is the rim, otherwise the body; with no pipe on its left, it is the left half, otherwise the right half. The rim is a lip the pipe's full width over the body, which is set in 2 px on each side (transparent there), so the two halves read as one wide pipe with a lip on top. A tile at the screen's left edge, whose left neighbour is off screen, is the left half when pipe is on its right.
+Tiles are named by how they look: a brick or ? block doesn't show what it holds. The hidden 1-UP block isn't drawn until it is hit (it then shows as a used block), and neither is the invisible castle stopper. A pipe is two tiles wide, and its tile is drawn by its place in the pipe, which its neighbouring tiles give: with no pipe above it, it is the rim, otherwise the body; with no pipe on its left, it is the left half, otherwise the right half. The rim is a lip the pipe's full width over the body, which is set in 2 px on each side (transparent there), so the two halves read as one wide pipe with a lip on top. A tile at the screen's left edge, whose left neighbour is off screen, is the left half when pipe is on its right. A pipe tile on the playfield's top row (row 2, under the HUD) is the body: the pipe runs on above the screen.
+
+The bonus room has its own tiles. Its coins are drawn as `coin_tile.png`. Its exit pipe lies on its side, two tiles high, its mouth on the left, and runs into an upright shaft on its right. A sideways pipe's tile with no sideways pipe on its left is the mouth, otherwise the body; with no sideways pipe above it, it is the top half, otherwise the bottom half. They are the upright rim and body turned on their side, so they are lit from the top. The shaft's tile a sideways pipe joins on its left is the joint, its top half with no sideways pipe above that, otherwise its bottom half.
 
 | File | Size (px) | Drawn for |
 |---|---|---|
@@ -30,6 +32,13 @@ Tiles are named by how they look: a brick or ? block doesn't show what it holds.
 | `pipe_rim_right.png` | 16 × 16 | a pipe's tile with no pipe above it and pipe on its left |
 | `pipe_body_left.png` | 16 × 16 | a pipe's tile with pipe above it and none on its left |
 | `pipe_body_right.png` | 16 × 16 | a pipe's tile with pipe above it and on its left |
+| `side_pipe_mouth_top.png` | 16 × 16 | the bonus room's sideways pipe: its tile with none of it on its left or above it |
+| `side_pipe_mouth_bottom.png` | 16 × 16 | the sideways pipe's tile with none of it on its left and some above it |
+| `side_pipe_body_top.png` | 16 × 16 | the sideways pipe's tile with some of it on its left and none above it |
+| `side_pipe_body_bottom.png` | 16 × 16 | the sideways pipe's tile with some of it on its left and above it |
+| `pipe_joint_top.png` | 16 × 16 | an upright pipe's tile the sideways pipe joins on its left, with no sideways pipe above that |
+| `pipe_joint_bottom.png` | 16 × 16 | an upright pipe's tile the sideways pipe joins on its left, with sideways pipe above that |
+| `coin_tile.png` | 16 × 16 | a coin of the bonus room's |
 | `flagpole.png` | 16 × 16 | the flagpole's ball and shaft |
 
 ### The flag

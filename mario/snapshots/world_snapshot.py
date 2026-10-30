@@ -1,7 +1,6 @@
 """What a renderer may see of an Attempt on one tick. Renderers read only these."""
 
 from dataclasses import dataclass
-from enum import StrEnum
 
 from mario.constants.animation import ENEMY_FIRST_WALK_FRAME, FIRST_WALK_FRAME
 from mario.constants.level import SCREEN_WIDTH_PIXELS, TILE_SIZE_PIXELS
@@ -20,6 +19,7 @@ from mario.simulation.observation_builder import ObservationBuilder
 
 # The game's vocabulary a snapshot carries, handed on so that the view needs
 # nothing from the simulation (spec section 3).
+from mario.simulation.area import Area as Area
 from mario.simulation.attempt_result import GameEvent as GameEvent
 from mario.simulation.item_kind import ItemKind as ItemKind
 from mario.simulation.mario import PowerState as PowerState
@@ -46,10 +46,12 @@ class BouncingBlockSnapshot:
 
 @dataclass(frozen=True)
 class MarioSnapshot:
-    """Mario's hitbox, in level pixels (while he grows or shrinks, the box of the
-    animation frame showing), his power state, whether he can't be hurt after
-    being hurt, whether a Starman has made him invincible, which way he faces,
-    and the animation frame he shows: his pose and, walking, which walking frame."""
+    """Mario's hitbox, in the pixels of the area he is in (while he grows or
+    shrinks, the box of the animation frame showing), his power state, whether he
+    can't be hurt after being hurt, whether a Starman has made him invincible,
+    which way he faces, the animation frame he shows (his pose and, walking, which
+    walking frame), and whether a pipe transition is moving him (he is then drawn
+    behind the tiles, as the original draws him)."""
     x_pixels: int
     y_pixels: int
     width_pixels: int
@@ -60,13 +62,18 @@ class MarioSnapshot:
     faces_right: bool = True
     pose: MarioPose = MarioPose.STANDING
     walk_frame: int = FIRST_WALK_FRAME                # 1 to 3, as the walking frames' sprites are numbered
+    is_in_pipe: bool = False
 
     @classmethod
-    def of(cls, mario: Mario) -> "MarioSnapshot":
+    def of(cls, mario: Mario, is_in_pipe: bool = False) -> "MarioSnapshot":
         hitbox = mario.hitbox()
         return cls(hitbox.x_pixels, hitbox.y_pixels, hitbox.width_pixels, hitbox.height_pixels,
                    mario.power_state, mario.is_invulnerable, mario.is_invincible, mario.facing_direction == RIGHT,
-                   mario.animation.pose, mario.animation.walk_frame)
+                   mario.animation.pose, mario.animation.walk_frame, is_in_pipe)
+
+    @classmethod
+    def of_attempt(cls, attempt: Attempt) -> "MarioSnapshot":
+        return cls.of(attempt.mario, is_in_pipe=not attempt.is_mario_controlled)
 
 
 @dataclass(frozen=True)
@@ -167,28 +174,23 @@ class ObservationSnapshot:
                    tuple(builder.state_numbers_of(observation).tolist()))
 
 
-class Area(StrEnum):
-    """Where in the game an agent's Mario is."""
-    LEVEL = "level"
-    # The bonus room joins with #23, and with it the rule that ranks him there as
-    # being at the warp pipe's column (AgentSnapshot.ranking_x_pixels).
-
-
 @dataclass(frozen=True)
 class AgentSnapshot:
     """One agent of a watched generation on one tick: his Mario's hitbox, power
-    state and facing, where he is, and whether he is still in his attempt or has
-    reached the flag."""
+    state and facing, which area he is in, whether he is still in his attempt or
+    has reached the flag, and where he is along the level (in the bonus room, at
+    the warp pipe)."""
     agent_index: int                                  # his index within the generation
     mario: MarioSnapshot
     area: Area
     is_in_attempt: bool
     reached_flag: bool
+    level_x_pixels: int
 
     @classmethod
     def of(cls, agent_index: int, attempt: Attempt) -> "AgentSnapshot":
-        return cls(agent_index, MarioSnapshot.of(attempt.mario), Area.LEVEL,
-                   not attempt.is_over, attempt.end_reason is EndReason.REACHED_FLAG)
+        return cls(agent_index, MarioSnapshot.of_attempt(attempt), attempt.area,
+                   not attempt.is_over, attempt.end_reason is EndReason.REACHED_FLAG, attempt.level_x_pixels)
 
     @property
     def faces_right(self) -> bool:
@@ -198,9 +200,8 @@ class AgentSnapshot:
     @property
     def ranking_x_pixels(self) -> int:
         """How far right he counts when the followed agent and the ghosts are chosen:
-        his level x. This is the seam for the bonus room (#23): there, he is to
-        count as being at the warp pipe's column, 57."""
-        return self.mario.x_pixels
+        where he is along the level, so in the bonus room at the warp pipe's column."""
+        return self.level_x_pixels
 
 
 @dataclass(frozen=True)
@@ -229,11 +230,12 @@ class WorldSnapshot:
     recent_events: tuple[GameEvent, ...] = ()        # oldest first
     ghosts: tuple[AgentSnapshot, ...] = ()           # watched generations: other agents, the rightmost first
     generation_progress: GenerationProgress | None = None
+    area: Area = Area.LEVEL                          # which area the tiles, screen and things are of
 
     @classmethod
     def of(cls, attempt: Attempt, hud: HudSnapshot | None = None,
            observation_builder: ObservationBuilder | None = None) -> "WorldSnapshot":
-        """The attempt as a renderer sees it. The HUD shows the attempt's own
+        """The attempt as a renderer sees it, in the area Mario is in. The HUD shows the attempt's own
         numbers unless a mode passes its own (PlaySession carries them across lives).
         Given a builder, it also holds Mario's Observation for the Debug view."""
         screen_left_x_pixels = attempt.scroll.left_x_pixels
@@ -246,17 +248,18 @@ class WorldSnapshot:
             tick=attempt.ticks_elapsed,
             screen_left_x_pixels=screen_left_x_pixels,
             tiles=VisibleTiles(first_column, rows),
-            mario=MarioSnapshot.of(attempt.mario),
+            mario=MarioSnapshot.of_attempt(attempt),
             enemies=tuple(EnemySnapshot.of(enemy) for enemy in attempt.enemies.active),
             hud=hud if hud is not None else HudSnapshot.of(attempt),
             bouncing_blocks=tuple(BouncingBlockSnapshot(block.column, block.row, block.offset_y_pixels)
                                   for block in attempt.blocks.bouncing),
             items=tuple(ItemSnapshot.of(item) for item in attempt.items.active),
             fireballs=tuple(FireballSnapshot.of(fireball) for fireball in attempt.fireballs.active),
-            flag=FlagSnapshot.of(attempt.flag) if attempt.flag is not None else None,
+            flag=FlagSnapshot.of(attempt.flag) if attempt.flag is not None and attempt.area is Area.LEVEL else None,
             observation=(ObservationSnapshot.of(attempt, observation_builder)
                          if observation_builder is not None else None),
             recent_events=_recent_events(attempt),
+            area=attempt.area,
         )
 
 

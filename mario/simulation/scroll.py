@@ -25,8 +25,12 @@ SPRITE_MAX_SCREEN_X_PIXELS = SCREEN_WIDTH_PIXELS - 1 - SCREEN_RIGHT_EDGE_MARGIN_
 
 
 class Scroll:
-    def __init__(self, mario_pixel_x: int, left_x_pixels: int = 0):
+    def __init__(self, mario_pixel_x: int, left_x_pixels: int = 0,
+                 stop_left_x_pixels: int = SCROLL_STOP_LEFT_X_PIXELS):
+        """stop_left_x_pixels: the furthest right the screen's left edge goes (the
+        bonus room's screen stops where it starts)."""
         self.left_x_pixels = left_x_pixels
+        self._stop_left_x_pixels = stop_left_x_pixels
         self._sprite_screen_x_last_tick = mario_pixel_x - SMALL_MARIO_HITBOX_OFFSET_X_PIXELS - left_x_pixels
 
     def follow(self, mario: Mario, pixels_moved: int) -> None:
@@ -36,7 +40,7 @@ class Scroll:
                 scroll_amount = pixels_moved
             else:
                 scroll_amount = max(pixels_moved - SLOW_SCROLL_LAG_PIXELS, SLOW_SCROLL_MIN_PIXELS)
-            self.left_x_pixels = min(self.left_x_pixels + scroll_amount, SCROLL_STOP_LEFT_X_PIXELS)
+            self.left_x_pixels = min(self.left_x_pixels + scroll_amount, self._stop_left_x_pixels)
         self._keep_on_screen(mario)
         self._sprite_screen_x_last_tick = self._sprite_screen_x(mario)
 

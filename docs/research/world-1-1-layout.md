@@ -108,7 +108,7 @@ Details:
 
 - **No Piranha Plants in 1-1.** `VerticalPipe` skips adding them: `ora WorldNumber ... ;if at world 1-1, do not add piranha plant ever`.
 - **Bonus room return:** its enemy data holds a pointer back to 1-1, page 10 (`$1e,$a5,$0a`). Mario comes back at page 10 with x-in-page `$38` (56 px), i.e. x = 2616 px, which is centred on the pipe at 163–164.
-- **Bonus room contents:** 19 coins (per Mario Wiki). Its layout is not covered here. **If the replica skips the bonus room, pipe 57 is just a solid pipe.**
+- **Bonus room contents:** 19 coins (per Mario Wiki). Its layout, decoded for #23, is in [The bonus room](#the-bonus-room) below.
 
 ## Staircases (hard blocks, solid)
 
@@ -338,6 +338,115 @@ Added for #24, sourced from `SMBDIS.ASM` (gist 1wErt3r/4048722); `l.` is its lin
 
 The caveat below ("no scroll lock in 1-1") is wrong about the flagpole: the lock exists, from the touch until Mario is off the pole.
 
+## The bonus room
+
+Added for #23, decoded from `SMBDIS.ASM` (gist 1wErt3r/4048722) by the same method as 1-1 above; `l.` is its line number.
+
+### Where it is
+
+- **1-1 points to it.** The first entry of 1-1's enemy data, `$1e,$c2,$00` (`E_GroundArea6` l. 4612), is in the special row `$E`: an area pointer, read by `ParseRow0e` (l. 8021-8037). Its second byte, `$c2`, becomes `AreaPointer`; its third byte holds the world (its top 3 bits, 0 = world 1, so 1-1 uses it) and the entrance page (its low 5 bits: page 0).
+- **`$c2` is the underground bonus area.** `GetAreaDataAddrs` (l. 4377-4400) takes the area type from bits 6-5 (`$c2` → 2, underground) and the offset from the low 5 bits (2). `EnemyAddrHOffsets` (l. 4484-4485) gives `$1c` + 2 = entry 30, `E_UndergroundArea3`; `AreaDataHOffsets` (l. 4503-4504) gives `$19` + 2 = entry 27, `L_UndergroundArea3`. The comment at l. 4476-4477 agrees: "underground bonus area - c2".
+- **The area is shared.** `L_UndergroundArea3` is "underground bonus rooms area used in many levels" (l. 5226-5241): each world's pipe enters it at its own page. 1-1 enters at page 0, so **1-1's room is page 0 of that area**, its first 16 columns.
+- **The way back.** The first entry of the room's enemy data, `$1e,$a5,$0a` (`E_UndergroundArea3` l. 4745), sits at column 1 of page 0. It is read as the room loads: world 1 (`$0a` >> 5 = 0), so it is used, with `AreaPointer` = `$a5` (type 1, offset 5: `E_GroundArea6` and `L_GroundArea6`, which is 1-1) and entrance page `$0a` = **page 10**. Its other area pointers name other worlds and are skipped.
+
+### Its bytes and their decode
+
+```
+;underground bonus rooms area   L_UndergroundArea3 (l. 5227), page 0 only
+$48,$01,                                   header
+$0e,$01, $00,$5a, $3e,$06, $45,$46, $47,$46, $53,$44, $ae,$01, $df,$4a,
+$4d,$c7, ...                               page 1 begins: not 1-1's room
+```
+
+| Bytes | Column | What (routine) | Result |
+|---|---|---|---|
+| `$48,$01` | header | bits 5-3 of `$48`: player entrance control 1; bits 7-6: timer setting 1; `$01`: terrain 1, no background scenery (header parse l. 4401-4455) | Mario starts at sprite y `$20` (below) |
+| `$0e,$01` | 0 | row `$E`: `AlterAreaAttributes` (l. 3536-3551), terrain 1 | no ceiling, floor 2 |
+| `$00,$5a` | 0 | row 0, type 5: `ColumnOfBricks` (l. 4079-4082), height `$a` + 1 = 11 | bricks, rows 2-12 |
+| `$3e,$06` | 3 | `AlterAreaAttributes`, terrain 6 | ceiling 1, floor 5 |
+| `$45,$46` | 4 | row 5, type 4: `RowOfCoins` (l. 4017-4020), length 6 + 1 = 7 | coins at row 7, columns 4-10 |
+| `$47,$46` | 4 | row 7, `RowOfCoins`, 7 long | coins at row 9, columns 4-10 |
+| `$53,$44` | 5 | row 3, `RowOfCoins`, 5 long | coins at row 5, columns 5-9 |
+| `$ae,$01` | 10 | `AlterAreaAttributes`, terrain 1 | no ceiling, floor 2 |
+| `$df,$4a` | 13 | row `$F`, type 4: `ExitPipe` (l. 3810-3835), height `$a` | the exit pipe, columns 13-16 |
+| `$4d,$c7` | page 1, column 4 | row `$D` with d6 set, object 7: `ScrollLockObject` (l. 3581-3585) | the screen locks |
+
+Rows are block-buffer rows; **our row = block-buffer row + 2**, as for 1-1. How each object draws:
+
+- **Terrain** (`RenderSceneryTerrain` l. 3159-3271, `TerrainRenderBits` l. 3136-3152). The two bytes are bit masks over block-buffer rows 0-7 and 8-12. Terrain 1 (`%00000000, %00011000`) fills rows 11-12; terrain 6 (`%00000001, %00011111`) fills row 0 and rows 8-12. The underground terrain metatile is `$52`, a brick (`TerrainMetatiles` l. 3133-3134), switched to `$54`, ground, from block-buffer row 11 down (`EndUChk` l. 3255-3260). So the floor is 2 rows of ground everywhere; terrain 6 adds a brick ceiling (our row 2) and 3 rows of bricks on the floor (our rows 10-12).
+- **A terrain change applies from the next column.** `AreaParserCore` renders a column's terrain first and only then runs that column's objects (`RendBBuf: jsr ProcessAreaData`, l. 3271), so `AlterAreaAttributes` at column 3 changes columns 4 onward, and the one at column 10 columns 11 onward. The ceiling and the brick block are therefore columns 4-10, under the two rows of 7 coins.
+- **The exit pipe** (`ExitPipe`, `RenderSidewaysPipe`, `SidePipeShaftData` / `SidePipeTopPart` / `SidePipeBottomPart` l. 3800-3835) is 4 columns, drawn from its fixed length 3 down to 0, so the tables read backwards: column 13 is the mouth (`$1c` over `$1f`), column 14 the sideways pipe's body (`$1d`, `$20`), and columns 15-16 the vertical pipe, its shaft from block-buffer row 0 to row `$a` - 2 = 8, the sideways part joining it at rows 9-10. In our rows: the sideways pipe is at rows 11-12, the vertical pipe at rows 2-12.
+- **Coins** are metatile `$c2` underground (`CoinMetatileData` l. 4014-4015).
+- **The screen never scrolls.** The renderer draws 24 columns ahead as an area starts (`ColumnSets` = `$0b`, "1 1/2 screens", l. 2692), so the scroll lock at page 1, column 4 (column 20) is set before Mario appears.
+
+### The grid (16 × 15, one screen)
+
+Legend as for layer 1, plus:
+
+| Char | Meaning | Solid? |
+|---|---|---|
+| `$` | coin | no: touching it collects it |
+| `<` | the sideways exit pipe's mouth | yes |
+| `-` | the sideways exit pipe's body | yes |
+
+Column 16, the vertical pipe's right half, is off the screen and outside this grid; outside the grid counts as solid at the sides, as for 1-1.
+
+```
+   0         1     
+   0123456789012345
+ 0 ................
+ 1 ................
+ 2 B...BBBBBBB....{
+ 3 B..............{
+ 4 B..............{
+ 5 B....$$$$$.....{
+ 6 B..............{
+ 7 B...$$$$$$$....{
+ 8 B..............{
+ 9 B...$$$$$$$....{
+10 B...BBBBBBB....{
+11 B...BBBBBBB..<-{
+12 B...BBBBBBB..<-{
+13 XXXXXXXXXXXXXXXX
+14 XXXXXXXXXXXXXXXX
+```
+
+**19 coins** (7 + 7 + 5), which matches Mario Wiki. The bricks are underground bricks (`$52`, the underground entry of `BrickMetatiles` l. 4057-4058), so big Mario can break them.
+
+### Going in, and coming out
+
+| Fact | Value | Source |
+|---|---|---|
+| Entering | On a frame Mario lands or stands (`LandPlyr`), holding down, with his left foot probe (sprite x + 3) on the warp pipe's top-left metatile (`$10`) and his right one (sprite x + 12) on its top-right one (`$11`), he enters: only a pipe drawn with those metatiles (a "pipe that leads somewhere", `VerticalPipeData`) can be entered. In 1-1 that is pipe 57 alone. So his sprite x must be 916-924. Down with left or right held is not down: on the ground, the directions are all cleared. | `HandlePipeEntry` l. 12270-12289, `LandPlyr` l. 12015-12019, `BlockBuffer_X_Adder` l. 13030 (feet: `$03`, `$0c`), `VerticalPipeData` l. 3837-3841, `PlayerCtrlRoutine` l. 5581-5590 |
+| Sinking | `ChangeAreaTimer` = `$30`: for **48 frames** Mario moves down **1 px a frame**, behind the pipe (`Player_SprAttrib` bit 5), with no control; then the area changes. | `HandlePipeEntry`, `VerticalPipeEntry` l. 5683-5694, `ChgAreaPipe` l. 5708-5715 |
+| Arriving | A vertical pipe's entry mode is 1, so Mario's sprite starts at x = `PlayerStarting_X_Pos`[1] = `$18` (24) and y = `PlayerStarting_Y_Pos`[header's entrance control 1] = `$20` (32), facing right. While his sprite y is under `$30` (48) he moves with no buttons pressed (falling); on the frame it is `$30` or more, control returns, from the next frame. | `Entrance_GameTimerSetup` l. 2833-2862, `PlayerStarting_X_Pos` / `_Y_Pos` l. 2815-2824, `PlayerEntrance` l. 5494-5503, `PlayerRdy` l. 5542-5548 |
+| A new area | Each area starts with memory cleared: every enemy, item and fireball is gone, and Mario's speeds, crouch and jump state with them (`InitializeMemory` up to `$074b`); his power state is kept. The frame timers are cleared too (`ClrTimersLoop`, `$0780-$07a1`), so a Starman's invincibility (`StarInvincibleTimer`) and the while after being hurt (`InjuryTimer`) end, and the game timer's frame timer restarts, so the level timer takes a unit off on its first frame. Falling uses `$28` (`VerticalForceDown`) until the first jump. | `InitializeArea` l. 2660-2666, `InitializeMemory` l. 2770-2785, `Entrance_GameTimerSetup` l. 2836-2837, `RunGameTimer` l. 6436-6462 |
+| Collecting a coin | A coin metatile (`$c2`) under any of Mario's probes (head, feet or sides) is erased and gives 1 coin (and its 200 points). | `CheckForCoinMTiles` l. 12371-12379, `HandleCoinMetatile` l. 12122-12125, `GiveOneCoin` l. 7084-7102 |
+| Leaving | Mario on the ground (`Player_State` 0), facing right, whose side probe meets the mouth's bottom metatile (`$1f`) starts the exit. `ChangeAreaTimer` is set from `AreaChangeTimerData`: `$a0` (**160 frames**) on page 0, as here. | `ChkPBtm` / `PipeDwnS` / `SetCATmr` l. 12076-12109, `AreaChangeTimerData` l. 12119-12120 |
+| Walking in | For those 160 frames, with no control and tile collision off, Mario is set an x speed of `$08` (0.5 px a frame) and right is pressed for him, until his sprite x is a multiple of 16; then he stands. He is drawn behind the pipe. Then the area changes. | `SideExitPipeEntry` / `ChgAreaPipe` l. 5705-5715, `EnterSidePipe` l. 5717-5728, `PlayerBGCollision` l. 11902-11909 (no tile collision in game routines 0-3) |
+| Coming out | A side pipe's entry mode is 2: the screen's left edge is at the entrance page, page 10 (2560 px), and Mario's sprite at x = 2560 + `PlayerStarting_X_Pos`[2] = `$38`, so **2616**, and y = `$f0` (240), below the screen, behind pipe 163. Each frame he rises 1 px, with no control, until his sprite y is under `$91`: at y = `$90` (144), after **96 frames**, he stands on the pipe's top (row 11) and control returns, from the next frame. | `InitializeArea` l. 2667-2672, `Entrance_GameTimerSetup` l. 2851-2858, `AltYPosOffset` l. 2819-2820, `EntrMode2` l. 5516-5521 |
+| The level timer | It counts only in game routine 8 and up, so it stops while Mario sinks (routine 3), walks into the exit pipe (2) and arrives (7). | `RunGameTimer` l. 6436-6441, `GameRoutines` l. 5474-5486 |
+| Enemies meanwhile | Enemies, items and fireballs go on moving while Mario is in a transition, but none touches him: the enemy check runs only in routine 8. | `PlayerEnemyCollision` l. 11301-11303 |
+
+### How it looks
+
+| Fact | Value | Source |
+|---|---|---|
+| Background | Black: the room's header (`$48,$01`) sets no background colour (its low 3 bits are 0, under 4), so the colour is the area type's, underground (2): `BackgroundColors`[2] = `$0f`, black. 1-1 (ground) is `$22`, its sky blue. | `BackgroundColors` l. 1426-1428, `SetBGColor` l. 1461-1464, header parse l. 4404-4408 |
+| No scenery | The header's second byte, `$01`, has its background scenery bits (5-4) at 0: none. | header parse l. 4425-4436 |
+| The exit pipe's pieces | Read backwards from its length 3 (`ExitPipe`, `RenderSidewaysPipe`): column 13 the mouth, `$1c` over `$1f`; column 14 the sideways body, `$1d` over `$20`; column 15 the shaft's left half (`$14`) from the block buffer's top, row 0, with the joint, `$1e` over `$21`, where the sideways pipe meets it; column 16 the shaft's right half (`$15`), off the room's screen. The shaft has no rim: it is the same `$14`/`$15` as an upright pipe's body (`VerticalPipeData`). | `SidePipeShaftData` / `SidePipeTopPart` / `SidePipeBottomPart` l. 3800-3808, `RenderSidewaysPipe` l. 3815-3834, `VerticalPipeData` l. 3837-3841 |
+| Behind the pipes | Mario is drawn behind the background (`Player_SprAttrib` bit 5) while he sinks into the warp pipe and walks into the exit pipe, while he drops into the room (`PlayerBGPriorityData`[1] = `$20`, the room's entrance control being 1) and while he rises out of pipe 163. The bit is cleared once he is in play again (game routine 8) and his sprite is below y = `$40`. | `HandlePipeEntry` l. 12287, `PipeDwnS` l. 12086-12091, `PlayerBGPriorityData` l. 2826-2827, `Entrance_GameTimerSetup` l. 2860-2861, `PlayerCtrlRoutine` l. 5612-5623 |
+
+**Replica choices** (spec §4, §5):
+- **The room is its own 16 × 15 grid**, kept with 1-1's data, and a fixed screen. Mario's x there is in the room's own pixels.
+- **The black screens are skipped.** The original blanks the screen for some frames while it loads the next area; the replica changes area at once, at the end of the sinking or the walk into the exit pipe. Every frame that shows something is kept: the 48-tick sinking, the drop into the room, the 160-tick walk into the exit pipe and the 96-tick rise out of pipe 163.
+- **Entering** needs, as in the original, Mario on the ground, holding down with neither left nor right, his foot probes at sprite x + 3 and + 12 over the warp pipe's two columns, and his feet on its top.
+- **Leaving** is his box against the mouth's lower tile, (13, 12), on the ground, facing right: the replica's boxes stop him with his box's right edge on the mouth (sprite x 194).
+- **The walk into the exit pipe** keeps 0.5 px a tick: the original's friction can carry the speed's fraction into a ninth 1/16 px now and then, which isn't modelled.
+- **Coins** are collected by Mario's box touching their tile, as the replica's boxes stand for the original's probes elsewhere.
+- **The views** (spec §8) draw the room on black, with no scenery. The exit pipe's tiles are their own kind, `SIDE_PIPE`, solid as a pipe's, so the Sprite view can draw its mouth and body, which have the same neighbours as an upright pipe's rim and body. A pipe tile on the playfield's top row, row 2, is drawn as the body, so the shaft has no rim. While a pipe transition moves Mario (the drop into the room too) he is drawn behind the tiles. The original clears that once his sprite is below y = `$40` after control returns, which is always so in the room and on pipe 163's top; the replica clears it as control returns.
+- **A change of area** starts Mario afresh where he arrives, keeping his power state and nothing else (no speed, no invincibility, no invulnerability), clears enemies, items and fireballs, and restarts the level timer's unit. Enemies already passed over in 1-1 stay skipped on the way back; those due at page 10 activate as the screen arrives there.
+
 **Replica choices** (spec §5):
 - **The points are scored at the touch**, both the height points and the remaining-time points, and the attempt ends there. In play mode the HUD shows them as the original does: the height points once the flag is down, the time points one unit a tick in the castle.
 - **The sequence after the touch** (play and replay only) is the slide, leaving the pole, the walk to the stopper and the count. The star flag, the fireworks and the wait for the music are not built: play mode starts a new game when the count is done.
@@ -353,7 +462,7 @@ The caveat below ("no scroll lock in 1-1") is wrong about the flagpole: the lock
 - **Exact enemy y:** the game spawns enemies at `16·row + 8` px and gravity settles them. The "row 12 / row 4" in the table is where they end up resting, not a stored value.
 - **Level width past column 207:** this is inferred from the scroll code (no scroll lock in 1-1, but for the flagpole's: see above), not from an image. The map image's art stops at 207. Treat columns 208–223 as "ground continues, nothing else", and stop the camera wherever is convenient.
 - **Hidden block content:** the 1-UP is confirmed by the object type in the data (`$03` small object → `Hidden1UpBlock`). Its row 8 is one row higher than the usual ?-block row 9.
-- **Not covered:** the bonus room's layout, enemy AI/speeds, and item behaviour. Each is a separate research question.
+- **Not covered:** enemy AI/speeds and item behaviour. Each is a separate research question. (The bonus room's layout was added for #23.)
 
 ## Reproducing the decode
 
