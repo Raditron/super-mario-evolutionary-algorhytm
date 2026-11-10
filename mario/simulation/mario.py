@@ -123,6 +123,15 @@ class Mario(TileBody):
             SMALL_MARIO_HITBOX_WIDTH_PIXELS * SUBPIXELS_PER_PIXEL,
             SMALL_MARIO_HITBOX_HEIGHT_PIXELS * SUBPIXELS_PER_PIXEL,
         )
+        self.power_state = PowerState.SMALL
+        self._body = MarioBody.SMALL
+        self.is_dead = False                         # an enemy's touch killed him
+        self._power_state_change: PowerStateChange | None = None
+        self._start_afresh()
+
+    def _start_afresh(self) -> None:
+        """Everything about him but where he is and his power state, as an area
+        starts: standing still, facing right, with no timer running."""
         self.velocity_x = 0
         self.velocity_y = 0
         self.movement_state = MovementState.ON_GROUND
@@ -143,11 +152,7 @@ class Mario(TileBody):
         # (column, row) of the tile his head hit from below this tick: the one over
         # his centre, where the original's single head probe is (sprite x + 8)
         self.head_hit_tile: tuple[int, int] | None = None
-        self.power_state = PowerState.SMALL
-        self._body = MarioBody.SMALL
         self._is_crouching = False                   # CrouchingFlag
-        self.is_dead = False                         # an enemy's touch killed him
-        self._power_state_change: PowerStateChange | None = None
         self._invulnerable_ticks_left = 0            # InjuryTimer
         self._invincible_ticks_left = 0              # StarInvincibleTimer
         self._run_held_last_tick = False
@@ -254,6 +259,23 @@ class Mario(TileBody):
         self.x = pixel_x * SUBPIXELS_PER_PIXEL + (self.x & SUBPIXEL_FRACTION_MASK)
         if not keeps_speed:
             self.velocity_x &= X_SUBSPEED_MASK
+
+    def start_in_area(self, sprite_x_pixels: int, sprite_y_pixels: int) -> None:
+        """A new area starts with his sprite here (InitializeArea). The original
+        clears his memory but his power state (InitializeMemory), and its frame
+        timers (ClrTimersLoop): he stands up, still, with neither a Starman's
+        invincibility nor the while after being hurt."""
+        self._take_body(MarioBody.BIG if self.is_big else MarioBody.SMALL)
+        self.x = (sprite_x_pixels + SMALL_MARIO_HITBOX_OFFSET_X_PIXELS) * SUBPIXELS_PER_PIXEL
+        self.y = (sprite_y_pixels + self.hitbox_offset_y_pixels) * SUBPIXELS_PER_PIXEL
+        self._start_afresh()
+
+    def move_through_tiles(self, distance_x: int, distance_y: int) -> None:
+        """Move him by these sub-pixels whatever tiles are there, shooting nothing:
+        in a pipe transition the original turns his tile collision off."""
+        self.x += distance_x
+        self.y += distance_y
+        self.wants_to_shoot_fireball = False
 
     def hold_flagpole(self, sprite_x_pixels: int, sprite_y_pixels: int, facing_direction: int) -> None:
         """On the flagpole, his sprite here (PutPlayerOnVine), with no speed. Once

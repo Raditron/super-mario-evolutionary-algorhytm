@@ -1,6 +1,8 @@
 """The Debug view: the level as the game treats it, as coloured, filled hitboxes
 (the flag on the flagpole too), with the followed agent's Observation over it and
-the recent game events. A watched generation's ghosts are their hitboxes' outlines."""
+the recent game events. A watched generation's ghosts are their hitboxes' outlines.
+The bonus room's background is black, as underground; Mario and a ghost whom a
+pipe transition is moving are drawn behind the tiles, as the original draws them."""
 
 import pygame
 
@@ -12,7 +14,6 @@ from mario.constants.view import (
     FIREBALL_COLOUR,
     FLAG_COLOUR,
     GHOST_OUTLINE_WIDTH_PIXELS,
-    SKY_COLOUR,
 )
 from mario.snapshots.world_snapshot import (
     AgentSnapshot,
@@ -22,6 +23,7 @@ from mario.snapshots.world_snapshot import (
     WorldSnapshot,
     is_blinked_out,
 )
+from mario.view.area_backgrounds import AREA_BACKGROUND_COLOURS
 from mario.view.debug_text import DebugText
 from mario.view.game_event_feed import GameEventFeed
 from mario.view.hitbox_colours import ENEMY_COLOURS, ITEM_COLOURS, SHELL_COLOURS, TILE_COLOURS, mario_colour
@@ -37,11 +39,13 @@ class DebugRenderer:
         self._game_event_feed = GameEventFeed(debug_text)
 
     def draw(self, snapshot: WorldSnapshot, screen: pygame.Surface) -> None:
-        """Items still rising out of their block are drawn behind it, as in the original."""
-        screen.fill(SKY_COLOUR)
+        """Items still rising out of their block are drawn behind it, as in the
+        original, and Mario and the ghosts behind the tiles while a pipe transition moves them."""
+        screen.fill(AREA_BACKGROUND_COLOURS[snapshot.area])
         for item in snapshot.items:
             if item.is_emerging:
                 self._draw_item(item, snapshot.screen_left_x_pixels, screen)
+        self._draw_agents(snapshot, screen, in_pipe=True)
         self._draw_tiles(snapshot, screen)
         if snapshot.flag is not None:
             _fill_level_box(screen, FLAG_COLOUR, snapshot.screen_left_x_pixels, snapshot.flag.x_pixels,
@@ -53,15 +57,20 @@ class DebugRenderer:
             self._draw_enemy(enemy, snapshot.screen_left_x_pixels, screen)
         for fireball in snapshot.fireballs:
             self._draw_fireball(fireball, snapshot.screen_left_x_pixels, screen)
-        for ghost in snapshot.ghosts:
-            self._draw_ghost(ghost, snapshot.screen_left_x_pixels, screen)
-        mario = snapshot.mario
-        if not is_blinked_out(mario.is_invulnerable, snapshot.tick):
-            _fill_level_box(screen, mario_colour(mario), snapshot.screen_left_x_pixels,
-                            mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels)
+        self._draw_agents(snapshot, screen, in_pipe=False)
         if snapshot.observation is not None:
             self._observation_overlay.draw(snapshot.observation, snapshot.screen_left_x_pixels, screen)
         self._game_event_feed.draw(snapshot.recent_events, screen)
+
+    def _draw_agents(self, snapshot: WorldSnapshot, screen: pygame.Surface, in_pipe: bool) -> None:
+        """The ghosts, then Mario over them: those a pipe transition is moving, or the others."""
+        for ghost in snapshot.ghosts:
+            if ghost.mario.is_in_pipe is in_pipe:
+                self._draw_ghost(ghost, snapshot.screen_left_x_pixels, screen)
+        mario = snapshot.mario
+        if mario.is_in_pipe is in_pipe and not is_blinked_out(mario.is_invulnerable, snapshot.tick):
+            _fill_level_box(screen, mario_colour(mario), snapshot.screen_left_x_pixels,
+                            mario.x_pixels, mario.y_pixels, mario.width_pixels, mario.height_pixels)
 
     @staticmethod
     def _draw_tiles(snapshot: WorldSnapshot, screen: pygame.Surface) -> None:

@@ -1,6 +1,7 @@
 """The Debug view draws Goombas as coloured hitboxes, a squashed one flattened (#17),
 the flag on the flagpole (#24), an invincible Mario in his own colour (#21), and
-over them the followed agent's Observation and the recent game events (#25)."""
+over them the followed agent's Observation and the recent game events (#25); the
+bonus room on black with its coins, and Mario behind the tiles in a pipe (#23)."""
 
 import pygame
 import pytest
@@ -44,10 +45,13 @@ from mario.constants.view import (
     OBSERVATION_ENEMY_TINT,
     OBSERVATION_SOLID_TINT,
     OBSERVATION_STATE_TEXT_TOP_LEFT,
+    COIN_COLOUR,
     ONE_UP_MUSHROOM_COLOUR,
+    PIPE_COLOUR,
     SKY_COLOUR,
     STARMAN_COLOUR,
     SUPER_MUSHROOM_COLOUR,
+    UNDERGROUND_COLOUR,
     USED_BLOCK_COLOUR,
 )
 from mario.level.static_level import EnemyKind
@@ -67,6 +71,7 @@ from mario.snapshots.world_snapshot import (
     WorldSnapshot,
 )
 from mario.view.debug_renderer import DebugRenderer
+from tests.game.helpers import in_the_bonus_room, without_enemies
 
 SCREEN_LEFT_X = 100
 GOOMBA_X, GOOMBA_Y = 300, 120                 # in level pixels, clear of the ground and Mario
@@ -279,3 +284,29 @@ def test_the_recent_game_events_and_points_scored_are_listed_newest_last():
     many = tuple(GameEvent(tick, GameEventKind.SCORED_POINTS, 100) for tick in range(DEBUG_GAME_EVENT_LINES + 1))
     assert not changed_rows(drawn(snapshot_with(recent_events=many)),
                             drawn(snapshot_with(recent_events=many[1:])))
+
+
+# A coin of the bonus room's (its middle row, row 7), and an empty tile of it.
+ROOM_COIN = (6, 7)
+ROOM_EMPTY_TILE = (2, 6)
+
+
+def test_the_bonus_room_is_drawn_on_black_with_its_coins_in_the_coin_colour(world_1_1):
+    snapshot = WorldSnapshot.of(in_the_bonus_room(without_enemies(world_1_1)))
+    screen = pygame.Surface((SCREEN_WIDTH_PIXELS, SCREEN_HEIGHT_PIXELS))
+    DebugRenderer().draw(snapshot, screen)
+    for (column, row), colour in [(ROOM_COIN, COIN_COLOUR), (ROOM_EMPTY_TILE, UNDERGROUND_COLOUR)]:
+        centre = (column * TILE_SIZE_PIXELS + HALF_TILE_PIXELS, row * TILE_SIZE_PIXELS + HALF_TILE_PIXELS)
+        assert tuple(screen.get_at(centre))[:3] == colour
+
+
+def test_mario_is_drawn_behind_the_tiles_while_a_pipe_transition_moves_him():
+    """A pipe tile where Mario stands: in a pipe, the pipe shows over him."""
+    column, row = SCREEN_LEFT_X // TILE_SIZE_PIXELS, MARIO_Y_PIXELS // TILE_SIZE_PIXELS
+    rows = tuple(tuple(TileKind.PIPE if (each_column, each_row) == (column, row) else TileKind.EMPTY
+                       for each_column in range(column + 2)) for each_row in range(row + 1))
+    snapshot = snapshot_with(tiles=VisibleTiles(0, rows))
+    in_pipe = WorldSnapshot(**{**vars(snapshot), "mario": MarioSnapshot(**{**vars(snapshot.mario), "is_in_pipe": True})})
+    mario_x, mario_y = SCREEN_LEFT_X + HALF_TILE_PIXELS, row * TILE_SIZE_PIXELS + TILE_SIZE_PIXELS - 1
+    assert colour_at(drawn(in_pipe), mario_x, mario_y) == PIPE_COLOUR
+    assert colour_at(drawn(snapshot), mario_x, mario_y) == MARIO_COLOUR

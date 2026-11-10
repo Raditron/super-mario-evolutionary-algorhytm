@@ -39,7 +39,37 @@ def test_an_agent_whose_attempt_has_ended_is_no_longer_in_it(world_1_1: StaticLe
 
 
 def agent_at(agent_index: int, x_pixels: int, is_in_attempt: bool = True, reached_flag: bool = False) -> AgentSnapshot:
-    return AgentSnapshot(agent_index, MarioSnapshot(x_pixels, 0, 12, 14), Area.LEVEL, is_in_attempt, reached_flag)
+    return AgentSnapshot(agent_index, MarioSnapshot(x_pixels, 0, 12, 14), Area.LEVEL, is_in_attempt, reached_flag,
+                         x_pixels)
+
+
+# A Mario in the bonus room counts as at the warp pipe's column, 57 (spec section 8);
+# his own x is the room's.
+WARP_PIPE_X_PIXELS = 57 * 16
+BONUS_ROOM_X_PIXELS = 40
+
+
+def agent_in_the_bonus_room(agent_index: int) -> AgentSnapshot:
+    return AgentSnapshot(agent_index, MarioSnapshot(BONUS_ROOM_X_PIXELS, 0, 12, 14), Area.BONUS_ROOM, True,
+                         False, WARP_PIPE_X_PIXELS)
+
+
+def test_an_agent_in_the_bonus_room_ranks_as_if_at_the_warp_pipes_column():
+    assert followed_agent([agent_at(0, WARP_PIPE_X_PIXELS - 1), agent_in_the_bonus_room(1)],
+                          previously_followed_index=None).agent_index == 1
+    assert followed_agent([agent_at(0, WARP_PIPE_X_PIXELS + 1), agent_in_the_bonus_room(1)],
+                          previously_followed_index=None).agent_index == 0
+
+
+def test_only_agents_in_the_followed_agents_area_are_drawn_as_ghosts_though_all_count_as_alive():
+    camera = FollowedAgentCamera()
+    agents = [agent_at(0, 2000), agent_in_the_bonus_room(1), agent_at(2, 500)]
+    shown = camera.snapshot(GENERATION, POPULATION_SIZE, [chunk(agents)])
+    assert [ghost.agent_index for ghost in shown.ghosts] == [2]
+    assert shown.generation_progress.alive == POPULATION_SIZE
+    followed_in_the_room = [agent_at(0, 100), agent_in_the_bonus_room(1), agent_in_the_bonus_room(2)]
+    shown = FollowedAgentCamera().snapshot(GENERATION, POPULATION_SIZE, [chunk(followed_in_the_room)])
+    assert [ghost.agent_index for ghost in shown.ghosts] == [2]
 
 
 def test_the_followed_agent_is_the_rightmost_still_in_his_attempt():

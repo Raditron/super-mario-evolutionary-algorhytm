@@ -1,10 +1,11 @@
 """Builds Observations: what an agent perceives on one tick (spec section 7).
 
 The level's tiles are shared by every Attempt, so the window for every column
-Mario's centre can be in is worked out once per level. Building an Observation
-is then one table lookup, plus the few blocks the Attempt has changed and its
-enemies; a batch of them is one numpy gather for the whole batch, which keeps
-training's hot path fast.
+Mario's centre can be in is worked out once per level, and once for its bonus
+room, the room's after the level's in one table. Building an Observation is then
+one table lookup, plus the few blocks the Attempt has changed and its enemies; a
+batch of them is one numpy gather for the whole batch, which keeps training's
+hot path fast.
 """
 
 import numpy as np
@@ -25,6 +26,7 @@ from mario.constants.observation import (
 )
 from mario.level.static_level import StaticLevel
 from mario.level.tile_kind import INVISIBLE_SOLID_TILE_KINDS, SOLID_TILE_KINDS, TileKind
+from mario.simulation.area import Area
 from mario.simulation.attempt import Attempt
 from mario.simulation.enemy import Enemy
 from mario.simulation.mario import Mario
@@ -32,8 +34,18 @@ from mario.simulation.mario import Mario
 
 class ObservationBuilder:
     def __init__(self, level: StaticLevel):
-        self._level_width_tiles = level.width_tiles
-        self._grid_by_centre_column = _grids_by_centre_column(level)
+        areas = {Area.LEVEL: level}
+        if level.bonus_room is not None:
+            areas[Area.BONUS_ROOM] = level.bonus_room.tiles
+        # Each area's grids, one after the other: an area's start in the table, and its width.
+        self._first_grid_index_by_area = {}
+        self._width_tiles_by_area = {}
+        grids = []
+        for area, area_tiles in areas.items():
+            self._first_grid_index_by_area[area] = sum(len(area_grids) for area_grids in grids)
+            self._width_tiles_by_area[area] = area_tiles.width_tiles
+            grids.append(_grids_by_centre_column(area_tiles))
+        self._grid_by_index = np.concatenate(grids)
         self._state_divisors = np.array(OBSERVATION_STATE_DIVISORS, dtype=np.float64)
 
     @staticmethod
@@ -53,7 +65,7 @@ class ObservationBuilder:
         return self.build_batch([attempt])[0]
 
     def build_with_first_column(self, attempt: Attempt) -> tuple[np.ndarray, int]:
-        """The attempt's Observation, and the level column of its grid's leftmost cells."""
+        """The attempt's Observation, and the column (of the area Mario is in) of its grid's leftmost cells."""
         centre_columns = self._centre_columns([attempt])
         return self._build([attempt], centre_columns)[0], _first_column(centre_columns[0])
 
@@ -62,19 +74,21 @@ class ObservationBuilder:
         return self._build(attempts, self._centre_columns(attempts))
 
     def _centre_columns(self, attempts: list[Attempt]) -> list[int]:
-        """The tile column holding each Mario's centre, which anchors his grid."""
+        """The tile column holding each Mario's centre, in the area he is in, which anchors his grid."""
         centre_columns = [attempt.mario.centre_column for attempt in attempts]
-        # The solid columns either side keep Mario in the level, so this never fails;
+        # The solid columns either side keep Mario in his area, so this never fails;
         # it guards the gather in _build, where numpy would wrap a column of -1 round
-        # to the level's right end. Two reductions per batch cost next to nothing.
-        if centre_columns and (min(centre_columns) < 0 or max(centre_columns) >= self._level_width_tiles):
-            raise ValueError(f"Mario's centre is outside the level, in columns {centre_columns}")
+        # to the table's end, or another area's grids.
+        for attempt, centre_column in zip(attempts, centre_columns):
+            if not 0 <= centre_column < self._width_tiles_by_area[attempt.area]:
+                raise ValueError(f"Mario's centre is outside the {attempt.area}, in column {centre_column}")
         return centre_columns
 
     def _build(self, attempts: list[Attempt], centre_columns: list[int]) -> np.ndarray:
         observations = np.empty((len(attempts), OBSERVATION_LENGTH), dtype=np.float64)
         grids = self.grid_of(observations)
-        grids[...] = self._grid_by_centre_column[centre_columns]
+        grids[...] = self._grid_by_index[[self._first_grid_index_by_area[attempt.area] + centre_column
+                                          for attempt, centre_column in zip(attempts, centre_columns)]]
         for grid, attempt, centre_column in zip(grids, attempts, centre_columns):
             _mark_changed_blocks(grid, attempt.tiles.changed_blocks, _first_column(centre_column))
             _mark_enemies(grid, attempt.enemies.active, _first_column(centre_column))
@@ -115,7 +129,8 @@ def _mark_enemies(grid: np.ndarray, enemies: list[Enemy], first_column: int) -> 
 
 
 def _grids_by_centre_column(level: StaticLevel) -> np.ndarray:
-    """For every column Mario's centre can be in, the grid's tiles as rows of cells.
+    """For every column Mario's centre can be in (of the level, or of the bonus
+    room), the grid's tiles as rows of cells.
     A tile shows as solid when the physics treats it so and it can be seen; columns
     outside the level do too. The hidden 1-UP block isn't solid until hit, so it
     shows empty, and so does the invisible castle stopper."""

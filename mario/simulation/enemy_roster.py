@@ -24,6 +24,10 @@ class EnemyRoster:
         self.active = [enemy for enemy in self.active if not self._is_out_of_play(enemy, screen_left_x_pixels)]
         self.active += self._spawner.activate_due(screen_left_x_pixels)
 
+    def remove_active(self) -> None:
+        """A new area: the active enemies are gone; those still to come stay in the list."""
+        self.active = []
+
     @staticmethod
     def _is_out_of_play(enemy: Enemy, screen_left_x_pixels: int) -> bool:
         return (enemy.hitbox().x_pixels < screen_left_x_pixels - ENEMY_REMOVAL_RANGE_PIXELS

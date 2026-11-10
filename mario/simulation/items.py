@@ -47,6 +47,9 @@ class Items:
         if _is_out_of_play(self._item, playfield.screen_left_x_pixels):
             self._item = None
 
+    def remove_all(self) -> None:
+        self._item = None
+
     def take_touched(self, mario_hitbox: Hitbox) -> Item | None:
         """The item Mario is touching, which he collects: it leaves play."""
         item = self._item

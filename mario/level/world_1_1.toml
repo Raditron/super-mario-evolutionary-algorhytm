@@ -19,6 +19,12 @@
 # and what the pipe leads to.
 # enemies: in spawn order, with the column from the enemy data and the row the
 # enemy rests on. A goomba_pair is placed relative to its data column (#8).
+#
+# bonus_room: the underground coin room the warp pipe leads to (#23), one screen
+# of 16 columns x 15 rows, its layer_1 in the same legend, plus:
+#   $  coin             <  sideways exit pipe, mouth            -  sideways exit pipe, body
+# The exit pipe's mouth is given by its lower tile, which Mario walks into; it
+# brings him back to the level at return_page (16 columns a page).
 
 layer_1 = """
 ................................................................................................................................................................................................................................
@@ -147,3 +153,25 @@ kind = "goomba_pair"
 data_column = 177
 resting_row = 12
 
+
+[bonus_room]
+layer_1 = """
+................
+................
+B...BBBBBBB....{
+B..............{
+B..............{
+B....$$$$$.....{
+B..............{
+B...$$$$$$$....{
+B..............{
+B...$$$$$$$....{
+B...BBBBBBB....{
+B...BBBBBBB..<-{
+B...BBBBBBB..<-{
+XXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXXX
+"""
+exit_pipe_mouth_column = 13
+exit_pipe_mouth_row = 12
+return_page = 10

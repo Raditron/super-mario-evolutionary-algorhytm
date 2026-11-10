@@ -57,6 +57,9 @@ class Fireballs:
             elif not fireball.is_exploding and is_enemy_check_tick(tick):
                 self._hit_enemies(fireball, enemies, playfield.screen_left_x_pixels, tick)
 
+    def remove_all(self) -> None:
+        self._slots = [None] * FIREBALL_SLOTS
+
     def _hit_enemies(self, fireball: Fireball, enemies: list[Enemy], screen_left_x_pixels: int, tick: int) -> None:
         """The original checks its enemy slots from the last down; the newest enemy
         is the nearest the replica has to the last slot."""

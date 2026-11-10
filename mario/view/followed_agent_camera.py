@@ -2,8 +2,8 @@
 
 From the chunk snapshots the workers last published, it makes the one
 WorldSnapshot the window draws: the overall followed agent's world, drawn solid,
-with up to GHOST_DRAW_LIMIT other living agents (the rightmost ones) as ghosts
-and the generation's line for the HUD. An agent vanishes once his attempt ends;
+with up to GHOST_DRAW_LIMIT other living agents in his area (the rightmost
+ones) as ghosts and the generation's line for the HUD. An agent vanishes once his attempt ends;
 when the followed agent's ends, the camera cuts to the new rightmost living one,
 and once every attempt has ended it stays on the last one followed.
 """
@@ -41,7 +41,8 @@ class FollowedAgentCamera:
         followed_world = next(chunk.followed_world for chunk in chunks
                               if chunk.followed_agent_index == followed.agent_index)
         ghosts = rightmost_first([agent for agent in agents
-                                  if agent.is_in_attempt and agent.agent_index != followed.agent_index])
+                                  if agent.is_in_attempt and agent.agent_index != followed.agent_index
+                                  and agent.area is followed.area])
         ended_count = sum(not agent.is_in_attempt for agent in agents)
         reached_flag_count = sum(agent.reached_flag for agent in agents)
         return replace(followed_world, ghosts=tuple(ghosts[:GHOST_DRAW_LIMIT]),

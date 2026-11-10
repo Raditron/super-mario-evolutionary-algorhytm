@@ -4,6 +4,7 @@ and the Sprite view fills a thing's place with them while its sprite is missing.
 from mario.constants.view import (
     BRICK_COLOUR,
     CASTLE_STOPPER_COLOUR,
+    COIN_COLOUR,
     FIRE_FLOWER_COLOUR,
     FIRE_MARIO_COLOUR,
     FLAGPOLE_COLOUR,
@@ -37,8 +38,10 @@ TILE_COLOURS = {
     TileKind.HIDDEN_ONE_UP_BLOCK: HIDDEN_BLOCK_COLOUR,
     TileKind.USED_BLOCK: USED_BLOCK_COLOUR,
     TileKind.PIPE: PIPE_COLOUR,
+    TileKind.SIDE_PIPE: PIPE_COLOUR,
     TileKind.FLAGPOLE: FLAGPOLE_COLOUR,
     TileKind.CASTLE_STOPPER: CASTLE_STOPPER_COLOUR,
+    TileKind.COIN: COIN_COLOUR,
 }
 
 
