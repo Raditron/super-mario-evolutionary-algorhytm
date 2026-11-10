@@ -3,3 +3,6 @@ numpy
 matplotlib
 pillow
 pytest
+python-docx
+python-pptx
+fonttools
