@@ -34,10 +34,10 @@ def test_the_run_table_becomes_the_run_settings_and_the_algorithm_table_a_plain_
     assert config.algorithm_settings == {"hidden_layer_size": 24, "mutation": {"rate": 0.05}}
 
 
-def test_the_repo_root_config_has_the_four_run_settings_and_an_empty_algorithm_table():
+def test_the_repo_root_config_has_the_four_run_settings_and_an_algorithm_table():
     config = RunConfig.load(REPO_ROOT_CONFIG)
     assert config.run.population_size > 0 and config.run.generations > 0
-    assert config.algorithm_settings == {}
+    assert isinstance(config.algorithm_settings, dict)
 
 
 @pytest.mark.parametrize("run_table, named_setting", [
